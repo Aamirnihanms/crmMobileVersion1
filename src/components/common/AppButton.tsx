@@ -18,6 +18,7 @@ export default function AppButton({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       style={({ pressed }) => [
         styles.base,
         styles[variant],
@@ -33,6 +34,7 @@ export default function AppButton({
 const styles = StyleSheet.create({
   base: {
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: 8,
     alignItems: 'center',
   },
