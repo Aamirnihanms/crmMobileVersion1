@@ -1,20 +1,27 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
+import LeadsListScreen from '../screens/leads/LeadsListScreen';
+import LeadDetailsScreen from '../screens/leads/LeadDetailsScreen';
 
-const Stack = createNativeStackNavigator();
+export type LeadsStackParamList = {
+  LeadsList: undefined;
+  LeadDetails: { id: string };
+};
 
-function LeadsListScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Leads List</Text>
-    </View>
-  );
-}
+const Stack = createNativeStackNavigator<LeadsStackParamList>();
 
 export default function LeadsStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="LeadsList" component={LeadsListScreen} />
+      <Stack.Screen
+        name="LeadsList"
+        component={LeadsListScreen}
+        options={{ title: 'Leads' }}
+      />
+      <Stack.Screen
+        name="LeadDetails"
+        component={LeadDetailsScreen}
+        options={{ title: 'Lead Details' }}
+      />
     </Stack.Navigator>
   );
 }
