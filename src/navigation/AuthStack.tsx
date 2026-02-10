@@ -1,15 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
+import LoginScreen from '../screens/auth/LoginScreen';
 
 const Stack = createNativeStackNavigator();
-
-function LoginScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Login Screen</Text>
-    </View>
-  );
-}
 
 export default function AuthStack() {
   return (

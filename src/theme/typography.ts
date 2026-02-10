@@ -14,7 +14,7 @@ export const typography: Record<string, TextStyle> = {
     fontWeight: '400',
   },
   caption: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '400',
   },
 };
