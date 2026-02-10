@@ -8,9 +8,14 @@ export const http = axios.create({
 });
 
 http.interceptors.request.use(async (config) => {
-  const token = await getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const token = await getToken();
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // Swallow token errors so requests can proceed unauthenticated.
   }
   return config;
 });

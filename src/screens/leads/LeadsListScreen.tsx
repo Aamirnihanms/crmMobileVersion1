@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { LeadsPageResponse } from '../../api/leads.api';
 
+
 import AppText from '../../components/common/AppText';
 import AppLoader from '../../components/common/AppLoader';
 import AppInput from '../../components/common/AppInput';
@@ -49,6 +50,7 @@ export default function LeadsListScreen() {
         hasNextPage,
         isFetchingNextPage,
         refetch,
+        isRefetching,
     } = useInfiniteLeads(debouncedSearch) as {
         data: InfiniteData<LeadsPageResponse> | undefined;
         isLoading: boolean;
@@ -58,6 +60,7 @@ export default function LeadsListScreen() {
         hasNextPage?: boolean;
         isFetchingNextPage: boolean;
         refetch: () => void;
+        isRefetching: boolean;
     };
 
     /* ---------------- STATES ---------------- */
@@ -124,7 +127,7 @@ export default function LeadsListScreen() {
                     }
                     refreshControl={
                         <RefreshControl
-                            refreshing={false}
+                            refreshing={isRefetching}
                             onRefresh={refetch}
                         />
                     }

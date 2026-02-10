@@ -52,8 +52,8 @@ export default function LeadDetailsScreen() {
       {/* CONTACT */}
       <View style={styles.section}>
         <AppText variant="subtitle">Contact</AppText>
-        <AppText>{data.phone_number}</AppText>
-        <AppText>{data.whatsapp_number}</AppText>
+       <AppText>{data.phone_number || '—'}</AppText>
+        <AppText>{data.whatsapp_number || '—'}</AppText>
         {data.email ? <AppText>{data.email}</AppText> : null}
       </View>
 

@@ -29,11 +29,12 @@ export default function LoginScreen() {
           setLoggedIn(true);
         },
         onError: (err: any) => {
-            console.error('Login error:', err.response.data);
-          Alert.alert(
-            'Login failed',
-            err?.message || 'Invalid credentials'
-          );
+          const message =
+            err?.response?.data?.detail ??
+            err?.message ??
+            'Invalid credentials';
+          console.error('Login error:', message);
+          Alert.alert('Login failed', message);
         },
       }
     );

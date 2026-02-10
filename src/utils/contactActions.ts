@@ -15,7 +15,12 @@ export const callNumber = async (phone?: string | null) => {
     return;
   }
 
-  await Linking.openURL(url);
+    try {
+    await Linking.openURL(url);
+  } catch (error) {
+    Alert.alert('Error', 'Unable to make the call');
+  }
+
 };
 
 export const openWhatsApp = async (phone?: string | null) => {
@@ -33,5 +38,9 @@ export const openWhatsApp = async (phone?: string | null) => {
     return;
   }
 
-  await Linking.openURL(url);
+    try {
+    await Linking.openURL(url);
+  } catch (error) {
+    Alert.alert('Error', 'Unable to open WhatsApp');
+  }
 };

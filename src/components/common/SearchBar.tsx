@@ -1,5 +1,5 @@
 // components/common/SearchBar.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -23,23 +23,37 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const [searchText, setSearchText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounce the search
   useEffect(() => {
-    const timer = setTimeout(() => {
+        if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
       onSearch(searchText);
     }, debounceMs);
 
-    return () => clearTimeout(timer);
+        return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
   }, [searchText, debounceMs, onSearch]);
 
   const handleClear = () => {
+        if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     setSearchText('');
     onSearch('');
     Keyboard.dismiss();
   };
 
   const handleSubmit = () => {
+        if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     onSearch(searchText);
     Keyboard.dismiss();
   };
