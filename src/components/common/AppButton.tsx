@@ -1,4 +1,9 @@
-import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  ViewStyle,
+  ActivityIndicator,
+} from 'react-native';
 import AppText from './AppText';
 import { colors, spacing } from '../../theme';
 
@@ -7,6 +12,8 @@ type AppButtonProps = {
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger';
   style?: ViewStyle;
+  loading?: boolean;
+  disabled?: boolean;
 };
 
 export default function AppButton({
@@ -14,19 +21,29 @@ export default function AppButton({
   onPress,
   variant = 'primary',
   style,
+  loading = false,
+  disabled = false,
 }: AppButtonProps) {
+  const isDisabled = disabled || loading;
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,
         styles[variant],
-        pressed && styles.pressed,
+        (pressed || isDisabled) && styles.pressed,
+        isDisabled && styles.disabled,
         style,
       ]}
     >
-      <AppText color="#fff">{title}</AppText>
+      {loading ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <AppText color="#fff">{title}</AppText>
+      )}
     </Pressable>
   );
 }
@@ -49,5 +66,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+  disabled: {
+    opacity: 0.6,
   },
 });

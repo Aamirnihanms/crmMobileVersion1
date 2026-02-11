@@ -1,5 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { fetchLeads, LeadsPageResponse } from '../api/leads.api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createLead } from '../api/leads.api';
 
 export const useInfiniteLeads = (search: string) => {
   return useInfiniteQuery<
@@ -21,3 +23,26 @@ export const useInfiniteLeads = (search: string) => {
     },
   });
 };
+
+
+// Mutation for creating a lead
+export const useCreateLead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createLead,
+
+    onSuccess: (data) => {
+      console.log('🎉 Lead created:', data);
+
+      queryClient.invalidateQueries({
+        queryKey: ['leads'],
+      });
+    },
+
+    onError: (error: any) => {
+      console.log('🚨 Create lead failed:', error?.response?.data || error);
+    },
+  });
+};
+

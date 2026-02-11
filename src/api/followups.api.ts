@@ -1,0 +1,134 @@
+import { http } from './http';
+
+/* ---------- TYPES ---------- */
+
+export type FollowUpLeadInfo = {
+  id: string;
+  name: string;
+  phone_number: string;
+  email: string | null;
+  lead_status: number;
+  lead_status_name: string;
+  reminder_date: string | null;
+};
+
+export type FollowUpUser = {
+  id: number;
+  full_name: string;
+  email: string;
+  uid: string;
+};
+
+export type FollowUp = {
+  id: number;
+  lead: FollowUpLeadInfo;
+  date: string;
+  notes: string;
+  next_follow_up_date: string;
+  status: 'pending' | 'completed';
+  importance: 'LOW' | 'NORMAL' | 'HIGH';
+  created_by: FollowUpUser;
+  modified_by: FollowUpUser | null;
+};
+
+export type FollowUpsPageResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: FollowUp[];
+  counts: {
+    total: number;
+    today: number;
+    upcoming: number;
+    overdue: number;
+  };
+};
+
+/* ---------- API ---------- */
+
+export const fetchLeadFollowUps = async (
+  leadId: string,
+  page: number
+): Promise<FollowUpsPageResponse> => {
+  const res = await http.get<FollowUpsPageResponse>(
+    `/followups/`,
+    {
+      params: {
+        lead: leadId,
+         page 
+        },
+    }
+  );
+
+  return res.data;
+};
+
+
+// create
+export type CreateFollowUpPayload = {
+  lead: string; // lead id
+  notes: string;
+  next_follow_up_date: string; // ISO
+  importance: 'IMPORTANT' | 'NORMAL' | 'URGENT';
+  status: 'pending' | 'completed';
+};
+
+export const createLeadFollowUp = async (
+  payload: CreateFollowUpPayload
+) => {
+  try {
+    // 🔍 LOG REQUEST PAYLOAD
+    console.log('➡️ POST /followups payload:', payload);
+
+    const res = await http.post('/followups/', payload);
+
+    // ✅ LOG SUCCESS RESPONSE
+    console.log('✅ POST /followups success:', res.data);
+
+    return res.data;
+  } catch (error: any) {
+    // ❌ LOG ERROR RESPONSE (VERY IMPORTANT)
+    console.error('❌ POST /followups failed');
+
+    if (error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    } else {
+      console.error('Error:', error.message);
+    }
+
+    // 🚨 IMPORTANT: rethrow so TanStack Query can handle rollback
+    throw error;
+  }
+};
+
+// update
+export type UpdateFollowUpPayload = {
+  status: 'completed' | 'postponed' | 'canceled';
+  lead: string;
+  notes: string;
+  importance: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  next_follow_up_date: string;
+
+  // completed-only fields
+  follow_up_methods?: Array<'phone' | 'whatsapp'>;
+  call_duration?: string;
+  whatsapp_message?: string;
+  remark?: string;
+};
+
+export const updateFollowUpStatus = async (
+  followupId: number,
+  payload: UpdateFollowUpPayload
+) => {
+  console.log('➡️ PUT /followups/', followupId, payload);
+
+  const res = await http.put(
+    `/followups/${followupId}/`,
+    payload
+  );
+
+  console.log('✅ Follow-up updated:', res.data);
+  return res.data;
+};
+

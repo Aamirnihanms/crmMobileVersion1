@@ -33,7 +33,7 @@ export default function LoginScreen() {
             err?.response?.data?.detail ??
             err?.message ??
             'Invalid credentials';
-          console.error('Login error:', message);
+          console.error('Login error:', err.response.data.error);
           Alert.alert('Login failed', message);
         },
       }

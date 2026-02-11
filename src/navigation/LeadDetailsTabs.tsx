@@ -1,0 +1,41 @@
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { colors } from '../theme';
+
+import LeadDetailsTab from '../screens/leads/tabs/LeadDetailsTab';
+import LeadFollowUpsTab from '../screens/leads/tabs/LeadFollowUpsTab';
+import LeadNotesTab from '../screens/leads/tabs/LeadNotesTab';
+import LeadActivityTab from '../screens/leads/tabs/LeadActivityTab';
+
+const Tab = createMaterialTopTabNavigator();
+
+export default function LeadDetailsTabs({ leadId }: { leadId: string }) {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        tabBarIndicatorStyle: {
+          backgroundColor: colors.primary,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Tab.Screen name="Details">
+        {() => <LeadDetailsTab id={leadId} />}
+      </Tab.Screen>
+
+      <Tab.Screen name="Follow-ups">
+        {() => <LeadFollowUpsTab id={leadId} />}
+      </Tab.Screen>
+
+      <Tab.Screen name="Notes">
+        {() => <LeadNotesTab id={leadId} />}
+      </Tab.Screen>
+
+      <Tab.Screen name="Activity">
+        {() => <LeadActivityTab id={leadId} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+}

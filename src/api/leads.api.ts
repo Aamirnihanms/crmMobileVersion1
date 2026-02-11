@@ -1,4 +1,5 @@
 import { http } from './http';
+import type { CreateLeadPayload } from '../types/createLead';
 
 /* ------------------ LEAD TYPE ------------------ */
 export type LeadResponse = {
@@ -137,4 +138,24 @@ export const fetchLeadById = async (
 ): Promise<LeadDetail> => {
   const res = await http.get<LeadDetailResponse>(`/leads/${id}/`);
   return res.data.lead;
+};
+
+
+// create lead
+export const createLead = async (
+  payload: CreateLeadPayload
+) => {
+  try {
+    console.log('➡️ POST /leads payload:', payload);
+
+    const res = await http.post('/leads/', payload);
+
+    console.log('✅ POST /leads success:', res.data);
+
+    return res.data;
+  } catch (error: any) {
+    console.log('❌ POST /leads error:', error?.response?.data || error);
+
+    throw error; // VERY IMPORTANT so mutation detects error
+  }
 };
