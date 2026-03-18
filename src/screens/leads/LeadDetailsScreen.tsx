@@ -88,12 +88,19 @@ const handleConvertSubmit = (payload: any) => {
   if (isLoading) return <AppLoader />;
   if (isError || !data) return null;
 
+  const canConvertToAdmission =
+    data.lead_status_details?.value === 'proceed_to_admission';
+
   return (
     <View style={{ flex: 1 }}>
       {/* ✅ PASS HANDLER INTO HEADER */}
       <LeadHeader
         lead={data}
-        onConvertPress={() => setOpenConvert(true)}
+        onConvertPress={
+          canConvertToAdmission
+            ? () => setOpenConvert(true)
+            : undefined
+        }
         onEditPress={
           data.is_editable
             ? () => navigation.navigate('CreateLead', { id })
