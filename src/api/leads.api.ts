@@ -172,3 +172,25 @@ export const createLead = async (
     throw error; // VERY IMPORTANT so mutation detects error
   }
 };
+
+export const updateLead = async (
+  id: string,
+  payload: Partial<CreateLeadPayload>
+) => {
+  try {
+    console.log(`➡️ PUT /leads/${id}/ payload:`, payload);
+
+    const res = await http.put(`/leads/${id}/`, payload);
+
+    console.log(`✅ PUT /leads/${id}/ success:`, res.data);
+
+    return res.data;
+  } catch (error: any) {
+    console.log(
+      `❌ PUT /leads/${id}/ error:`,
+      error?.response?.data || error
+    );
+
+    throw error;
+  }
+};

@@ -10,7 +10,7 @@ import { colors } from '../theme';
 export type LeadsStackParamList = {
   LeadsList: undefined;
   LeadDetails: { id: string };
-  CreateLead: undefined; // 👈 add this
+  CreateLead: { id?: string } | undefined;
   StudentDetails: { id: string }; // 👈 MUST EXIST
 
 };
@@ -42,10 +42,12 @@ export default function LeadsStack() {
         options={{ title: 'Lead Details' }}
       />
       <Stack.Screen
-  name="CreateLead"
-  component={CreateLeadScreen}
-  options={{ title: 'Create Lead' }}
-/>
+        name="CreateLead"
+        component={CreateLeadScreen}
+        options={({ route }) => ({
+          title: route.params?.id ? 'Edit Lead' : 'Create Lead',
+        })}
+      />
     </Stack.Navigator>
   );
 }

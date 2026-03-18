@@ -8,11 +8,13 @@ import { callNumber, openWhatsApp } from '../../utils/contactActions';
 type Props = {
   lead: any;
   onConvertPress?: () => void; // ✅ NEW PROP
+  onEditPress?: () => void;
 };
 
 export default function LeadHeader({
   lead,
   onConvertPress,
+  onEditPress,
 }: Props) {
   return (
     <View style={styles.container}>
@@ -87,6 +89,22 @@ export default function LeadHeader({
           />
           <AppText>Convert</AppText>
         </Pressable>
+
+        <Pressable
+          disabled={!onEditPress}
+          style={[
+            styles.actionButton,
+            !onEditPress && styles.disabled,
+          ]}
+          onPress={onEditPress}
+        >
+          <Ionicons
+            name="create-outline"
+            size={18}
+            color={colors.primary}
+          />
+          <AppText>Edit</AppText>
+        </Pressable>
       </View>
     </View>
   );
@@ -116,6 +134,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: spacing.lg,
+    flexWrap: 'wrap',
   },
   actionButton: {
     flexDirection: 'row',

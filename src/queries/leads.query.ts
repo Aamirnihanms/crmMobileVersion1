@@ -1,8 +1,14 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { fetchLeads, LeadsPageResponse } from '../api/leads.api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createLead } from '../api/leads.api';
-import type { LeadsFilters } from '../api/leads.api';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  fetchLeads,
+  createLead,
+  updateLead,
+  type LeadsFilters,
+} from '../api/leads.api';
 
 export const useInfiniteLeads = (
   search: string,
@@ -44,3 +50,32 @@ export const useCreateLead = () => {
   });
 };
 
+export const useUpdateLead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: any;
+    }) => updateLead(id, payload),
+
+    onSuccess: (_data, variables) => {
+      console.log('🎉 Lead updated:', variables.id);
+
+      queryClient.invalidateQueries({
+        queryKey: ['leads'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['lead', variables.id],
+      });
+    },
+
+    onError: (error: any) => {
+      console.log('🚨 Update lead failed:', error?.response?.data || error);
+    },
+  });
+};

@@ -1,7 +1,12 @@
 import { View } from 'react-native';
-import { RouteProp, useRoute } from '@react-navigation/native';
 import { useState } from 'react';
-import { CommonActions,useNavigation } from '@react-navigation/native';
+import {
+  RouteProp,
+  useRoute,
+  CommonActions,
+  useNavigation,
+} from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import AppLoader from '../../components/common/AppLoader';
 import { useLeadDetails } from '../../queries/leadDetails.query';
@@ -19,6 +24,11 @@ import { useConvertLeadToStudent } from '@/src/queries/students.query';
 type LeadDetailsRouteProp =
   RouteProp<LeadsStackParamList, 'LeadDetails'>;
 
+type Nav = NativeStackNavigationProp<
+  LeadsStackParamList,
+  'LeadDetails'
+>;
+
 
 export default function LeadDetailsScreen() {
   const { params } = useRoute<LeadDetailsRouteProp>();
@@ -26,7 +36,7 @@ export default function LeadDetailsScreen() {
 
   const { data, isLoading, isError } = useLeadDetails(id);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
 
   const convertMutation = useConvertLeadToStudent();
 
@@ -84,6 +94,11 @@ const handleConvertSubmit = (payload: any) => {
       <LeadHeader
         lead={data}
         onConvertPress={() => setOpenConvert(true)}
+        onEditPress={
+          data.is_editable
+            ? () => navigation.navigate('CreateLead', { id })
+            : undefined
+        }
       />
 
       <LeadDetailsTabs leadId={id} />
