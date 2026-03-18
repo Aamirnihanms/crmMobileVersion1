@@ -18,16 +18,23 @@ export default function EnrollmentDetailsScreen() {
     useEnrollmentDetails(params.id);
 
   if (isLoading) return <AppLoader />;
-  if (isError || !data) return null;
+
+  if (isError || !data) {
+    return (
+      <View style={styles.container}>
+        <AppText>Error loading enrollment</AppText>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <AppText variant="title">
-        {data.batch?.batch_name}
+        {data.batch?.batch_name ?? 'No Batch'}
       </AppText>
 
       <AppText>
-        Course: {data.batch?.course_name}
+        Course: {data.batch?.course_name ?? '-'}
       </AppText>
 
       <AppText>
@@ -35,15 +42,35 @@ export default function EnrollmentDetailsScreen() {
       </AppText>
 
       <AppText>
-        Status: {data.status_object?.name}
+        Status: {data.status_object?.name ?? '-'}
       </AppText>
 
       <AppText>
-        Total Paid: {data.total_amount_paid}
+        Student: {data.student_name}
       </AppText>
 
       <AppText>
-        Pending: {data.total_pending_amount}
+        Email: {data.student_email}
+      </AppText>
+
+      <AppText>
+        Phone: {data.student_phone}
+      </AppText>
+
+      <AppText>
+        Total Paid: ₹{data.total_amount_paid}
+      </AppText>
+
+      <AppText>
+        Pending: ₹{data.total_pending_amount}
+      </AppText>
+
+      <AppText>
+        Net Fees: ₹{data.net_fees}
+      </AppText>
+
+      <AppText>
+        Payment Type: {data.payment_type_display}
       </AppText>
     </ScrollView>
   );
