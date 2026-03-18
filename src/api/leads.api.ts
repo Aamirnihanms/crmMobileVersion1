@@ -45,16 +45,19 @@ export type LeadsPageResponse = {
 };
 
 /* ------------------ API CALL ------------------ */
+
 export const fetchLeads = async (
   page: number,
   pageSize = 5,
-  search = ''
+  search = '',
+  filters?: LeadsFilters
 ): Promise<LeadsPageResponse> => {
   const res = await http.get('/leads/', {
     params: {
       page,
       page_size: pageSize,
-      search: search || undefined, // important
+      search: search || undefined,
+      ...filters, // 🔥 THIS ENABLES FILTERING
     },
   });
 
@@ -132,6 +135,16 @@ export type LeadDetailResponse = {
   status: 'success';
   lead: LeadDetail;
 };
+
+export type LeadsFilters = {
+  course?: number;
+  counselor?: number;
+  qualification?: number;
+  lead_status?: number;
+  lead_source?: string;
+};
+
+
 /* ------------------ API CALL ------------------ */
 export const fetchLeadById = async (
   id: string

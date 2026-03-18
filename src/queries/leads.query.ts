@@ -2,20 +2,18 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { fetchLeads, LeadsPageResponse } from '../api/leads.api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createLead } from '../api/leads.api';
+import type { LeadsFilters } from '../api/leads.api';
 
-export const useInfiniteLeads = (search: string) => {
-  return useInfiniteQuery<
-    LeadsPageResponse,
-    Error,
-    LeadsPageResponse,
-    ['leads', string],
-    number
-  >({
-    queryKey: ['leads', search], // 🔥 VERY IMPORTANT
+export const useInfiniteLeads = (
+  search: string,
+  filters?: LeadsFilters
+) => {
+  return useInfiniteQuery({
+    queryKey: ['leads', search, filters], // 🔥 VERY IMPORTANT
     initialPageParam: 1,
 
     queryFn: ({ pageParam }) =>
-      fetchLeads(pageParam, 5, search),
+      fetchLeads(pageParam, 5, search, filters),
 
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.next) return undefined;

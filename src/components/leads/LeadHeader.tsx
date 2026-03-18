@@ -5,7 +5,15 @@ import AppText from '../common/AppText';
 import { spacing, colors } from '../../theme';
 import { callNumber, openWhatsApp } from '../../utils/contactActions';
 
-export default function LeadHeader({ lead }: { lead: any }) {
+type Props = {
+  lead: any;
+  onConvertPress?: () => void; // ✅ NEW PROP
+};
+
+export default function LeadHeader({
+  lead,
+  onConvertPress,
+}: Props) {
   return (
     <View style={styles.container}>
       {/* NAME */}
@@ -33,6 +41,7 @@ export default function LeadHeader({ lead }: { lead: any }) {
 
       {/* ACTIONS */}
       <View style={styles.actionsRow}>
+        {/* CALL */}
         <Pressable
           disabled={!lead.phone_number}
           style={[
@@ -41,10 +50,15 @@ export default function LeadHeader({ lead }: { lead: any }) {
           ]}
           onPress={() => callNumber(lead.phone_number)}
         >
-          <Ionicons name="call-outline" size={18} color={colors.primary} />
+          <Ionicons
+            name="call-outline"
+            size={18}
+            color={colors.primary}
+          />
           <AppText>Call</AppText>
         </Pressable>
 
+        {/* WHATSAPP */}
         <Pressable
           disabled={!lead.whatsapp_number}
           style={[
@@ -55,6 +69,23 @@ export default function LeadHeader({ lead }: { lead: any }) {
         >
           <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
           <AppText>WhatsApp</AppText>
+        </Pressable>
+
+        {/* ✅ CONVERT TO STUDENT */}
+        <Pressable
+          disabled={!onConvertPress}
+          style={[
+            styles.actionButton,
+            !onConvertPress && styles.disabled,
+          ]}
+          onPress={onConvertPress}
+        >
+          <Ionicons
+            name="school-outline"
+            size={18}
+            color={colors.primary}
+          />
+          <AppText>Convert</AppText>
         </Pressable>
       </View>
     </View>

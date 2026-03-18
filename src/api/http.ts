@@ -9,13 +9,18 @@ export const http = axios.create({
 
 http.interceptors.request.use(async (config) => {
   try {
+    // ❌ Skip token for login endpoint
+    if (config.url?.includes('/login')) {
+      return config;
+    }
+
     const token = await getToken();
     if (token) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch {
-    // Swallow token errors so requests can proceed unauthenticated.
+    // ignore
   }
   return config;
 });
