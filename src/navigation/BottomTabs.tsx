@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import DashboardStack from './DashboardStack';
 import LeadsStack from './LeadsStack';
 import StudentsStack from './StudentsStack';
@@ -8,6 +9,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../theme'; // Import from your theme index
 
 const Tab = createBottomTabNavigator();
+const HIDE_TAB_ROUTES = ['MessagesList', 'ChatThread'];
+
+const baseTabBarStyle = {
+  backgroundColor: colors.background,
+  borderTopWidth: 1,
+  borderTopColor: colors.border,
+  paddingBottom: spacing.sm,
+  paddingTop: spacing.sm,
+  height: 60,
+};
 
 export default function AppTabs() {
   return (
@@ -17,14 +28,7 @@ export default function AppTabs() {
         // Using your theme colors
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingBottom: spacing.sm,
-          paddingTop: spacing.sm,
-          height: 60,
-        },
+        tabBarStyle: baseTabBarStyle,
         tabBarLabelStyle: {
           fontSize: typography.caption.fontSize,
           fontWeight: typography.caption.fontWeight,
@@ -37,10 +41,19 @@ export default function AppTabs() {
       <Tab.Screen 
         name="Dashboard" 
         component={DashboardStack} 
-        options={{
+        options={({ route }) => {
+          const routeName =
+            getFocusedRouteNameFromRoute(route) ?? 'DashboardHome';
+          const hideTab = HIDE_TAB_ROUTES.includes(routeName);
+
+          return {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
+            tabBarStyle: hideTab
+              ? { display: 'none' }
+              : baseTabBarStyle,
+          };
         }}
       />
       

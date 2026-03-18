@@ -9,8 +9,21 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AppText from '../components/common/AppText';
 import { colors, spacing } from '../theme';
+import MessagesListScreen from '../screens/chat/MessagesListScreen';
+import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 
-const Stack = createNativeStackNavigator();
+export type DashboardStackParamList = {
+  DashboardHome: undefined;
+  MessagesList: undefined;
+  ChatThread: {
+    chatId: string;
+    name: string;
+    avatarColor: string;
+    online?: boolean;
+  };
+};
+
+const Stack = createNativeStackNavigator<DashboardStackParamList>();
 
 function HeaderIconButton({
   icon,
@@ -52,7 +65,7 @@ export default function DashboardStack() {
       <Stack.Screen
         name="DashboardHome"
         component={DashboardScreen}
-        options={{
+        options={({ navigation }) => ({
           title: '',
           headerShadowVisible: false,
           headerStyle: {
@@ -69,9 +82,7 @@ export default function DashboardStack() {
               />
               <HeaderIconButton
                 icon="chatbubble-ellipses-outline"
-                onPress={() =>
-                  Alert.alert('Messages', 'Coming soon')
-                }
+                onPress={() => navigation.navigate('MessagesList')}
               />
             </View>
           ),
@@ -89,6 +100,26 @@ export default function DashboardStack() {
               </View>
             </Pressable>
           ),
+        })}
+      />
+
+      <Stack.Screen
+        name="MessagesList"
+        component={MessagesListScreen}
+        options={{
+          title: 'Messages',
+          headerShadowVisible: false,
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+        }}
+      />
+
+      <Stack.Screen
+        name="ChatThread"
+        component={ChatThreadScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
