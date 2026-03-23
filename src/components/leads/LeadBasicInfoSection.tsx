@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
-import { spacing, colors } from '../../theme';
+import { StyleSheet, View } from 'react-native';
+import { colors, spacing } from '../../theme';
+import AppCard from './../common/AppCard';
+import AppInput from './../common/AppInput';
 import AppText from './../common/AppText';
 
 type Props = {
@@ -14,46 +16,44 @@ export default function LeadBasicInfoSection({
 }: Props) {
   return (
     <View style={styles.container}>
-      <AppText variant="subtitle">Basic Info</AppText>
+      <AppText variant="h3" style={styles.title}>Basic Information</AppText>
 
-      <TextInput
-        placeholder="Full Name"
-        value={form.name}
-        onChangeText={(v) =>
-          setForm({ ...form, name: v })
-        }
-        style={styles.input}
-      />
+      <AppCard style={styles.card}>
+        <AppInput
+          label="Full Name"
+          placeholder="Enter lead's full name"
+          value={form.name}
+          onChangeText={(v) => setForm({ ...form, name: v })}
+          containerStyle={styles.inputContainer}
+        />
 
-      <TextInput
-        placeholder="Phone Number"
-        keyboardType="phone-pad"
-        value={form.phone_number}
-        onChangeText={(v) =>
-          setForm({ ...form, phone_number: v })
-        }
-        style={styles.input}
-      />
+        <AppInput
+          label="Phone Number"
+          placeholder="Primary contact number"
+          keyboardType="phone-pad"
+          value={form.phone_number}
+          onChangeText={(v) => setForm({ ...form, phone_number: v })}
+          containerStyle={styles.inputContainer}
+        />
 
-      <TextInput
-        placeholder="WhatsApp Number"
-        keyboardType="phone-pad"
-        value={form.whatsapp_number}
-        onChangeText={(v) =>
-          setForm({ ...form, whatsapp_number: v })
-        }
-        style={styles.input}
-      />
+        <AppInput
+          label="WhatsApp Number"
+          placeholder="Same as phone or different"
+          keyboardType="phone-pad"
+          value={form.whatsapp_number}
+          onChangeText={(v) => setForm({ ...form, whatsapp_number: v })}
+          containerStyle={styles.inputContainer}
+        />
 
-      <TextInput
-        placeholder="Email"
-        keyboardType="email-address"
-        value={form.email}
-        onChangeText={(v) =>
-          setForm({ ...form, email: v })
-        }
-        style={styles.input}
-      />
+        <AppInput
+          label="Email Address"
+          placeholder="example@domain.com"
+          keyboardType="email-address"
+          value={form.email}
+          onChangeText={(v) => setForm({ ...form, email: v })}
+          containerStyle={{ marginBottom: 0 }}
+        />
+      </AppCard>
     </View>
   );
 }
@@ -62,11 +62,16 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    borderRadius: 8,
-    marginTop: spacing.md,
+  title: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    marginLeft: 4,
+  },
+  card: {
+    padding: spacing.lg,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
   },
 });

@@ -1,20 +1,29 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
+import PaymentsListScreen from '../screens/payments/PaymentsListScreen';
+import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
 
-function PaymentsListScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Payments List</Text>
-    </View>
-  );
-}
-
 export default function PaymentsStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="PaymentsList" component={PaymentsListScreen} />
+    <Stack.Navigator
+      screenOptions={{
+        headerShadowVisible: false,
+        headerTitleStyle: {
+          fontWeight: '800',
+          fontSize: 20,
+          color: colors.textPrimary,
+        },
+        headerStyle: {
+          backgroundColor: '#F8F9FE',
+        },
+      }}
+    >
+      <Stack.Screen
+        name="PaymentsList"
+        component={PaymentsListScreen}
+        options={{ title: 'Financials' }}
+      />
     </Stack.Navigator>
   );
 }

@@ -1,13 +1,14 @@
-import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import AppText from '../common/AppText';
-import { spacing, colors } from '../../theme';
+import { colors, spacing } from '../../theme';
 import { callNumber, openWhatsApp } from '../../utils/contactActions';
+import AppText from '../common/AppText';
 
 type Props = {
   lead: any;
-  onConvertPress?: () => void; // ✅ NEW PROP
+  onConvertPress?: () => void;
   onEditPress?: () => void;
 };
 
@@ -16,132 +17,177 @@ export default function LeadHeader({
   onConvertPress,
   onEditPress,
 }: Props) {
+  const statusColor = lead.lead_status_details?.color || colors.primary;
+
   return (
     <View style={styles.container}>
-      {/* NAME */}
-      <AppText variant="title">
-        {lead.name || 'Unnamed Lead'}
-      </AppText>
+      <LinearGradient
+        colors={[colors.primaryLight + '20', colors.background]}
+        style={styles.headerGradient}
+      />
 
-      {/* STATUS BAR */}
-      <View style={styles.statusRow}>
-        <Ionicons name="chevron-back" size={18} color="white" />
+      <View style={styles.headerContent}>
+        <View style={styles.topRow}>
+          <View style={styles.nameSection}>
+            <AppText variant="h2" style={styles.name}>
+              {lead.name || 'Unnamed Lead'}
+            </AppText>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor + '15' }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <AppText variant="caption" style={[styles.statusText, { color: statusColor }]}>
+                {lead.lead_status_details?.name}
+              </AppText>
+            </View>
+          </View>
 
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: lead.lead_status_details.color },
-          ]}
-        >
-          <AppText style={styles.statusText}>
-            {lead.lead_status_details.name}
-          </AppText>
+          {onEditPress && (
+            <Pressable onPress={onEditPress} style={styles.editBtn}>
+              <Ionicons name="create-outline" size={20} color={colors.primary} />
+            </Pressable>
+          )}
         </View>
 
-        <Ionicons name="chevron-forward" size={18} color="white" />
-      </View>
-
-      {/* ACTIONS */}
-      <View style={styles.actionsRow}>
-        {/* CALL */}
-        <Pressable
-          disabled={!lead.phone_number}
-          style={[
-            styles.actionButton,
-            !lead.phone_number && styles.disabled,
-          ]}
-          onPress={() => callNumber(lead.phone_number)}
-        >
-          <Ionicons
-            name="call-outline"
-            size={18}
-            color={colors.primary}
+        <View style={styles.actionsGrid}>
+          <ActionCard
+            icon="call-outline"
+            label="Call"
+            onPress={() => callNumber(lead.phone_number)}
+            disabled={!lead.phone_number}
           />
-          <AppText>Call</AppText>
-        </Pressable>
-
-        {/* WHATSAPP */}
-        <Pressable
-          disabled={!lead.whatsapp_number}
-          style={[
-            styles.actionButton,
-            !lead.whatsapp_number && styles.disabled,
-          ]}
-          onPress={() => openWhatsApp(lead.whatsapp_number)}
-        >
-          <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-          <AppText>WhatsApp</AppText>
-        </Pressable>
-
-        {/* ✅ CONVERT TO STUDENT */}
-        <Pressable
-          disabled={!onConvertPress}
-          style={[
-            styles.actionButton,
-            !onConvertPress && styles.disabled,
-          ]}
-          onPress={onConvertPress}
-        >
-          <Ionicons
-            name="school-outline"
-            size={18}
-            color={colors.primary}
+          <ActionCard
+            icon="logo-whatsapp"
+            label="WhatsApp"
+            onPress={() => openWhatsApp(lead.whatsapp_number)}
+            disabled={!lead.whatsapp_number}
+            color="#25D366"
           />
-          <AppText>Convert</AppText>
-        </Pressable>
-
-        <Pressable
-          disabled={!onEditPress}
-          style={[
-            styles.actionButton,
-            !onEditPress && styles.disabled,
-          ]}
-          onPress={onEditPress}
-        >
-          <Ionicons
-            name="create-outline"
-            size={18}
-            color={colors.primary}
+          <ActionCard
+            icon="school-outline"
+            label="Convert"
+            onPress={onConvertPress}
+            disabled={!onConvertPress}
           />
-          <AppText>Edit</AppText>
-        </Pressable>
+        </View>
       </View>
     </View>
   );
 }
 
+function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.actionCard,
+        disabled && styles.disabledCard,
+        pressed && styles.pressedCard
+      ]}
+    >
+      <View style={[styles.actionIconContainer, { backgroundColor: color + (disabled ? '10' : '15') }]}>
+        <Ionicons name={icon} size={20} color={disabled ? colors.textMuted : color} />
+      </View>
+      <AppText variant="caption" style={[styles.actionLabel, disabled && { color: colors.textMuted }]}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
-    padding: spacing.lg,
     backgroundColor: colors.background,
+    overflow: 'hidden',
   },
-  statusRow: {
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  headerContent: {
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  topRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.md,
-    gap: spacing.md,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  nameSection: {
+    flex: 1,
+  },
+  name: {
+    marginBottom: spacing.xs,
   },
   statusBadge: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    borderRadius: 6,
+    flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
   },
   statusText: {
-    color: 'white',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 10,
+    textTransform: 'uppercase',
   },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    flexWrap: 'wrap',
-  },
-  actionButton: {
-    flexDirection: 'row',
+  editBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  disabled: {
-    opacity: 0.4,
+  actionsGrid: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  pressedCard: {
+    backgroundColor: colors.background,
+    transform: [{ scale: 0.98 }],
+  },
+  disabledCard: {
+    opacity: 0.5,
+  },
+  actionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  actionLabel: {
+    fontWeight: '600',
+    fontSize: 11,
   },
 });

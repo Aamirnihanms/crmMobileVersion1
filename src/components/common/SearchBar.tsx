@@ -1,13 +1,13 @@
 // components/common/SearchBar.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Keyboard,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Keyboard,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { colors, spacing, typography } from '../../theme';
 
 interface SearchBarProps {
@@ -27,14 +27,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   // Debounce the search
   useEffect(() => {
-        if (debounceRef.current) {
+    if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
       onSearch(searchText);
     }, debounceMs);
 
-        return () => {
+    return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
@@ -42,7 +42,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   }, [searchText, debounceMs, onSearch]);
 
   const handleClear = () => {
-        if (debounceRef.current) {
+    if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     setSearchText('');
@@ -51,7 +51,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleSubmit = () => {
-        if (debounceRef.current) {
+    if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     onSearch(searchText);
@@ -70,7 +70,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           color={colors.textMuted}
           style={styles.searchIcon}
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder={placeholder}
@@ -85,10 +85,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
           autoCorrect={false}
           clearButtonMode="never" // We'll handle clear manually
         />
-        
+
         {searchText.length > 0 && (
-          <TouchableOpacity 
-            onPress={handleClear} 
+          <TouchableOpacity
+            onPress={handleClear}
             style={styles.clearButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >

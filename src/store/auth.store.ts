@@ -1,11 +1,22 @@
 import { create } from 'zustand';
 
+type AuthUser = {
+  uid?: string;
+  email?: string;
+  full_name?: string;
+  role?: string;
+};
+
 type AuthState = {
   isLoggedIn: boolean;
+  user: AuthUser | null;
   setLoggedIn: (v: boolean) => void;
+  setUser: (user: AuthUser | null) => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
   isLoggedIn: false,
+  user: null,
   setLoggedIn: (v) => set({ isLoggedIn: v }),
+  setUser: (user) => set({ user }),
 }));

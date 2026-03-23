@@ -1,15 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
-  View,
   FlatList,
-  StyleSheet,
   RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
 
+import ActivityCard from '../../../components/activities/ActivityCard';
 import AppLoader from '../../../components/common/AppLoader';
 import AppText from '../../../components/common/AppText';
-import ActivityCard from '../../../components/activities/ActivityCard';
-import { spacing } from '../../../theme';
 import { useInfiniteLeadActivities } from '../../../queries/activities.query';
+import { colors, spacing } from '../../../theme';
 
 export default function LeadActivitiesTab({
   id,
@@ -31,7 +32,8 @@ export default function LeadActivitiesTab({
   if (isError) {
     return (
       <View style={styles.center}>
-        <AppText>Failed to load activities</AppText>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+        <AppText style={{ marginTop: spacing.md }}>Failed to load activities</AppText>
       </View>
     );
   }
@@ -44,7 +46,13 @@ export default function LeadActivitiesTab({
   if (!activities.length) {
     return (
       <View style={styles.center}>
-        <AppText>No activity yet</AppText>
+        <View style={styles.emptyIconCircle}>
+          <Ionicons name="analytics-outline" size={32} color={colors.primary} />
+        </View>
+        <AppText variant="subtitle">No activity yet</AppText>
+        <AppText color={colors.textMuted} style={styles.emptySubtext}>
+          Recent movements and updates will appear here.
+        </AppText>
       </View>
     );
   }
@@ -54,6 +62,7 @@ export default function LeadActivitiesTab({
       data={activities}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
+      style={styles.container}
       renderItem={({ item }) => (
         <ActivityCard activity={item} />
       )}
@@ -70,6 +79,7 @@ export default function LeadActivitiesTab({
         <RefreshControl
           refreshing={false}
           onRefresh={refetch}
+          tintColor={colors.primary}
         />
       }
     />
@@ -77,12 +87,32 @@ export default function LeadActivitiesTab({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   list: {
     padding: spacing.lg,
+    flexGrow: 1,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primaryLight + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  emptySubtext: {
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 40,
   },
 });

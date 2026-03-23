@@ -1,16 +1,20 @@
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  View,
-  StyleSheet,
+  KeyboardAvoidingView,
   Modal,
-  TextInput,
-  Pressable,
   Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
+import { colors, spacing } from '../../theme';
 import AppText from '../common/AppText';
-import { spacing, colors } from '../../theme';
 
 type Importance = 'NORMAL' | 'IMPORTANT' | 'URGENT';
 
@@ -28,203 +32,268 @@ export default function AddFollowUpModal({
   }) => void;
 }) {
   const [notes, setNotes] = React.useState('');
-  const [importance, setImportance] =
-    React.useState<Importance>('NORMAL');
-const [date, setDate] = React.useState(new Date());
-const [showDatePicker, setShowDatePicker] = React.useState(false);
-const [showTimePicker, setShowTimePicker] = React.useState(false);
+  const [importance, setImportance] = React.useState<Importance>('NORMAL');
+  const [date, setDate] = React.useState(new Date());
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+  const [showTimePicker, setShowTimePicker] = React.useState(false);
 
+  const handleSave = () => {
+    if (!notes.trim()) return;
+    onSubmit({
+      notes,
+      importance,
+      next_follow_up_date: date.toISOString(),
+    });
+    setNotes('');
+    setImportance('NORMAL');
+    setDate(new Date());
+  };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.overlay}>
+    <Modal visible={visible} transparent animationType="fade">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+      >
+        <Pressable style={styles.dismissArea} onPress={onClose} />
         <View style={styles.card}>
-          <AppText variant="subtitle">Add Follow-up</AppText>
+          <View style={styles.indicator} />
 
-          {/* NOTES */}
-          <TextInput
-            placeholder="Enter notes"
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            style={styles.input}
-          />
-
-          {/* DATE PICKER */}
-<AppText style={styles.label}>Follow-up Date</AppText>
-
-<Pressable
-  style={styles.dateButton}
-  onPress={() => setShowDatePicker(true)}
->
-  <AppText>{date.toLocaleString()}</AppText>
-</Pressable>
-
-{/* DATE PICKER */}
-{showDatePicker && (
-  <DateTimePicker
-    value={date}
-    mode="date"
-    display="default"
-    onChange={(_, selectedDate) => {
-      setShowDatePicker(false);
-      if (selectedDate) {
-        setDate((prev) => {
-          const newDate = new Date(prev);
-          newDate.setFullYear(
-            selectedDate.getFullYear(),
-            selectedDate.getMonth(),
-            selectedDate.getDate()
-          );
-          return newDate;
-        });
-
-        // after date → open time picker
-        setShowTimePicker(true);
-      }
-    }}
-  />
-)}
-
-{/* TIME PICKER */}
-{showTimePicker && (
-  <DateTimePicker
-    value={date}
-    mode="time"
-    display="default"
-    onChange={(_, selectedTime) => {
-      setShowTimePicker(false);
-      if (selectedTime) {
-        setDate((prev) => {
-          const newDate = new Date(prev);
-          newDate.setHours(
-            selectedTime.getHours(),
-            selectedTime.getMinutes()
-          );
-          return newDate;
-        });
-      }
-    }}
-  />
-)}
-
-
-          {/* IMPORTANCE */}
-          <AppText style={styles.label}>Importance</AppText>
-
-          <View style={styles.importanceRow}>
-            {(['NORMAL', 'IMPORTANT', 'URGENT'] as Importance[]).map(
-              (level) => (
-                <Pressable
-                  key={level}
-                  onPress={() => setImportance(level)}
-                  style={[
-                    styles.chip,
-                    importance === level &&
-                      styles.chipActive,
-                  ]}
-                >
-                  <AppText
-                    style={
-                      importance === level
-                        ? styles.chipTextActive
-                        : undefined
-                    }
-                  >
-                    {level}
-                  </AppText>
-                </Pressable>
-              )
-            )}
+          <View style={styles.header}>
+            <AppText variant="h2">Add Follow-up</AppText>
+            <Pressable onPress={onClose} style={styles.closeBtn}>
+              <Ionicons name="close" size={24} color={colors.textMuted} />
+            </Pressable>
           </View>
 
-          {/* ACTIONS */}
-          <View style={styles.actions}>
-            <Pressable onPress={onClose}>
-              <AppText>Cancel</AppText>
-            </Pressable>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <AppText style={styles.label}>Notes</AppText>
+            <TextInput
+              placeholder="What needs to be done?"
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              style={styles.input}
+              placeholderTextColor={colors.textMuted}
+            />
 
+            <AppText style={styles.label}>Scheduled For</AppText>
             <Pressable
-              onPress={() => {
-                if (!notes.trim()) return;
-
-                onSubmit({
-                  notes,
-                  importance,
-                  next_follow_up_date: date.toISOString(),
-                });
-
-                setNotes('');
-                setImportance('NORMAL');
-                setDate(new Date());
-              }}
+              style={styles.dateSelector}
+              onPress={() => setShowDatePicker(true)}
             >
-              <AppText color={colors.primary}>
-                Save
-              </AppText>
+              <View style={styles.dateInfo}>
+                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                <AppText style={styles.dateText}>
+                  {date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                </AppText>
+              </View>
+              <View style={styles.timeInfo}>
+                <Ionicons name="time-outline" size={20} color={colors.primary} />
+                <AppText style={styles.dateText}>
+                  {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </AppText>
+              </View>
             </Pressable>
-          </View>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display="default"
+                onChange={(_, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) {
+                    setDate((prev) => {
+                      const newDate = new Date(prev);
+                      newDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                      return newDate;
+                    });
+                    setShowTimePicker(true);
+                  }
+                }}
+              />
+            )}
+
+            {showTimePicker && (
+              <DateTimePicker
+                value={date}
+                mode="time"
+                display="default"
+                onChange={(_, selectedTime) => {
+                  setShowTimePicker(false);
+                  if (selectedTime) {
+                    setDate((prev) => {
+                      const newDate = new Date(prev);
+                      newDate.setHours(selectedTime.getHours(), selectedTime.getMinutes());
+                      return newDate;
+                    });
+                  }
+                }}
+              />
+            )}
+
+            <AppText style={styles.label}>Priority Level</AppText>
+            <View style={styles.importanceRow}>
+              {(['NORMAL', 'IMPORTANT', 'URGENT'] as Importance[]).map((level) => {
+                const isActive = importance === level;
+                const activeColor = level === 'URGENT' ? colors.danger : level === 'IMPORTANT' ? '#F59E0B' : colors.primary;
+
+                return (
+                  <Pressable
+                    key={level}
+                    onPress={() => setImportance(level)}
+                    style={[
+                      styles.chip,
+                      isActive && { backgroundColor: activeColor + '15', borderColor: activeColor }
+                    ]}
+                  >
+                    <AppText
+                      style={[
+                        styles.chipText,
+                        isActive && { color: activeColor, fontWeight: '700' }
+                      ]}
+                    >
+                      {level}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.footer}>
+              <Pressable onPress={handleSave} style={{ flex: 1 }}>
+                <LinearGradient
+                  colors={[colors.gradientStart, colors.gradientEnd]}
+                  style={styles.saveBtn}
+                >
+                  <AppText style={styles.saveBtnText}>Save Follow-up</AppText>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
-
 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  dismissArea: {
+    flex: 1,
   },
   card: {
     backgroundColor: colors.background,
-    padding: spacing.lg,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: spacing.xl,
+    paddingTop: spacing.md,
+    maxHeight: '80%',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: spacing.md,
-    marginTop: spacing.md,
-    minHeight: 80,
-    textAlignVertical: 'top',
+  indicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.divider,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   label: {
-    marginTop: spacing.lg,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
+    marginTop: spacing.md,
+  },
+  input: {
+    backgroundColor: colors.primaryLight + '10',
+    borderRadius: 16,
+    padding: spacing.md,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    fontSize: 16,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  dateSelector: {
+    flexDirection: 'row',
+    backgroundColor: colors.primaryLight + '10',
+    borderRadius: 16,
+    padding: spacing.md,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  dateText: {
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
   importanceRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginBottom: spacing.xl,
   },
   chip: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.divider,
+    alignItems: 'center',
+    backgroundColor: '#F8F9FB',
   },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textMuted,
   },
-  chipTextActive: {
-    color: 'white',
+  footer: {
+    marginTop: spacing.md,
+    marginBottom: spacing.xl,
   },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.lg,
+  saveBtn: {
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  dateButton: {
-  borderWidth: 1,
-  borderColor: colors.border,
-  borderRadius: 8,
-  padding: spacing.md,
-  marginTop: spacing.sm,
-},
-
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
 });

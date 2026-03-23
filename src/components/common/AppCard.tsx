@@ -1,4 +1,4 @@
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors, spacing } from '../../theme';
 
 type AppCardProps = {
@@ -13,9 +13,18 @@ export default function AppCard({ children, style }: AppCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 16,
+    padding: spacing.lg,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.textPrimary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
 });

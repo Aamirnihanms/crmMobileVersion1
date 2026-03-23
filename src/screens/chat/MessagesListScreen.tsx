@@ -1,23 +1,62 @@
-import { useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
+  useIsFocused,
+  useNavigation,
+} from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as DocumentPicker from 'expo-document-picker';
+import { Image as ExpoImage } from 'expo-image';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
   FlatList,
+  Modal,
   Pressable,
+  RefreshControl,
   StyleSheet,
   TextInput,
   View,
+  type ListRenderItemInfo,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import {
+  archiveChat,
+  createBatchChat,
+  createChat,
+  createGroupChat,
+  deleteChat,
+  generatePresignedUploadUrl,
+  getUploadedFileUrl,
+  unarchiveChat,
+  uploadFileToPresignedPost,
+  type ActiveUser,
+  type ApiChat,
+  type ApiMessage,
+  type ChatBatch,
+  type ChatStudent,
+  type PresignedUploadFile,
+} from '@/src/api/chat.api';
 import AppText from '@/src/components/common/AppText';
+import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
+import {
+  useInfiniteChatBatches,
+  useInfiniteChatList,
+  useInfiniteChatStudents,
+  useInfiniteChatUsers,
+} from '@/src/queries/chat.query';
+import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
+import { getToken } from '@/src/utils/token';
 
 type Nav = NativeStackNavigationProp<
   DashboardStackParamList,
   'MessagesList'
 >;
+
+type RecipientTab = 'users' | 'students' | 'batches';
+type GroupTab = 'users' | 'students';
 
 type ChatPreview = {
   id: string;
@@ -28,87 +67,1048 @@ type ChatPreview = {
   online?: boolean;
   muted?: boolean;
   avatarColor: string;
+  profilePic?: string | null;
+  participantId?: number;
+  chatType: 'individual' | 'group' | 'batch';
+  isArchived: boolean;
 };
 
-const chats: ChatPreview[] = [
-  {
-    id: 'c1',
-    name: 'Riya Sharma',
-    lastMessage: 'Sent the batch details, please check.',
-    time: '11:24',
-    unread: 2,
-    online: true,
-    avatarColor: '#D7F5E2',
-  },
-  {
-    id: 'c2',
-    name: 'Aman Verma',
-    lastMessage: 'Can we reschedule the demo call?',
-    time: '10:05',
-    unread: 0,
-    avatarColor: '#E2F2FF',
-  },
-  {
-    id: 'c3',
-    name: 'Priya (Parent)',
-    lastMessage: 'Thank you for the quick update.',
-    time: 'Yesterday',
-    unread: 1,
-    muted: true,
-    avatarColor: '#FFE8D8',
-  },
-  {
-    id: 'c4',
-    name: 'Design Team',
-    lastMessage: 'New brochure is ready for review.',
-    time: 'Yesterday',
-    unread: 0,
-    avatarColor: '#F0E6FF',
-  },
-  {
-    id: 'c5',
-    name: 'Karan Singh',
-    lastMessage: 'I will complete payment by evening.',
-    time: 'Mon',
-    unread: 0,
-    avatarColor: '#F1F5F9',
-  },
-];
+type PickerFile = {
+  uri: string;
+  name: string;
+  mimeType: string;
+};
+
+type RecipientItem = ActiveUser | ChatStudent | ChatBatch;
+
+const DELETED_MESSAGE_TEXT = 'This message was deleted';
+const CHAT_ROW_ESTIMATED_HEIGHT = 79;
+
+const isMessageDeleted = (msg?: ApiMessage | null) =>
+  Boolean(msg?.deleted_at || msg?.is_deleted);
+
+const getMessageSummary = (msg?: ApiMessage | null) => {
+  if (!msg) return 'No messages yet';
+  if (isMessageDeleted(msg)) return DELETED_MESSAGE_TEXT;
+
+  const text = typeof msg.content === 'string' ? msg.content.trim() : '';
+  if (text) return text;
+
+  const messageType = msg.message_type || 'text';
+  if (messageType === 'image') return 'Image';
+  if (messageType === 'audio') return 'Voice message';
+  if (messageType === 'file') {
+    return typeof msg.file_name === 'string' ? msg.file_name : 'Attachment';
+  }
+  return 'No messages yet';
+};
+
+const formatChatTime = (rawValue?: string | null) => {
+  if (!rawValue) return '';
+
+  const date = new Date(rawValue);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const valueDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+  const dayDiff = Math.round((today.getTime() - valueDay.getTime()) / 86400000);
+
+  if (dayDiff === 0) {
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+  if (dayDiff === 1) return 'Yesterday';
+  return date.toLocaleDateString();
+};
+
+const getAvatarColor = (chatType: 'individual' | 'group' | 'batch') => {
+  if (chatType === 'group') return '#E2F2FF';
+  if (chatType === 'batch') return '#FFE8D8';
+  return '#D7F5E2';
+};
+
+const mapApiChatToPreview = (
+  chat: ApiChat,
+  currentUserId?: number | string | null
+): ChatPreview => {
+  const anyChat = chat as any;
+
+  if (chat.chat_type === 'group') {
+    return {
+      id: chat.uid,
+      name: chat.group_name || 'Group Chat',
+      lastMessage: getMessageSummary(chat.last_message_preview || anyChat.last_message),
+      time: formatChatTime(
+        chat.last_message_preview?.created_at || anyChat.last_message?.created_at || chat.last_message_at || anyChat.created_at
+      ),
+      unread: chat.unread_count || 0,
+      avatarColor: getAvatarColor('group'),
+      chatType: 'group',
+      profilePic: chat.group_icon || null,
+      isArchived: Boolean(chat.is_archived || anyChat.archived),
+    };
+  }
+
+  if (chat.chat_type === 'batch') {
+    return {
+      id: chat.uid,
+      name: chat.batch_name || 'Batch Chat',
+      lastMessage: getMessageSummary(chat.last_message_preview || anyChat.last_message),
+      time: formatChatTime(
+        chat.last_message_preview?.created_at || anyChat.last_message?.created_at || chat.last_message_at || anyChat.created_at
+      ),
+      unread: chat.unread_count || 0,
+      avatarColor: getAvatarColor('batch'),
+      chatType: 'batch',
+      profilePic: null, // Batches don't usually have icons in this API
+      isArchived: Boolean(chat.is_archived || anyChat.archived),
+    };
+  }
+
+  let otherParticipant = anyChat.other_participant;
+
+  if (!otherParticipant && anyChat.participants && currentUserId) {
+    const found = anyChat.participants.find(
+      (p: any) => String(p.id) !== String(currentUserId)
+    );
+    if (found) {
+      otherParticipant = {
+        id: found.id,
+        full_name: found.full_name,
+        name: found.full_name,
+        email: found.email,
+        profile_pic: found.profile_pic,
+        is_active: false,
+      };
+    }
+  }
+
+  const participant = otherParticipant || {};
+  return {
+    id: chat.uid,
+    name: participant.full_name || participant.name || 'Unknown',
+    lastMessage: getMessageSummary(chat.last_message_preview || anyChat.last_message),
+    time: formatChatTime(
+      chat.last_message_preview?.created_at || anyChat.last_message?.created_at || chat.last_message_at || anyChat.created_at
+    ),
+    unread: chat.unread_count || 0,
+    avatarColor: getAvatarColor('individual'),
+    participantId: participant.id,
+    chatType: 'individual',
+    online: Boolean(participant.is_active),
+    profilePic: participant.profile_pic || null,
+    isArchived: Boolean(chat.is_archived || anyChat.archived),
+  };
+};
+
+const areChatPreviewsEqual = (a: ChatPreview, b: ChatPreview) =>
+  a.id === b.id &&
+  a.name === b.name &&
+  a.lastMessage === b.lastMessage &&
+  a.time === b.time &&
+  a.unread === b.unread &&
+  a.online === b.online &&
+  a.muted === b.muted &&
+  a.avatarColor === b.avatarColor &&
+  a.participantId === b.participantId &&
+  a.chatType === b.chatType &&
+  a.isArchived === b.isArchived;
+
+const decodeJwtPayload = (token: string) => {
+  try {
+    if (typeof globalThis.atob !== 'function') return null;
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+
+    const base64 = base64Url
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(
+        base64Url.length + ((4 - (base64Url.length % 4)) % 4),
+        '='
+      );
+
+    const decoded = globalThis.atob(base64);
+    return JSON.parse(decoded) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+};
 
 function Avatar({
   label,
   color,
   online,
+  uri,
 }: {
   label: string;
   color: string;
   online?: boolean;
+  uri?: string | null;
 }) {
   const initial = label?.trim()?.charAt(0)?.toUpperCase() || 'U';
 
   return (
     <View style={styles.avatarOuter}>
-      <View style={[styles.avatar, { backgroundColor: color }]}>
-        <AppText variant="subtitle">{initial}</AppText>
+      <View style={[styles.avatar, { backgroundColor: color + '25' }]}>
+        {uri ? (
+          <ExpoImage
+            source={{ uri }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
+        ) : (
+          <AppText variant="subtitle" color={colors.primary} style={{ fontWeight: '800' }}>
+            {initial}
+          </AppText>
+        )}
       </View>
       {online ? <View style={styles.onlineDot} /> : null}
     </View>
   );
 }
 
+type ChatRowProps = {
+  chat: ChatPreview;
+  onOpenChat: (chat: ChatPreview) => void;
+  onMenuPress: (chat: ChatPreview) => void;
+};
+
+const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress }: ChatRowProps) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.chatRow,
+        pressed && styles.pressedRow,
+        chat.unread > 0 && styles.chatRowActive
+      ]}
+      onPress={() => onOpenChat(chat)}
+    >
+      <Avatar
+        label={chat.name}
+        color={chat.avatarColor}
+        online={chat.online}
+        uri={chat.profilePic}
+      />
+
+      <View style={styles.chatMiddle}>
+        <AppText variant="subtitle" numberOfLines={1} style={styles.chatName}>
+          {chat.name}
+        </AppText>
+        <AppText
+          color={chat.unread > 0 ? colors.textPrimary : colors.textSecondary}
+          numberOfLines={1}
+          style={[styles.lastMessage, chat.unread > 0 && { fontWeight: '600' }]}
+          variant="caption"
+        >
+          {chat.lastMessage}
+        </AppText>
+      </View>
+
+      <View style={styles.chatRight}>
+        <AppText
+          variant="caption"
+          style={[
+            styles.chatTime,
+            chat.unread > 0 && { color: colors.primary }
+          ]}
+        >
+          {chat.time}
+        </AppText>
+
+        {chat.unread > 0 ? (
+          <View style={styles.unreadBadge}>
+            <AppText variant="caption" style={styles.unreadText}>
+              {chat.unread}
+            </AppText>
+          </View>
+        ) : chat.muted ? (
+          <Ionicons
+            name="volume-mute-outline"
+            size={14}
+            color={colors.textMuted}
+          />
+        ) : null}
+
+        <Pressable
+          onPress={() => onMenuPress(chat)}
+          style={({ pressed }) => [
+            styles.menuButton,
+            pressed && { opacity: 0.6 }
+          ]}
+          hitSlop={10}
+        >
+          <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
+        </Pressable>
+      </View>
+    </Pressable>
+  );
+}, (prev, next) =>
+  prev.onOpenChat === next.onOpenChat &&
+  prev.onMenuPress === next.onMenuPress &&
+  areChatPreviewsEqual(prev.chat, next.chat)
+);
+
 export default function MessagesListScreen() {
   const navigation = useNavigation<Nav>();
+  const isFocused = useIsFocused();
+  const user = useAuthStore((s) => s.user);
+
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [token, setToken] = useState('');
+  const [currentUserId, setCurrentUserId] =
+    useState<string | number | null>(null);
+
+  const [chats, setChats] = useState<ChatPreview[]>([]);
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<ChatPreview | null>(null);
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [recipientTab, setRecipientTab] = useState<RecipientTab>('users');
+  const [recipientSearch, setRecipientSearch] = useState('');
+  const [debouncedRecipientSearch, setDebouncedRecipientSearch] = useState('');
+
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupDescription, setGroupDescription] = useState('');
+  const [groupIcon, setGroupIcon] = useState<PickerFile | null>(null);
+  const [groupTab, setGroupTab] = useState<GroupTab>('users');
+  const [groupSearch, setGroupSearch] = useState('');
+  const [debouncedGroupSearch, setDebouncedGroupSearch] = useState('');
+  const [selectedGroupParticipants, setSelectedGroupParticipants] = useState<
+    (ActiveUser | ChatStudent)[]
+  >([]);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedRecipientSearch(recipientSearch.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [recipientSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedGroupSearch(groupSearch.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [groupSearch]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAuthContext = async () => {
+      const authToken = await getToken();
+      if (!authToken || !isMounted) return;
+
+      setToken(authToken);
+      const payload = decodeJwtPayload(authToken);
+      const id =
+        (payload?.user_id as string | number | undefined) ||
+        (payload?.id as string | number | undefined) ||
+        null;
+      setCurrentUserId(id);
+    };
+
+    void loadAuthContext();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const {
+    data: chatsData,
+    isLoading: chatsLoading,
+    isRefetching: chatsRefetching,
+    isFetchingNextPage: chatsFetchingNextPage,
+    hasNextPage: chatsHasNextPage,
+    fetchNextPage: fetchMoreChats,
+    refetch: refetchChats,
+    error: chatsError,
+  } = useInfiniteChatList({
+    search: debouncedSearch || undefined,
+    pageSize: 30,
+    archivedOnly: showArchivedOnly,
+  });
+
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    isFetchingNextPage: usersFetchingNextPage,
+    hasNextPage: usersHasNextPage,
+    fetchNextPage: fetchMoreUsers,
+  } = useInfiniteChatUsers({
+    search: recipientTab === 'users' ? debouncedRecipientSearch : '',
+    pageSize: 30,
+    enabled: showNewChatModal && recipientTab === 'users',
+  });
+
+  const {
+    data: studentsData,
+    isLoading: studentsLoading,
+    isFetchingNextPage: studentsFetchingNextPage,
+    hasNextPage: studentsHasNextPage,
+    fetchNextPage: fetchMoreStudents,
+  } = useInfiniteChatStudents({
+    search: recipientTab === 'students' ? debouncedRecipientSearch : '',
+    pageSize: 30,
+    enabled: showNewChatModal && recipientTab === 'students',
+  });
+
+  const {
+    data: batchesData,
+    isLoading: batchesLoading,
+    isFetchingNextPage: batchesFetchingNextPage,
+    hasNextPage: batchesHasNextPage,
+    fetchNextPage: fetchMoreBatches,
+  } = useInfiniteChatBatches({
+    search: recipientTab === 'batches' ? debouncedRecipientSearch : '',
+    pageSize: 30,
+    enabled: showNewChatModal && recipientTab === 'batches',
+  });
+
+  const {
+    data: groupUsersData,
+    isLoading: groupUsersLoading,
+    isFetchingNextPage: groupUsersFetchingNextPage,
+    hasNextPage: groupUsersHasNextPage,
+    fetchNextPage: fetchMoreGroupUsers,
+  } = useInfiniteChatUsers({
+    search: groupTab === 'users' ? debouncedGroupSearch : '',
+    pageSize: 15,
+    enabled: showCreateGroupModal && groupTab === 'users',
+  });
+
+  const {
+    data: groupStudentsData,
+    isLoading: groupStudentsLoading,
+    isFetchingNextPage: groupStudentsFetchingNextPage,
+    hasNextPage: groupStudentsHasNextPage,
+    fetchNextPage: fetchMoreGroupStudents,
+  } = useInfiniteChatStudents({
+    search: groupTab === 'students' ? debouncedGroupSearch : '',
+    pageSize: 15,
+    enabled: showCreateGroupModal && groupTab === 'students',
+  });
+
+  const chatLoadError = useMemo(() => {
+    const err = chatsError as any;
+    if (!err) return null;
+    return (
+      err?.response?.data?.detail ||
+      err?.response?.data?.message ||
+      err?.message ||
+      'Failed to load chats'
+    );
+  }, [chatsError]);
+
+  const mappedChatsFromQuery = useMemo(() => {
+    const seen = new Set<string>();
+    return (
+      chatsData?.pages.flatMap((page) =>
+        (page.results || [])
+          .filter((chat) => {
+            if (!chat?.uid || seen.has(chat.uid)) return false;
+            seen.add(chat.uid);
+            return true;
+          })
+          .map((chat) => mapApiChatToPreview(chat, currentUserId))
+      ) || []
+    );
+  }, [chatsData]);
+
+  useEffect(() => {
+    if (isFocused) {
+      void refetchChats();
+    }
+  }, [isFocused, refetchChats]);
+
+  useEffect(() => {
+    setChats((prev) => {
+      if (!mappedChatsFromQuery.length) return [];
+
+      const prevById = new Map(prev.map((chat) => [chat.id, chat]));
+      const mappedWithStableRefs = mappedChatsFromQuery.map((chat) => {
+        const existing = prevById.get(chat.id);
+        if (!existing) return chat;
+        return areChatPreviewsEqual(existing, chat) ? existing : chat;
+      });
+
+      const mappedIds = new Set(mappedWithStableRefs.map((chat) => chat.id));
+      const localOnly = prev.filter((chat) => !mappedIds.has(chat.id));
+      return [...localOnly, ...mappedWithStableRefs];
+    });
+  }, [mappedChatsFromQuery]);
 
   const filteredChats = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return chats;
-    return chats.filter(
+    const base = chats.filter(chat => chat.isArchived === showArchivedOnly);
+    if (!s) return base;
+    return base.filter(
       (chat) =>
         chat.name.toLowerCase().includes(s) ||
         chat.lastMessage.toLowerCase().includes(s)
     );
-  }, [search]);
+  }, [chats, search, showArchivedOnly]);
+
+  const getParticipantId = (item: ActiveUser | ChatStudent) => {
+    if (typeof item.user_id === 'number') return item.user_id;
+    if (typeof item.id === 'number') return item.id;
+    return null;
+  };
+
+  const getRecipientName = (item: RecipientItem): string => {
+    if ('batch_name' in item) {
+      if (typeof item.batch_name === 'string' && item.batch_name) {
+        return item.batch_name;
+      }
+      if (typeof item.name === 'string' && item.name) {
+        return item.name;
+      }
+      return 'Batch';
+    }
+
+    if ('full_name' in item && typeof item.full_name === 'string' && item.full_name) {
+      return item.full_name;
+    }
+    if (typeof item.name === 'string' && item.name) {
+      return item.name;
+    }
+    if (typeof item.email === 'string' && item.email) {
+      return item.email;
+    }
+    return 'Unknown';
+  };
+
+  const getRecipientSubtitle = (
+    item: RecipientItem,
+    tab: RecipientTab
+  ): string => {
+    if (tab === 'batches') {
+      return 'Batch chat';
+    }
+
+    if (typeof item.email === 'string' && item.email) {
+      return item.email;
+    }
+    if (typeof item.phone === 'string' && item.phone) {
+      return item.phone;
+    }
+    if ('student_id' in item && typeof item.student_id === 'string' && item.student_id) {
+      return item.student_id;
+    }
+    return '';
+  };
+
+  const upsertChatToTop = useCallback((nextChat: ChatPreview) => {
+    setChats((prev) => {
+      const remaining = prev.filter((chat) => chat.id !== nextChat.id);
+      return [nextChat, ...remaining];
+    });
+  }, []);
+
+  const navigateToChat = useCallback(
+    (chat: ChatPreview) => {
+      navigation.navigate('ChatThread', {
+        chatId: chat.id,
+        name: chat.name,
+        avatarColor: chat.avatarColor,
+        profilePic: chat.profilePic,
+        online: chat.online,
+        participantId: chat.participantId,
+        chatType: chat.chatType,
+      });
+    },
+    [navigation]
+  );
+
+  const openExistingOrCreatedChat = useCallback(
+    (apiChat: ApiChat) => {
+      const preview = mapApiChatToPreview(apiChat, currentUserId);
+      upsertChatToTop(preview);
+      setShowNewChatModal(false);
+      navigateToChat(preview);
+    },
+    [navigateToChat, upsertChatToTop, currentUserId]
+  );
+
+  const handleOpenRecipientChat = useCallback(
+    async (item: ActiveUser | ChatStudent | ChatBatch, tab: RecipientTab) => {
+      try {
+        setIsCreatingChat(true);
+        if (tab === 'batches') {
+          const batchUid = item.uid;
+          if (!batchUid) return;
+          const response = await createBatchChat(batchUid);
+          if (response?.status === 'success' && response.chat) {
+            openExistingOrCreatedChat(response.chat as ApiChat);
+          }
+          return;
+        }
+
+        const userId = getParticipantId(item as ActiveUser | ChatStudent);
+        if (!userId) return;
+
+        const response = await createChat({ user_id: userId });
+        if (response?.status === 'success' && response.chat) {
+          openExistingOrCreatedChat(response.chat as ApiChat);
+        }
+      } catch {
+        // silent fail for now
+      } finally {
+        setIsCreatingChat(false);
+      }
+    },
+    [openExistingOrCreatedChat]
+  );
+
+  const toggleGroupParticipant = useCallback(
+    (participant: ActiveUser | ChatStudent) => {
+      const participantId = getParticipantId(participant);
+      if (!participantId) return;
+
+      setSelectedGroupParticipants((prev) => {
+        const exists = prev.some(
+          (item) => getParticipantId(item) === participantId
+        );
+        if (exists) {
+          return prev.filter(
+            (item) => getParticipantId(item) !== participantId
+          );
+        }
+        return [...prev, participant];
+      });
+    },
+    []
+  );
+
+  const pickGroupIcon = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        multiple: false,
+        copyToCacheDirectory: true,
+        type: 'image/*',
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const file = result.assets[0];
+      setGroupIcon({
+        uri: file.uri,
+        name: file.name,
+        mimeType: file.mimeType || 'image/jpeg',
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const resetGroupModal = useCallback(() => {
+    setGroupName('');
+    setGroupDescription('');
+    setGroupIcon(null);
+    setGroupSearch('');
+    setGroupTab('users');
+    setSelectedGroupParticipants([]);
+  }, []);
+
+  const handleCreateGroup = useCallback(async () => {
+    const trimmedName = groupName.trim();
+    if (!trimmedName || creatingGroup) return;
+
+    const participantIds = selectedGroupParticipants
+      .map((participant) => getParticipantId(participant))
+      .filter((id): id is number => typeof id === 'number');
+
+    if (!participantIds.length) return;
+
+    try {
+      setCreatingGroup(true);
+
+      let iconUrl = '';
+      if (groupIcon) {
+        const presigned = await generatePresignedUploadUrl({
+          file_name: groupIcon.name,
+          folder: 'group-icons',
+        });
+
+        if (presigned?.success) {
+          const uploadFile: PresignedUploadFile = {
+            uri: groupIcon.uri,
+            name: groupIcon.name,
+            type: groupIcon.mimeType,
+          };
+          await uploadFileToPresignedPost(presigned, uploadFile);
+          iconUrl = getUploadedFileUrl(presigned) || '';
+        }
+      }
+
+      const payload: Record<string, unknown> = {
+        group_name: trimmedName,
+        group_description: groupDescription.trim(),
+        participant_ids: participantIds,
+      };
+      if (iconUrl) {
+        payload.group_icon = iconUrl;
+      }
+
+      await createGroupChat(payload);
+      setShowCreateGroupModal(false);
+      resetGroupModal();
+      await refetchChats();
+    } catch {
+      // silent fail for now
+    } finally {
+      setCreatingGroup(false);
+    }
+  }, [
+    creatingGroup,
+    groupDescription,
+    groupIcon,
+    groupName,
+    refetchChats,
+    resetGroupModal,
+    selectedGroupParticipants,
+  ]);
+
+  const handleWsMessage = useCallback(
+    (event: ChatWsEvent) => {
+      if (event.type === 'presence' && event.user) {
+        const userData =
+          typeof event.user === 'object' && event.user
+            ? (event.user as Record<string, unknown>)
+            : null;
+        const userId =
+          userData && typeof userData.id === 'number'
+            ? userData.id
+            : null;
+        if (!userId) return;
+
+        const isOnline = Boolean(event.online);
+        setChats((prev) =>
+          prev.map((chat) =>
+            chat.chatType === 'individual' &&
+              chat.participantId === userId
+              ? { ...chat, online: isOnline }
+              : chat
+          )
+        );
+        return;
+      }
+
+      if (event.type !== 'new_message' && event.type !== 'queued_message') {
+        return;
+      }
+
+      const rawMessage =
+        event.type === 'queued_message' && event.message
+          ? (event.message as ApiMessage)
+          : (event as ApiMessage);
+
+      const chatUid =
+        (rawMessage.chat_uid as string | undefined) ||
+        (rawMessage.chat as string | undefined) ||
+        '';
+
+      if (!chatUid) return;
+
+      const sender =
+        rawMessage.sender && typeof rawMessage.sender === 'object'
+          ? rawMessage.sender
+          : {};
+
+      const fromMe =
+        (Boolean(user?.uid) && sender.uid === user?.uid) ||
+        (currentUserId !== null &&
+          sender.id !== undefined &&
+          String(sender.id) === String(currentUserId));
+
+      const summary = getMessageSummary(rawMessage);
+      const nextTime = formatChatTime(rawMessage.created_at);
+
+      setChats((prev) => {
+        const index = prev.findIndex((chat) => chat.id === chatUid);
+        if (index === -1) {
+          const fallback: ChatPreview = {
+            id: chatUid,
+            name:
+              sender.full_name || sender.name || 'New chat',
+            lastMessage: summary,
+            time: nextTime,
+            unread: fromMe ? 0 : 1,
+            avatarColor: getAvatarColor('individual'),
+            participantId: sender.id,
+            chatType: 'individual',
+            online: Boolean(sender.is_active),
+            isArchived: false,
+          };
+          return [fallback, ...prev];
+        }
+
+        const current = prev[index];
+        const updated: ChatPreview = {
+          ...current,
+          lastMessage: summary,
+          time: nextTime || current.time,
+          unread: fromMe ? current.unread : current.unread + 1,
+        };
+
+        return [updated, ...prev.slice(0, index), ...prev.slice(index + 1)];
+      });
+    },
+    [currentUserId, user?.uid]
+  );
+
+  useChatWebSocket({
+    token,
+    enabled: Boolean(token) && isFocused,
+    onMessage: handleWsMessage,
+  });
+
+  const usersList = useMemo(
+    () =>
+      usersData?.pages.flatMap((page) => page.users || []) || [],
+    [usersData]
+  );
+
+  const studentsList = useMemo(
+    () =>
+      studentsData?.pages.flatMap(
+        (page) => (page.data?.students as ChatStudent[] | undefined) || []
+      ) || [],
+    [studentsData]
+  );
+
+  const batchesList = useMemo(
+    () =>
+      batchesData?.pages.flatMap((page) => page.batches || []) || [],
+    [batchesData]
+  );
+
+  const groupCandidates = useMemo<(ActiveUser | ChatStudent)[]>(
+    () =>
+      groupTab === 'users'
+        ? groupUsersData?.pages.flatMap((page) => page.users || []) || []
+        : groupStudentsData?.pages.flatMap(
+          (page) => (page.data?.students as ChatStudent[] | undefined) || []
+        ) || [],
+    [groupStudentsData, groupTab, groupUsersData]
+  );
+
+  const activeRecipients = useMemo<RecipientItem[]>(() => {
+    if (recipientTab === 'users') return usersList;
+    if (recipientTab === 'students') return studentsList;
+    return batchesList;
+  }, [batchesList, recipientTab, studentsList, usersList]);
+
+  const recipientLoading =
+    (recipientTab === 'users' && usersLoading) ||
+    (recipientTab === 'students' && studentsLoading) ||
+    (recipientTab === 'batches' && batchesLoading);
+
+  const recipientFetchingNextPage =
+    (recipientTab === 'users' && usersFetchingNextPage) ||
+    (recipientTab === 'students' && studentsFetchingNextPage) ||
+    (recipientTab === 'batches' && batchesFetchingNextPage);
+
+  const groupCandidatesLoading =
+    (groupTab === 'users' && groupUsersLoading) ||
+    (groupTab === 'students' && groupStudentsLoading);
+
+  const groupCandidatesFetchingNextPage =
+    (groupTab === 'users' && groupUsersFetchingNextPage) ||
+    (groupTab === 'students' && groupStudentsFetchingNextPage);
+
+  const groupParticipantIds = useMemo(
+    () =>
+      new Set(
+        selectedGroupParticipants
+          .map((participant) => getParticipantId(participant))
+          .filter((id): id is number => typeof id === 'number')
+      ),
+    [selectedGroupParticipants]
+  );
+
+  const handleOpenChat = useCallback((chat: ChatPreview) => {
+    navigateToChat(chat);
+  }, [navigateToChat]);
+
+  const handleMenuPress = useCallback((chat: ChatPreview) => {
+    setSelectedChat(chat);
+    setShowChatMenu(true);
+  }, []);
+
+  const handleArchiveChat = useCallback(async () => {
+    if (!selectedChat) return;
+    try {
+      await archiveChat(selectedChat.id);
+      setChats((prev) =>
+        prev.map((c) => c.id === selectedChat.id ? { ...c, isArchived: true } : c)
+      );
+      setShowChatMenu(false);
+      setSelectedChat(null);
+    } catch {
+      Alert.alert('Error', 'Failed to archive chat');
+    }
+  }, [selectedChat]);
+
+  const handleUnarchiveChat = useCallback(async () => {
+    if (!selectedChat) return;
+    try {
+      await unarchiveChat(selectedChat.id);
+      setChats((prev) =>
+        prev.map((c) => c.id === selectedChat.id ? { ...c, isArchived: false } : c)
+      );
+      setShowChatMenu(false);
+      setSelectedChat(null);
+    } catch {
+      Alert.alert('Error', 'Failed to unarchive chat');
+    }
+  }, [selectedChat, unarchiveChat]);
+
+  const handleDeleteChat = useCallback(() => {
+    if (!selectedChat) return;
+
+    Alert.alert(
+      'Delete Chat',
+      'Are you sure you want to delete this chat? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteChat(selectedChat.id);
+              setChats((prev) => prev.filter((c) => c.id !== selectedChat.id));
+              setShowChatMenu(false);
+              setSelectedChat(null);
+            } catch {
+              Alert.alert('Error', 'Failed to delete chat');
+            }
+          },
+        },
+      ]
+    );
+  }, [selectedChat]);
+
+  const chatKeyExtractor = useCallback((item: ChatPreview) => item.id, []);
+  const getChatItemLayout = useCallback(
+    (_: ArrayLike<ChatPreview> | null | undefined, index: number) => ({
+      length: CHAT_ROW_ESTIMATED_HEIGHT,
+      offset: CHAT_ROW_ESTIMATED_HEIGHT * index,
+      index,
+    }),
+    []
+  );
+
+  const renderChatItem = useCallback((
+    { item }: ListRenderItemInfo<ChatPreview>
+  ) => (
+    <ChatRow
+      chat={item}
+      onOpenChat={handleOpenChat}
+      onMenuPress={handleMenuPress}
+    />
+  ), [handleOpenChat, handleMenuPress]);
+
+  const refreshChats = useCallback(() => {
+    void refetchChats();
+  }, [refetchChats]);
+
+  const loadMoreChats = useCallback(() => {
+    if (!chatsHasNextPage || chatsFetchingNextPage) return;
+    void fetchMoreChats();
+  }, [chatsFetchingNextPage, chatsHasNextPage, fetchMoreChats]);
+
+  const loadMoreRecipients = useCallback(() => {
+    if (recipientTab === 'users') {
+      if (!usersHasNextPage || usersFetchingNextPage) return;
+      void fetchMoreUsers();
+      return;
+    }
+
+    if (recipientTab === 'students') {
+      if (!studentsHasNextPage || studentsFetchingNextPage) return;
+      void fetchMoreStudents();
+      return;
+    }
+
+    if (!batchesHasNextPage || batchesFetchingNextPage) return;
+    void fetchMoreBatches();
+  }, [
+    batchesFetchingNextPage,
+    batchesHasNextPage,
+    fetchMoreBatches,
+    fetchMoreStudents,
+    fetchMoreUsers,
+    recipientTab,
+    studentsFetchingNextPage,
+    studentsHasNextPage,
+    usersFetchingNextPage,
+    usersHasNextPage,
+  ]);
+
+  const loadMoreGroupCandidates = useCallback(() => {
+    if (groupTab === 'users') {
+      if (!groupUsersHasNextPage || groupUsersFetchingNextPage) return;
+      void fetchMoreGroupUsers();
+      return;
+    }
+
+    if (!groupStudentsHasNextPage || groupStudentsFetchingNextPage) return;
+    void fetchMoreGroupStudents();
+  }, [
+    fetchMoreGroupStudents,
+    fetchMoreGroupUsers,
+    groupStudentsFetchingNextPage,
+    groupStudentsHasNextPage,
+    groupTab,
+    groupUsersFetchingNextPage,
+    groupUsersHasNextPage,
+  ]);
+
+  const renderChatsEmpty = useCallback(() => (
+    <View style={styles.emptyState}>
+      {chatsLoading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : (
+        <>
+          <AppText color={colors.textSecondary}>
+            {chatLoadError ? chatLoadError : 'No chats found'}
+          </AppText>
+          {chatLoadError ? (
+            <Pressable
+              style={styles.retryButton}
+              onPress={() => void refetchChats()}
+            >
+              <AppText variant="caption" color={colors.primary}>
+                Retry
+              </AppText>
+            </Pressable>
+          ) : null}
+        </>
+      )}
+    </View>
+  ), [chatLoadError, chatsLoading, refetchChats]);
 
   return (
     <View style={styles.container}>
@@ -122,82 +1122,405 @@ export default function MessagesListScreen() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search or start new chat"
+            placeholder="Search chats"
             placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
           />
         </View>
+
+        <View style={styles.actionRow}>
+          <Pressable
+            style={styles.quickActionBtn}
+            onPress={() => {
+              setRecipientSearch('');
+              setRecipientTab('users');
+              setShowNewChatModal(true);
+            }}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color="#0F766E" />
+            <AppText variant="caption" color="#0F766E">
+              New Chat
+            </AppText>
+          </Pressable>
+
+          <Pressable
+            style={styles.quickActionBtn}
+            onPress={() => {
+              setShowCreateGroupModal(true);
+              setGroupSearch('');
+              setGroupTab('users');
+            }}
+          >
+            <Ionicons name="people-outline" size={16} color="#1D4ED8" />
+            <AppText variant="caption" color="#1D4ED8">
+              Create Group
+            </AppText>
+          </Pressable>
+
+          <Pressable
+            style={[styles.quickActionBtn, showArchivedOnly && styles.quickActionBtnActive]}
+            onPress={() => setShowArchivedOnly(!showArchivedOnly)}
+          >
+            <Ionicons
+              name={showArchivedOnly ? "archive" : "archive-outline"}
+              size={16}
+              color={showArchivedOnly ? colors.primary : "#475569"}
+            />
+            <AppText variant="caption" color={showArchivedOnly ? colors.primary : "#475569"}>
+              {showArchivedOnly ? 'All Chats' : 'Archived'}
+            </AppText>
+          </Pressable>
+        </View>
       </View>
+
+      <Modal
+        visible={showChatMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowChatMenu(false)}
+      >
+        <Pressable
+          style={styles.menuOverlay}
+          onPress={() => setShowChatMenu(false)}
+        >
+          <View style={styles.menuContent}>
+            {selectedChat?.isArchived ? (
+              <Pressable style={styles.menuItem} onPress={handleUnarchiveChat}>
+                <Ionicons name="chatbox-outline" size={20} color={colors.textPrimary} />
+                <AppText style={styles.menuItemText}>Unarchive</AppText>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.menuItem} onPress={handleArchiveChat}>
+                <Ionicons name="archive-outline" size={20} color={colors.textPrimary} />
+                <AppText style={styles.menuItemText}>Archive</AppText>
+              </Pressable>
+            )}
+            <View style={styles.menuDivider} />
+            <Pressable style={styles.menuItem} onPress={handleDeleteChat}>
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+              <AppText style={[styles.menuItemText, { color: colors.danger }]}>Delete</AppText>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
 
       <FlatList
         data={filteredChats}
-        keyExtractor={(item) => item.id}
+        keyExtractor={chatKeyExtractor}
+        getItemLayout={getChatItemLayout}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <Pressable
-            style={styles.chatRow}
-            onPress={() =>
-              navigation.navigate('ChatThread', {
-                chatId: item.id,
-                name: item.name,
-                avatarColor: item.avatarColor,
-                online: item.online,
-              })
-            }
-          >
-            <Avatar
-              label={item.name}
-              color={item.avatarColor}
-              online={item.online}
+        initialNumToRender={14}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews
+        refreshControl={
+          <RefreshControl
+            refreshing={chatsRefetching}
+            onRefresh={refreshChats}
+          />
+        }
+        onEndReached={loadMoreChats}
+        onEndReachedThreshold={0.35}
+        renderItem={renderChatItem}
+        ListFooterComponent={
+          chatsFetchingNextPage ? (
+            <View style={styles.modalLoaderWrap}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={renderChatsEmpty}
+      />
+
+      <Modal
+        visible={showNewChatModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowNewChatModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {isCreatingChat && (
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 10, borderRadius: 16 }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <AppText style={{ marginTop: 8, color: colors.primary, fontWeight: '600' }}>Creating chat...</AppText>
+              </View>
+            )}
+            <View style={styles.modalHeaderRow}>
+              <AppText variant="subtitle">Start Conversation</AppText>
+              <Pressable onPress={() => setShowNewChatModal(false)}>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.tabsRow}>
+              {(['users', 'students', 'batches'] as RecipientTab[]).map((tab) => (
+                <Pressable
+                  key={tab}
+                  style={[
+                    styles.tabBtn,
+                    recipientTab === tab && styles.tabBtnActive,
+                  ]}
+                  onPress={() => {
+                    setRecipientTab(tab);
+                    setRecipientSearch('');
+                  }}
+                >
+                  <AppText
+                    variant="caption"
+                    color={recipientTab === tab ? '#FFFFFF' : colors.textSecondary}
+                  >
+                    {tab === 'users'
+                      ? 'Users'
+                      : tab === 'students'
+                        ? 'Students'
+                        : 'Batches'}
+                  </AppText>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.modalSearchRow}>
+              <Ionicons name="search" size={16} color={colors.textSecondary} />
+              <TextInput
+                value={recipientSearch}
+                onChangeText={setRecipientSearch}
+                placeholder={`Search ${recipientTab === 'users'
+                  ? 'users'
+                  : recipientTab === 'students'
+                    ? 'students'
+                    : 'batches'
+                  }`}
+                placeholderTextColor={colors.textMuted}
+                style={styles.modalSearchInput}
+              />
+            </View>
+
+            {recipientLoading ? (
+              <View style={styles.modalLoaderWrap}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={activeRecipients}
+                keyExtractor={(item, idx) =>
+                  String(item.uid || item.user_id || item.id || idx)
+                }
+                contentContainerStyle={styles.modalList}
+                onEndReached={loadMoreRecipients}
+                onEndReachedThreshold={0.35}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.modalListRow}
+                    onPress={() =>
+                      void handleOpenRecipientChat(item, recipientTab)
+                    }
+                  >
+                    <View style={styles.modalListAvatar}>
+                      <AppText variant="caption" color={colors.textPrimary}>
+                        {getRecipientName(item).charAt(0).toUpperCase()}
+                      </AppText>
+                    </View>
+                    <View style={styles.modalListTextWrap}>
+                      <AppText variant="subtitle" numberOfLines={1}>
+                        {getRecipientName(item)}
+                      </AppText>
+                      <AppText
+                        variant="caption"
+                        color={colors.textSecondary}
+                        numberOfLines={1}
+                      >
+                        {getRecipientSubtitle(item, recipientTab)}
+                      </AppText>
+                    </View>
+                  </Pressable>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.modalEmptyWrap}>
+                    <AppText color={colors.textSecondary}>No results</AppText>
+                  </View>
+                }
+                ListFooterComponent={
+                  recipientFetchingNextPage ? (
+                    <View style={styles.modalLoaderWrap}>
+                      <ActivityIndicator color={colors.primary} />
+                    </View>
+                  ) : null
+                }
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showCreateGroupModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowCreateGroupModal(false);
+          resetGroupModal();
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCardTall}>
+            <View style={styles.modalHeaderRow}>
+              <AppText variant="subtitle">Create Group</AppText>
+              <Pressable
+                onPress={() => {
+                  setShowCreateGroupModal(false);
+                  resetGroupModal();
+                }}
+              >
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <TextInput
+              value={groupName}
+              onChangeText={setGroupName}
+              placeholder="Group name"
+              placeholderTextColor={colors.textMuted}
+              style={styles.groupInput}
+            />
+            <TextInput
+              value={groupDescription}
+              onChangeText={setGroupDescription}
+              placeholder="Group description"
+              placeholderTextColor={colors.textMuted}
+              style={styles.groupInput}
             />
 
-            <View style={styles.chatMiddle}>
-              <AppText variant="subtitle" numberOfLines={1}>
-                {item.name}
+            <Pressable style={styles.iconPickerBtn} onPress={pickGroupIcon}>
+              <Ionicons name="image-outline" size={16} color={colors.textSecondary} />
+              <AppText variant="caption" color={colors.textSecondary}>
+                {groupIcon ? groupIcon.name : 'Pick group icon (optional)'}
               </AppText>
-              <AppText
-                color={colors.textSecondary}
-                numberOfLines={1}
-                style={styles.lastMessage}
-              >
-                {item.lastMessage}
-              </AppText>
-            </View>
+            </Pressable>
 
-            <View style={styles.chatRight}>
-              <AppText
-                variant="caption"
-                color={
-                  item.unread > 0 ? '#1F8E5D' : colors.textSecondary
-                }
-              >
-                {item.time}
-              </AppText>
-
-              {item.unread > 0 ? (
-                <View style={styles.unreadBadge}>
-                  <AppText variant="caption" color="#FFFFFF">
-                    {item.unread}
+            <View style={styles.tabsRow}>
+              {(['users', 'students'] as GroupTab[]).map((tab) => (
+                <Pressable
+                  key={tab}
+                  style={[
+                    styles.tabBtn,
+                    groupTab === tab && styles.tabBtnActive,
+                  ]}
+                  onPress={() => {
+                    setGroupTab(tab);
+                    setGroupSearch('');
+                  }}
+                >
+                  <AppText
+                    variant="caption"
+                    color={groupTab === tab ? '#FFFFFF' : colors.textSecondary}
+                  >
+                    {tab === 'users' ? 'Users' : 'Students'}
                   </AppText>
-                </View>
-              ) : item.muted ? (
-                <Ionicons
-                  name="volume-mute-outline"
-                  size={14}
-                  color={colors.textMuted}
-                />
-              ) : null}
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <AppText color={colors.textSecondary}>
-              No chats found
+
+            <View style={styles.modalSearchRow}>
+              <Ionicons name="search" size={16} color={colors.textSecondary} />
+              <TextInput
+                value={groupSearch}
+                onChangeText={setGroupSearch}
+                placeholder={`Search ${groupTab}`}
+                placeholderTextColor={colors.textMuted}
+                style={styles.modalSearchInput}
+              />
+            </View>
+
+            <AppText variant="caption" color={colors.textSecondary}>
+              Selected: {selectedGroupParticipants.length}
             </AppText>
+
+            {groupCandidatesLoading ? (
+              <View style={styles.modalLoaderWrap}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={groupCandidates}
+                keyExtractor={(item, idx) =>
+                  String(item.uid || item.user_id || item.id || idx)
+                }
+                contentContainerStyle={styles.modalList}
+                onEndReached={loadMoreGroupCandidates}
+                onEndReachedThreshold={0.35}
+                renderItem={({ item }) => {
+                  const participantId = getParticipantId(item);
+                  const selected =
+                    typeof participantId === 'number' &&
+                    groupParticipantIds.has(participantId);
+
+                  return (
+                    <Pressable
+                      style={styles.modalListRow}
+                      onPress={() => toggleGroupParticipant(item)}
+                    >
+                      <View style={styles.modalListAvatar}>
+                        <AppText variant="caption" color={colors.textPrimary}>
+                          {getRecipientName(item).charAt(0).toUpperCase()}
+                        </AppText>
+                      </View>
+                      <View style={styles.modalListTextWrap}>
+                        <AppText variant="subtitle" numberOfLines={1}>
+                          {getRecipientName(item)}
+                        </AppText>
+                        <AppText
+                          variant="caption"
+                          color={colors.textSecondary}
+                          numberOfLines={1}
+                        >
+                          {getRecipientSubtitle(item, groupTab)}
+                        </AppText>
+                      </View>
+                      <Ionicons
+                        name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={20}
+                        color={selected ? '#16A34A' : colors.textMuted}
+                      />
+                    </Pressable>
+                  );
+                }}
+                ListEmptyComponent={
+                  <View style={styles.modalEmptyWrap}>
+                    <AppText color={colors.textSecondary}>No participants</AppText>
+                  </View>
+                }
+                ListFooterComponent={
+                  groupCandidatesFetchingNextPage ? (
+                    <View style={styles.modalLoaderWrap}>
+                      <ActivityIndicator color={colors.primary} />
+                    </View>
+                  ) : null
+                }
+              />
+            )}
+
+            <Pressable
+              style={[
+                styles.createGroupBtn,
+                (!groupName.trim() || !selectedGroupParticipants.length || creatingGroup) &&
+                styles.createGroupBtnDisabled,
+              ]}
+              onPress={() => void handleCreateGroup()}
+              disabled={
+                !groupName.trim() ||
+                !selectedGroupParticipants.length ||
+                creatingGroup
+              }
+            >
+              <AppText variant="subtitle" color="#FFFFFF">
+                {creatingGroup ? 'Creating...' : 'Create Group'}
+              </AppText>
+            </Pressable>
           </View>
-        }
-      />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -205,85 +1528,328 @@ export default function MessagesListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FE',
   },
   searchWrap: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
     backgroundColor: '#FFFFFF',
+    gap: spacing.sm,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
     paddingHorizontal: spacing.md,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   searchInput: {
     flex: 1,
     color: colors.textPrimary,
-    paddingVertical: spacing.sm + 2,
+    fontSize: 15,
+    fontWeight: '500',
     marginLeft: spacing.sm,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  quickActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: '#FFFFFF',
+  },
+  quickActionBtnActive: {
+    backgroundColor: colors.primaryLight + '20',
+    borderColor: colors.primary,
   },
   list: {
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xl,
   },
   chatRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EDF1F7',
+    padding: spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  chatRowActive: {
+    backgroundColor: colors.primaryLight + '10',
+    borderColor: colors.primaryLight + '30',
   },
   avatarOuter: {
+    position: 'relative',
     marginRight: spacing.md,
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   onlineDot: {
     position: 'absolute',
-    right: 0,
-    bottom: 2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
+    right: -2,
+    bottom: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
-    backgroundColor: '#22C55E',
+    backgroundColor: '#10B981',
   },
   chatMiddle: {
     flex: 1,
-    marginRight: spacing.md,
+    justifyContent: 'center',
+  },
+  chatName: {
+    fontWeight: '800',
+    color: colors.textPrimary,
+    fontSize: 16,
+    marginBottom: 2,
   },
   lastMessage: {
-    marginTop: 2,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   chatRight: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    minWidth: 58,
-    gap: spacing.xs,
+    marginLeft: spacing.xs,
+  },
+  chatTime: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginBottom: 4,
   },
   unreadBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 5,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1F8E5D',
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  unreadText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   emptyState: {
-    paddingTop: spacing.xl,
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+    gap: spacing.sm,
+  },
+  retryButton: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  modalCardTall: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+    maxHeight: '92%',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xl,
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  tabBtn: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+  },
+  tabBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  modalSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalSearchInput: {
+    flex: 1,
+    color: colors.textPrimary,
+    marginLeft: spacing.sm,
+    paddingVertical: spacing.md,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  modalLoaderWrap: {
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
+  },
+  modalList: {
+    paddingBottom: spacing.xl,
+  },
+  modalListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: spacing.md,
+  },
+  modalListAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryLight + '20',
+    overflow: 'hidden',
+  },
+  modalListTextWrap: {
+    flex: 1,
+  },
+  modalEmptyWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl * 2,
+  },
+  groupInput: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    fontSize: 15,
+  },
+  iconPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  createGroupBtn: {
+    marginTop: spacing.md,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  createGroupBtnDisabled: {
+    backgroundColor: colors.textMuted,
+    opacity: 0.5,
+  },
+  pressedRow: {
+    opacity: 0.7,
+  },
+  menuButton: {
+    padding: 4,
+    marginLeft: 4,
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContent: {
+    width: 220,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 8,
   },
 });

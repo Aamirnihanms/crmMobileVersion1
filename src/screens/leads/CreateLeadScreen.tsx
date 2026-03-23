@@ -1,50 +1,47 @@
-// screens/CreateLeadScreen.tsx
-
 import {
-  View,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-} from 'react-native';
-
-import { useState, useMemo, useRef, useEffect } from 'react';
-import {
+  RouteProp,
   useNavigation,
   useRoute,
-  RouteProp,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-import { buildLeadPayload } from '@/src/utils/buildLeadPayload';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { LeadsStackParamList } from '@/src/navigation/LeadsStack';
+import { buildLeadPayload } from '@/src/utils/buildLeadPayload';
 
+import LeadAdditionalSection from '@/src/components/leads/LeadAdditionalSection';
 import LeadBasicInfoSection from '@/src/components/leads/LeadBasicInfoSection';
 import LeadContactSection from '@/src/components/leads/LeadContactSection';
 import LeadCourseSection from '@/src/components/leads/LeadCourseSection';
-import LeadAdditionalSection from '@/src/components/leads/LeadAdditionalSection';
 
-import AppButton from '@/src/components/common/AppButton';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 
 import { validateLead } from '@/src/utils/leadValidation';
 
+import { useLeadDetails } from '@/src/queries/leadDetails.query';
 import {
   useCreateLead,
   useUpdateLead,
 } from '@/src/queries/leads.query';
-import { useLeadDetails } from '@/src/queries/leadDetails.query';
 
-import { useCourses } from '@/src/queries/masters/courses.query';
 import { useCounselors } from '@/src/queries/masters/counselors.query';
+import { useCourses } from '@/src/queries/masters/courses.query';
 import { useLeadSources } from '@/src/queries/masters/leadSources.query';
 import { useLeadStatuses } from '@/src/queries/masters/leadStatuses.query';
 import { useQualifications } from '@/src/queries/masters/qualifications.query';
 
-import { spacing, colors } from '@/src/theme';
+import { colors, spacing } from '@/src/theme';
 
 type Nav = NativeStackNavigationProp<
   LeadsStackParamList,
@@ -86,8 +83,6 @@ export default function CreateLeadScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const hydratedRef = useRef(false);
 
-  /* -------------------- FORM STATE -------------------- */
-
   const [form, setForm] = useState<any>(initialFormState);
 
   const {
@@ -95,8 +90,6 @@ export default function CreateLeadScreen() {
     isLoading: isEditLeadLoading,
     isError: isEditLeadError,
   } = useLeadDetails(editLeadId, isEditMode);
-
-  /* -------------------- MASTER DATA -------------------- */
 
   const { data: courses = [], isLoading: coursesLoading } = useCourses();
   const { data: counselors = [], isLoading: counselorsLoading } =
@@ -115,18 +108,12 @@ export default function CreateLeadScreen() {
     statusesLoading ||
     qualificationsLoading;
 
-  /* -------------------- CREATE MUTATION -------------------- */
-
   const createLeadMutation = useCreateLead();
   const updateLeadMutation = useUpdateLead();
-
-  /* -------------------- COURSE DEPENDENCY -------------------- */
 
   const selectedCourse = useMemo(() => {
     return courses.find((c: any) => c.id === form.course);
   }, [form.course, courses]);
-
-  /* -------------------- EDIT PREFILL -------------------- */
 
   useEffect(() => {
     hydratedRef.current = false;
@@ -178,12 +165,6 @@ export default function CreateLeadScreen() {
     hydratedRef.current = true;
   }, [isEditMode, editLead]);
 
-  /* -------------------- CLEAN PAYLOAD -------------------- */
-
-
-
-  /* -------------------- SUBMIT -------------------- */
-
   const handleSubmit = () => {
     const mutationPending =
       createLeadMutation.isPending || updateLeadMutation.isPending;
@@ -193,7 +174,7 @@ export default function CreateLeadScreen() {
     const error = validateLead(form);
 
     if (error) {
-      Alert.alert(error);
+      Alert.alert('Validation Error', error);
 
       scrollRef.current?.scrollTo({
         y: 0,
@@ -203,15 +184,14 @@ export default function CreateLeadScreen() {
       return;
     }
 
-    const payload = buildLeadPayload(form); 
-
-    console.log('🚀 Final Payload:', payload);
+    const payload = buildLeadPayload(form);
 
     const onSuccess = (data: any) => {
       const leadId = data?.lead?.id || data?.id || editLeadId;
 
       if (!leadId) {
         Alert.alert(
+          'Incomplete Operation',
           isEditMode
             ? 'Lead updated, but id missing in response'
             : 'Lead created, but id missing in response'
@@ -234,7 +214,7 @@ export default function CreateLeadScreen() {
     const onError = (err: any) => {
       const action = isEditMode ? 'Update' : 'Create';
       console.log(`❌ ${action} Lead Error:`, err?.response?.data);
-      Alert.alert(`Failed to ${action.toLowerCase()} lead`);
+      Alert.alert('Error', `Failed to ${action.toLowerCase()} lead. Please try again.`);
     };
 
     if (isEditMode && editLeadId) {
@@ -257,8 +237,6 @@ export default function CreateLeadScreen() {
     });
   };
 
-  /* -------------------- RENDER -------------------- */
-
   if (isEditMode && isEditLeadLoading) {
     return <AppLoader />;
   }
@@ -275,16 +253,18 @@ export default function CreateLeadScreen() {
     createLeadMutation.isPending || updateLeadMutation.isPending;
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.root}>
+    <View style={styles.root}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
         <ScrollView
           ref={scrollRef}
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
         >
           <LeadBasicInfoSection
             form={form}
@@ -313,60 +293,75 @@ export default function CreateLeadScreen() {
             qualifications={qualifications}
             passOutYears={[]}
           />
+          <View style={{ height: 100 }} />
         </ScrollView>
+      </KeyboardAvoidingView>
 
-        {/* -------- ENTERPRISE STICKY FOOTER -------- */}
-
-        <View style={styles.footer}>
-          <AppButton
-            title={
-              mutationPending
+      <View style={styles.footer}>
+        <Pressable
+          onPress={handleSubmit}
+          disabled={mutationPending || mastersLoading}
+          style={{ width: '100%' }}
+        >
+          <LinearGradient
+            colors={[colors.gradientStart, colors.gradientEnd]}
+            style={[styles.saveBtn, (mutationPending || mastersLoading) && { opacity: 0.7 }]}
+          >
+            <AppText style={styles.saveBtnText}>
+              {mutationPending
                 ? isEditMode
-                  ? 'Updating Lead...'
-                  : 'Creating Lead...'
+                  ? 'Updating...'
+                  : 'Creating...'
                 : mastersLoading
-                ? 'Loading Masters...'
-                : isEditMode
-                ? 'Update Lead'
-                : 'Create Lead'
-            }
-            onPress={handleSubmit}
-            disabled={
-              mutationPending || mastersLoading
-            }
-          />
-        </View>
+                  ? 'Loading...'
+                  : isEditMode
+                    ? 'Update Lead'
+                    : 'Create Lead'
+              }
+            </AppText>
+          </LinearGradient>
+        </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
-
-/* -------------------- STYLES -------------------- */
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8F9FE',
   },
-
   container: {
     padding: spacing.lg,
-    paddingBottom: 120,
   },
-
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: spacing.lg,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  saveBtn: {
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F8F9FE',
   },
 });

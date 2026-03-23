@@ -1,21 +1,22 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Modal,
-  View,
-  StyleSheet,
-  ScrollView,
   Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 
-import { useEffect, useState, useMemo } from 'react';
-
 import AppSelect from '@/src/components/common/AppSelect';
-import AppButton from '@/src/components/common/AppButton';
 import AppText from '@/src/components/common/AppText';
 
-import { spacing } from '@/src/theme';
+import { colors, spacing } from '@/src/theme';
 
-import { useCourses } from '@/src/queries/masters/courses.query';
 import { useBatches } from '@/src/queries/masters/batches.query';
+import { useCourses } from '@/src/queries/masters/courses.query';
 
 type Props = {
   visible: boolean;
@@ -32,8 +33,6 @@ export default function ConvertLeadModalPro({
   onSubmit,
   loading = false,
 }: Props) {
-  /* ---------------- FORM STATE ---------------- */
-
   const [form, setForm] = useState<any>({
     course_id: null,
     batch_uid: null,
@@ -42,33 +41,16 @@ export default function ConvertLeadModalPro({
     payment_method: null,
   });
 
-  /* ---------------- MASTER DATA ---------------- */
-
   const { data: courses = [] } = useCourses();
   const { data: batches = [] } = useBatches(form.course_id);
 
-  console.log('🚀 Batches for course', form.course_id, batches);
-
-  /* ---------------- PREFILL FROM LEAD ---------------- */
-
-useEffect(() => {
-  if (!lead) return;
-
-  setForm({
-    course_id: lead.course_details?.id || null,
-    preferred_location:
-      lead.course_details?.location_details?.[0]?.id || null,
-  });
-}, [lead]);
-
   useEffect(() => {
-  setForm((prev: any) => ({
-    ...prev,
-    batch_uid: null,
-  }));
-}, [form.course_id]);
-
-  /* ---------------- RESET BATCH WHEN COURSE CHANGES ---------------- */
+    if (!lead) return;
+    setForm({
+      course_id: lead.course_details?.id || null,
+      preferred_location: lead.course_details?.location_details?.[0]?.id || null,
+    });
+  }, [lead]);
 
   useEffect(() => {
     setForm((prev: any) => ({
@@ -77,15 +59,9 @@ useEffect(() => {
     }));
   }, [form.course_id]);
 
-  /* ---------------- SELECTED COURSE ---------------- */
-
   const selectedCourse = useMemo(() => {
-    return courses.find(
-      (c: any) => c.id === form.course_id
-    );
+    return courses.find((c: any) => c.id === form.course_id);
   }, [form.course_id, courses]);
-
-  /* ---------------- OPTIONS ---------------- */
 
   const attendanceModes = [
     { label: 'Online', value: '1' },
@@ -98,8 +74,6 @@ useEffect(() => {
     { label: 'Bank Transfer', value: 'bank' },
   ];
 
-  /* ---------------- SUBMIT ---------------- */
-
   const handleSubmit = () => {
     if (
       !form.course_id ||
@@ -108,7 +82,7 @@ useEffect(() => {
       !form.preferred_location ||
       !form.payment_method
     ) {
-      Alert.alert('Please fill all required fields');
+      Alert.alert('Missing Fields', 'Please fill all required fields to proceed.');
       return;
     }
 
@@ -121,131 +95,152 @@ useEffect(() => {
       payment_method: form.payment_method,
     };
 
-    console.log('🚀 Convert Payload:', payload);
-
     onSubmit(payload);
   };
 
-  /* ---------------- RENDER ---------------- */
-
   return (
-    <Modal visible={visible} animationType="slide">
-      <View style={styles.root}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <AppText variant="heading">
-            Convert Lead to Student
-          </AppText>
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.overlay}>
+        <Pressable style={styles.dismissArea} onPress={onClose} />
+        <View style={styles.card}>
+          <View style={styles.indicator} />
 
-          {/* -------- COURSE -------- */}
+          <View style={styles.header}>
+            <View>
+              <AppText variant="h2">Enroll Student</AppText>
+              <AppText variant="caption" color={colors.textMuted}>Convert lead to active enrollment</AppText>
+            </View>
+            <Pressable onPress={onClose} style={styles.closeBtn}>
+              <Ionicons name="close" size={24} color={colors.textMuted} />
+            </Pressable>
+          </View>
 
-          <AppSelect
-            label="Course"
-            value={form.course_id}
-            options={courses.map((c: any) => ({
-              label: c.course_name,
-              value: c.id,
-            }))}
-            onSelect={(v) =>
-              setForm({ ...form, course_id: v })
-            }
-          />
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <AppSelect
+              label="Selected Course"
+              value={form.course_id}
+              options={courses.map((c: any) => ({
+                label: c.course_name,
+                value: c.id,
+              }))}
+              onSelect={(v) => setForm({ ...form, course_id: v })}
+            />
 
-          {/* -------- BATCH -------- */}
+            <AppSelect
+              label="Select Batch"
+              value={form.batch_uid}
+              options={batches.map(b => ({
+                label: b.batch_name,
+                value: b.uid,
+              }))}
+              onSelect={(v) => setForm({ ...form, batch_uid: v })}
+            />
 
-<AppSelect
-  label="Batch"
-  value={form.batch_uid}
-  options={batches.map(b => ({
-    label: b.batch_name,
-    value: b.uid,
-  }))}
-  onSelect={(v) => setForm({ ...form, batch_uid: v })}
-/>
+            <AppSelect
+              label="Attendance Mode"
+              value={form.attendance_mode}
+              options={attendanceModes}
+              onSelect={(v) => setForm({ ...form, attendance_mode: v })}
+            />
 
-          {/* -------- ATTENDANCE MODE -------- */}
-
-          <AppSelect
-            label="Attendance Mode"
-            value={form.attendance_mode}
-            options={attendanceModes}
-            onSelect={(v) =>
-              setForm({ ...form, attendance_mode: v })
-            }
-          />
-
-          {/* -------- LOCATION (FROM COURSE) -------- */}
-
-          <AppSelect
-            label="Preferred Location"
-            value={form.preferred_location}
-            options={
-              selectedCourse?.location_details?.map(
-                (l: any) => ({
+            <AppSelect
+              label="Preferred Location"
+              value={form.preferred_location}
+              options={
+                selectedCourse?.location_details?.map((l: any) => ({
                   label: l.name,
                   value: l.id,
-                })
-              ) || []
-            }
-            onSelect={(v) =>
-              setForm({
-                ...form,
-                preferred_location: v,
-              })
-            }
-          />
+                })) || []
+              }
+              onSelect={(v) => setForm({ ...form, preferred_location: v })}
+            />
 
-          {/* -------- PAYMENT METHOD -------- */}
+            <AppSelect
+              label="Payment Method"
+              value={form.payment_method}
+              options={paymentMethods}
+              onSelect={(v) => setForm({ ...form, payment_method: v })}
+            />
 
-          <AppSelect
-            label="Payment Method"
-            value={form.payment_method}
-            options={paymentMethods}
-            onSelect={(v) =>
-              setForm({ ...form, payment_method: v })
-            }
-          />
-        </ScrollView>
-
-        {/* -------- FOOTER -------- */}
-
-        <View style={styles.footer}>
-          <AppButton
-            title={loading ? 'Converting...' : 'Convert Lead'}
-            onPress={handleSubmit}
-            disabled={loading}
-          />
-
-          <View style={{ height: spacing.sm }} />
-
-          <AppButton
-            title="Cancel"
-            variant="secondary"
-            onPress={onClose}
-          />
+            <View style={styles.footer}>
+              <Pressable onPress={handleSubmit} style={{ flex: 1 }} disabled={loading}>
+                <LinearGradient
+                  colors={[colors.gradientStart, colors.gradientEnd]}
+                  style={styles.saveBtn}
+                >
+                  <AppText style={styles.saveBtnText}>
+                    {loading ? 'Processing...' : 'Complete Enrollment'}
+                  </AppText>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
   );
 }
 
-/* ---------------- STYLES ---------------- */
-
 const styles = StyleSheet.create({
-  root: {
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  dismissArea: {
     flex: 1,
   },
-
-  container: {
-    padding: spacing.lg,
-    paddingBottom: 120,
+  card: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    maxHeight: '90%',
   },
-
+  indicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.divider,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollContent: {
+    paddingBottom: spacing.xl * 2,
+  },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: spacing.lg,
-    backgroundColor: '#fff',
+    marginTop: spacing.xl,
+  },
+  saveBtn: {
+    height: 58,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
 });

@@ -1,17 +1,17 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import AppText from './../common/AppText';
-import AppSelect from './../common/AppSelect';
-import { spacing } from '../../theme';
 import { Course } from '@/src/types/course';
-import { generatePassOutYears } from '@/src/utils/passOutYears';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { colors, spacing } from '../../theme';
+import AppCard from './../common/AppCard';
+import AppSelect from './../common/AppSelect';
+import AppText from './../common/AppText';
 
 type Props = {
   form: any;
   setForm: (data: any) => void;
   courses: any[];
   qualifications: any[];
-  selectedCourse?: Course; 
+  selectedCourse?: Course;
 };
 
 export default function LeadCourseSection({
@@ -46,72 +46,72 @@ export default function LeadCourseSection({
 
   return (
     <View style={styles.container}>
-      <AppText variant="subtitle">
-        Academic Details
-      </AppText>
+      <AppText variant="h3" style={styles.title}>Academic & Course</AppText>
 
-      <AppSelect
-        label="Education Level"
-        value={form.education_level}
-        options={qualifications.map((q) => ({
-          label: q.name,
-          value: q.id,
-        }))}
-        onSelect={(v) =>
-          setForm({ ...form, education_level: v })
-        }
-      />
+      <AppCard style={styles.card}>
+        <AppSelect
+          label="Education Level"
+          value={form.education_level}
+          options={qualifications.map((q) => ({
+            label: q.name,
+            value: q.id,
+          }))}
+          onSelect={(v) =>
+            setForm({ ...form, education_level: v })
+          }
+        />
 
-      <AppSelect
-        label="Pass Out Year"
-        value={form.pass_out_year}
-        options={passOutYears}
-        onSelect={(v) =>
-          setForm({ ...form, pass_out_year: v })
-        }
-      />
+        <AppSelect
+          label="Pass Out Year"
+          value={form.pass_out_year}
+          options={passOutYears}
+          onSelect={(v) =>
+            setForm({ ...form, pass_out_year: v })
+          }
+        />
 
-      <AppSelect
-        label="Course"
-        value={form.course}
-        options={courses.map((c) => ({
-          label: c.course_name,
-          value: c.id,
-        }))}
-        onSelect={(v) =>
-          setForm({
-            ...form,
-            course: v,
-            course_mode: undefined,
-            preferred_location: undefined,
-          })
-        }
-      />
+        <AppSelect
+          label="Course"
+          value={form.course}
+          options={courses.map((c) => ({
+            label: c.course_name,
+            value: c.id,
+          }))}
+          onSelect={(v) =>
+            setForm({
+              ...form,
+              course: v,
+              course_mode: undefined,
+              preferred_location: undefined,
+            })
+          }
+        />
 
-      {form.course && (
-        <>
-          <AppSelect
-            label="Course Mode"
-            value={form.course_mode}
-            options={courseModes}
-            onSelect={(v) =>
-              setForm({ ...form, course_mode: v })
-            }
-          />
+        {form.course && (
+          <>
+            <AppSelect
+              label="Course Mode"
+              value={form.course_mode}
+              options={courseModes}
+              onSelect={(v) =>
+                setForm({ ...form, course_mode: v })
+              }
+            />
 
-          <AppSelect
-            label="Preferred Location"
-            value={form.preferred_location}
-            options={locations}
-            onSelect={(v) =>
-              setForm({
-                ...form,
-                preferred_location: v,
-              })
-            }
-          />
-        </>
-      )}
+            <AppSelect
+              label="Preferred Location"
+              value={form.preferred_location}
+              options={locations}
+              onSelect={(v) =>
+                setForm({
+                  ...form,
+                  preferred_location: v,
+                })
+              }
+            />
+          </>
+        )}
+      </AppCard>
     </View>
   );
 }
@@ -119,5 +119,15 @@ export default function LeadCourseSection({
 const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
+  },
+  title: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    marginLeft: 4,
+  },
+  card: {
+    padding: spacing.lg,
+    paddingBottom: spacing.sm,
   },
 });

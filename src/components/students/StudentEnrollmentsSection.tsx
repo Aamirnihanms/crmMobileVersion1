@@ -1,11 +1,11 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
-import { spacing } from '@/src/theme';
-import { NativeStackNavigationProp} from '@react-navigation/native-stack';
-import type { StudentsStackParamList } from '../../navigation/StudentsStack';
+import { colors, spacing } from '@/src/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Pressable, StyleSheet, View } from 'react-native';
+import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 
 export default function StudentEnrollmentsSection({
   enrollments,
@@ -17,46 +17,148 @@ export default function StudentEnrollmentsSection({
       NativeStackNavigationProp<StudentsStackParamList>
     >();
 
-   const handlePress = (e: any) => {
-    console.log('Pressed enrollment:', e); // ✅ console log
+  const handlePress = (e: any) => {
     navigation.navigate('EnrollmentDetails', {
       id: e.uid,
     });
   };
 
   return (
-    <View style={styles.card}>
-      <AppText variant="subtitle">Enrollments</AppText>
+    <View style={styles.container}>
+      <View style={styles.sectionHeader}>
+        <AppText variant="h3" style={styles.sectionTitle}>Enrollments</AppText>
+        <AppText variant="caption" color={colors.textMuted}>Current and past courses</AppText>
+      </View>
 
       {enrollments.map((e: any) => (
-        <View key={e.uid} style={styles.item}>
-          <Pressable onPress={() => handlePress(e)}>
-            <AppText>
-              {e.batch?.course_name}
-            </AppText>
-          </Pressable>
+        <Pressable key={e.uid} onPress={() => handlePress(e)}>
+          <AppCard style={styles.enrollmentCard}>
+            <View style={styles.cardHeader}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="book-outline" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.cardInfo}>
+                <AppText variant="subtitle" style={styles.courseName}>
+                  {e.batch?.course_name || 'N/A'}
+                </AppText>
+                <AppText variant="caption" color={colors.textMuted} style={styles.batchName}>
+                  {e.batch?.batch_name || 'No Batch Assigned'}
+                </AppText>
+              </View>
+              <View style={styles.chevronContainer}>
+                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+              </View>
+            </View>
 
-          <AppText variant="caption">
-            {e.batch?.batch_name}
-          </AppText>
+            <View style={styles.divider} />
 
-          <AppText variant="caption">
-            Status: {e.status_object?.name}
-          </AppText>
-        </View>
+            <View style={styles.cardFooter}>
+              <View style={[styles.statusBadge, { backgroundColor: (e.status_object?.color || colors.primary) + '15' }]}>
+                <View style={[styles.statusDot, { backgroundColor: e.status_object?.color || colors.primary }]} />
+                <AppText variant="caption" style={[styles.statusText, { color: e.status_object?.color || colors.primary }]}>
+                  {e.status_object?.name || 'Active'}
+                </AppText>
+              </View>
+
+              <View style={styles.codeContainer}>
+                <Ionicons name="barcode-outline" size={12} color={colors.textMuted} />
+                <AppText variant="caption" color={colors.textMuted} style={styles.codeText}>
+                  {e.batch?.batch_code || 'N/A'}
+                </AppText>
+              </View>
+            </View>
+          </AppCard>
+        </Pressable>
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    padding: spacing.lg,
-    borderRadius: 12,
+  container: {
+    marginBottom: spacing.xl,
   },
-
-  item: {
-    marginTop: spacing.sm,
+  sectionHeader: {
+    marginBottom: spacing.md,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  enrollmentCard: {
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  courseName: {
+    fontWeight: '800',
+    color: colors.textPrimary,
+    fontSize: 16,
+  },
+  batchName: {
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  chevronContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: spacing.md,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  statusText: {
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  codeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  codeText: {
+    marginLeft: 4,
+    fontWeight: '600',
   },
 });

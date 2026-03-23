@@ -1,7 +1,7 @@
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '@/src/theme';
 import AppText from '@/src/components/common/AppText';
+import { colors, spacing } from '@/src/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 export type LeadsFilters = {
   course?: number | null;
@@ -24,16 +24,25 @@ export default function LeadsFilterBar({
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.button} onPress={onPress}>
+      <Pressable
+        style={[styles.button, activeCount > 0 && styles.buttonActive]}
+        onPress={onPress}
+      >
         <Ionicons
-          name="options-outline"
-          size={20}
-          color={colors.primary}
+          name={activeCount > 0 ? "funnel" : "funnel-outline"}
+          size={18}
+          color={activeCount > 0 ? colors.primary : colors.textMuted}
         />
+        <AppText
+          variant="caption"
+          style={[styles.buttonText, activeCount > 0 && { color: colors.primary, fontWeight: '700' }]}
+        >
+          Filters
+        </AppText>
 
         {activeCount > 0 && (
           <View style={styles.badge}>
-            <AppText color="#fff">{activeCount}</AppText>
+            <AppText color="#fff" style={styles.badgeText}>{activeCount}</AppText>
           </View>
         )}
       </Pressable>
@@ -43,20 +52,43 @@ export default function LeadsFilterBar({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    backgroundColor: colors.background,
   },
   button: {
-    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  buttonActive: {
+    backgroundColor: colors.primaryLight + '15',
+    borderColor: colors.primaryLight + '30',
+  },
+  buttonText: {
+    fontSize: 12,
+    color: colors.textMuted,
   },
   badge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
     backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 2,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

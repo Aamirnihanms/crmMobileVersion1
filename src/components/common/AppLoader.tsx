@@ -1,4 +1,4 @@
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { colors } from '../../theme';
 
 export default function AppLoader() {

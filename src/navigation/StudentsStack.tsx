@@ -1,8 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
-import StudentsListScreen from '../screens/students/StudentsListScreen';
-import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
 import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen';
+import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
+import StudentsListScreen from '../screens/students/StudentsListScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,17 +14,29 @@ export type StudentsStackParamList = {
 
 export default function StudentsStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="StudentsList" component={StudentsListScreen} />
+    <Stack.Navigator
+      screenOptions={{
+        headerShadowVisible: false,
+        headerTitleStyle: {
+          fontWeight: '700',
+          fontSize: 18,
+        },
+      }}
+    >
+      <Stack.Screen
+        name="StudentsList"
+        component={StudentsListScreen}
+        options={{ title: 'Students' }}
+      />
       <Stack.Screen
         name="StudentDetails"
         component={StudentDetailsScreen}
-        options={{ title: 'Student Details' }}
+        options={{ title: 'Student Profile' }}
       />
       <Stack.Screen
         name="EnrollmentDetails"
         component={EnrollmentDetailsScreen}
-        options={{ title: 'Enrollment Details' }}
+        options={{ title: 'Enrollment' }}
       />
     </Stack.Navigator>
   );

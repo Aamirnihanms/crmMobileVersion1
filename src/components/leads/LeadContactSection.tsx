@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
-import { spacing, colors } from '../../theme';
+import { StyleSheet, View } from 'react-native';
+import { colors, spacing } from '../../theme';
+import AppCard from './../common/AppCard';
+import AppInput from './../common/AppInput';
 import AppText from './../common/AppText';
 
 type Props = {
@@ -14,48 +16,44 @@ export default function LeadContactSection({
 }: Props) {
   return (
     <View style={styles.container}>
-      <AppText variant="subtitle">Contact Details</AppText>
+      <AppText variant="h3" style={styles.title}>Contact Details</AppText>
 
-      <TextInput
-        placeholder="Parent Name"
-        value={form.parent_name}
-        onChangeText={(v) =>
-          setForm({ ...form, parent_name: v })
-        }
-        style={styles.input}
-      />
+      <AppCard style={styles.card}>
+        <AppInput
+          label="Parent/Guardian Name"
+          placeholder="Enter parent's name"
+          value={form.parent_name}
+          onChangeText={(v) => setForm({ ...form, parent_name: v })}
+          containerStyle={styles.inputContainer}
+        />
 
-      <TextInput
-        placeholder="Parent Phone"
-        keyboardType="phone-pad"
-        value={form.parent_phone_number}
-        onChangeText={(v) =>
-          setForm({
-            ...form,
-            parent_phone_number: v,
-          })
-        }
-        style={styles.input}
-      />
+        <AppInput
+          label="Parent Phone"
+          placeholder="Emergency contact number"
+          keyboardType="phone-pad"
+          value={form.parent_phone_number}
+          onChangeText={(v) => setForm({ ...form, parent_phone_number: v })}
+          containerStyle={styles.inputContainer}
+        />
 
-      <TextInput
-        placeholder="City"
-        value={form.city}
-        onChangeText={(v) =>
-          setForm({ ...form, city: v })
-        }
-        style={styles.input}
-      />
+        <AppInput
+          label="City"
+          placeholder="Lead's current city"
+          value={form.city}
+          onChangeText={(v) => setForm({ ...form, city: v })}
+          containerStyle={styles.inputContainer}
+        />
 
-      <TextInput
-        placeholder="Address"
-        multiline
-        value={form.address}
-        onChangeText={(v) =>
-          setForm({ ...form, address: v })
-        }
-        style={[styles.input, { height: 80 }]}
-      />
+        <AppInput
+          label="Detailed Address"
+          placeholder="Street, area, building details"
+          multiline
+          value={form.address}
+          onChangeText={(v) => setForm({ ...form, address: v })}
+          style={{ height: 100, textAlignVertical: 'top' }}
+          containerStyle={{ marginBottom: 0 }}
+        />
+      </AppCard>
     </View>
   );
 }
@@ -64,11 +62,16 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    borderRadius: 8,
-    marginTop: spacing.md,
+  title: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    marginLeft: 4,
+  },
+  card: {
+    padding: spacing.lg,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
   },
 });

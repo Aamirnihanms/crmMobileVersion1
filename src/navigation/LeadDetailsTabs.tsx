@@ -1,10 +1,10 @@
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { colors } from '../theme';
 
+import LeadActivityTab from '../screens/leads/tabs/LeadActivityTab';
 import LeadDetailsTab from '../screens/leads/tabs/LeadDetailsTab';
 import LeadFollowUpsTab from '../screens/leads/tabs/LeadFollowUpsTab';
 import LeadNotesTab from '../screens/leads/tabs/LeadNotesTab';
-import LeadActivityTab from '../screens/leads/tabs/LeadActivityTab';
 
 const Tab = createMaterialTopTabNavigator();
 

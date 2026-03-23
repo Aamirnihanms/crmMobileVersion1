@@ -1,18 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Pressable,
-  StyleSheet,
-  Modal,
-  FlatList,
-  TextInput,
   Animated,
   Dimensions,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TextInput,
   TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
-import AppText from './AppText';
 import { colors, spacing } from '../../theme';
+import AppText from './AppText';
 
 const { height } = Dimensions.get('window');
 
@@ -26,6 +27,7 @@ type Props = {
   value?: string | number;
   options: Option[];
   onSelect: (value: any) => void;
+  placeholder?: string;
 };
 
 export default function AppSelect({
@@ -33,6 +35,7 @@ export default function AppSelect({
   value,
   options,
   onSelect,
+  placeholder = 'Select',
 }: Props) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -43,27 +46,23 @@ export default function AppSelect({
 
   const selected = options.find(o => o.value === value);
 
-  /* ---------------- ENTERPRISE FILTER ---------------- */
-
   const filteredOptions = React.useMemo(() => {
     if (!search) return options;
-
     const s = search.toLowerCase();
-
     return options.filter(o =>
       o.label.toLowerCase().includes(s)
     );
   }, [search, options]);
 
-  /* ---------------- ANIMATION ---------------- */
-
   const openSheet = () => {
     setOpen(true);
-
     requestAnimationFrame(() => {
       Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
+        damping: 20,
+        mass: 1,
+        stiffness: 100,
       }).start();
     });
   };
@@ -79,92 +78,80 @@ export default function AppSelect({
     });
   };
 
-  /* ---------------- RENDER ---------------- */
-
   return (
     <View style={styles.container}>
-      <AppText variant="caption">{label}</AppText>
+      <AppText variant="caption" style={styles.label}>{label}</AppText>
 
       <Pressable
-        style={styles.selector}
+        style={[styles.selector, open && styles.selectorActive]}
         onPress={openSheet}
       >
-        <AppText>
-          {selected?.label || 'Select'}
+        <AppText color={selected ? colors.textPrimary : colors.textMuted} style={styles.selectorText}>
+          {selected?.label || placeholder}
         </AppText>
+        <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
       </Pressable>
 
-      <Modal visible={open} transparent animationType="none">
+      <Modal visible={open} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={closeSheet}>
           <View style={styles.overlay} />
         </TouchableWithoutFeedback>
 
-        {/* 🔥 CRM PRO BOTTOM SHEET */}
         <Animated.View
           style={[
             styles.sheet,
             { transform: [{ translateY }] },
           ]}
         >
-          {/* HANDLE BAR */}
           <View style={styles.handle} />
 
-          {/* HEADER */}
           <View style={styles.header}>
-            <AppText variant="subtitle">
+            <AppText variant="h2">
               {label}
             </AppText>
-
-            <Pressable onPress={closeSheet}>
-              <AppText color={colors.primary}>
-                Close
-              </AppText>
+            <Pressable onPress={closeSheet} style={styles.closeCircle}>
+              <Ionicons name="close" size={20} color={colors.textMuted} />
             </Pressable>
           </View>
 
-          {/* 🔥 SEARCH BAR */}
-          <TextInput
-            placeholder={`Search ${label}`}
-            placeholderTextColor="#999"
-            value={search}
-            onChangeText={setSearch}
-            style={styles.search}
-          />
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={18} color={colors.textMuted} style={styles.searchIcon} />
+            <TextInput
+              placeholder={`Search ${label}...`}
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              style={styles.search}
+            />
+          </View>
 
-          {/* 🔥 ENTERPRISE LIST */}
           <FlatList
             data={filteredOptions}
             keyExtractor={i => String(i.value)}
             keyboardShouldPersistTaps="handled"
-            initialNumToRender={15}
-            windowSize={10}
+            contentContainerStyle={styles.listContent}
             renderItem={({ item }) => {
               const active = item.value === value;
 
               return (
                 <Pressable
-                  style={styles.option}
+                  style={[styles.option, active && styles.optionActive]}
                   onPress={() => {
                     onSelect(item.value);
                     closeSheet();
                   }}
                 >
                   <AppText
-                    color={
-                      active
-                        ? colors.primary
-                        : colors.textPrimary
-                    }
+                    variant="body"
+                    style={active ? { fontWeight: '700', color: colors.primary } : { color: colors.textPrimary }}
                   >
                     {item.label}
                   </AppText>
 
                   {active && (
-                    <AppText
-                      color={colors.primary}
-                    >
-                      ✓
-                    </AppText>
+                    <View style={styles.checkCircle}>
+                      <Ionicons name="checkmark" size={14} color="white" />
+                    </View>
                   )}
                 </Pressable>
               );
@@ -176,68 +163,110 @@ export default function AppSelect({
   );
 }
 
-/* ---------------- STYLES ---------------- */
-
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
-
+  label: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 6,
+    marginLeft: 4,
+  },
   selector: {
-    borderWidth: 1,
-    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: spacing.md,
-    borderRadius: 10,
-    backgroundColor: '#fff',
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight + '10',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-
+  selectorActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'white',
+  },
+  selectorText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
-
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: height * 0.75,
+    height: height * 0.7,
     backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: spacing.lg,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
-
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#ccc',
-    borderRadius: 10,
+    backgroundColor: colors.divider,
+    borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
-
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
-
+  closeCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  searchIcon: {
+    marginRight: spacing.xs,
+  },
   search: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    flex: 1,
+    height: 44,
+    fontSize: 15,
     color: colors.textPrimary,
   },
-
+  listContent: {
+    paddingBottom: spacing.xl,
+  },
   option: {
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    borderRadius: 12,
+    marginBottom: 4,
   },
+  optionActive: {
+    backgroundColor: colors.primaryLight + '10',
+  },
+  checkCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  }
 });
