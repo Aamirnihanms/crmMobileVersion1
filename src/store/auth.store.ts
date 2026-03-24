@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { deleteToken } from '../utils/token';
 
 type AuthUser = {
   uid?: string;
@@ -12,6 +13,7 @@ type AuthState = {
   user: AuthUser | null;
   setLoggedIn: (v: boolean) => void;
   setUser: (user: AuthUser | null) => void;
+  logout: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -19,4 +21,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   setLoggedIn: (v) => set({ isLoggedIn: v }),
   setUser: (user) => set({ user }),
+  logout: async () => {
+    await deleteToken();
+    set({ isLoggedIn: false, user: null });
+  },
 }));

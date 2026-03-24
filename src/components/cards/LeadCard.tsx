@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { colors, spacing } from '../../theme';
 import AppCard from '../common/AppCard';
@@ -26,7 +27,7 @@ type LeadCardProps = {
   onPress?: () => void;
 };
 
-export default function LeadCard({ lead, onPress }: LeadCardProps) {
+const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
   const initials = lead.name
     ? lead.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
@@ -79,7 +80,19 @@ export default function LeadCard({ lead, onPress }: LeadCardProps) {
       </AppCard>
     </Pressable>
   );
-}
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.lead.id === nextProps.lead.id &&
+    prevProps.lead.name === nextProps.lead.name &&
+    prevProps.lead.phone_number === nextProps.lead.phone_number &&
+    prevProps.lead.lead_status_details.value === nextProps.lead.lead_status_details.value &&
+    prevProps.lead.lead_status_details.color === nextProps.lead.lead_status_details.color &&
+    prevProps.lead.course_details?.course_name === nextProps.lead.course_details?.course_name &&
+    prevProps.lead.lead_source_details?.label === nextProps.lead.lead_source_details?.label
+  );
+});
+
+export default LeadCard;
 
 const styles = StyleSheet.create({
   card: {

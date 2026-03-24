@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
 import AppText from '../../components/common/AppText';

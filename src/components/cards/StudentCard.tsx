@@ -1,10 +1,11 @@
 import { colors, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
-export default function StudentCard({ student, onPress }: any) {
+const StudentCard = memo(({ student, onPress }: any) => {
   const batch = student.batches?.[0]; // show latest batch
 
   return (
@@ -82,7 +83,17 @@ export default function StudentCard({ student, onPress }: any) {
       </AppCard>
     </Pressable>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.student.uid === next.student.uid &&
+    prev.student.full_name === next.student.full_name &&
+    prev.student.student_id === next.student.student_id &&
+    prev.student.location === next.student.location &&
+    JSON.stringify(prev.student.batches?.[0]) === JSON.stringify(next.student.batches?.[0])
+  );
+});
+
+export default StudentCard;
 
 const styles = StyleSheet.create({
   card: {

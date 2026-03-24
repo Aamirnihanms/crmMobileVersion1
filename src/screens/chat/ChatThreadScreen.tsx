@@ -5,17 +5,20 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Sharing from 'expo-sharing';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
-  FlatList,
   Linking,
   Modal,
   Platform,
@@ -25,7 +28,6 @@ import {
   StyleSheet,
   TextInput,
   View,
-  type ListRenderItemInfo,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +43,7 @@ import {
   type PresignedUploadFile,
 } from '@/src/api/chat.api';
 import { http } from '@/src/api/http';
+import AttachmentPopup, { AttachmentActionType } from '@/src/components/chat/AttachmentPopup';
 import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
@@ -193,22 +196,7 @@ const getMessageSummary = (msg?: ApiMessage | null) => {
 };
 
 const normalizeMessageType = (msg: ApiMessage) => {
-  const originalType = msg.message_type || 'text';
-  if (originalType === 'file') {
-    const contentType =
-      typeof msg.content_type === 'string' ? msg.content_type.toLowerCase() : '';
-    if (contentType.startsWith('image/')) {
-      return 'image';
-    }
-
-    const name = String(
-      getAttachmentFileName(msg) || getAttachmentUrl(msg) || ''
-    ).toLowerCase();
-    if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name)) {
-      return 'image';
-    }
-  }
-  return originalType;
+  return msg.message_type || 'text';
 };
 
 const shouldShowMessageText = (message: ThreadMessage) => {
@@ -611,7 +599,7 @@ export default function ChatThreadScreen() {
 
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
-  const flatListRef = useRef<FlatList<ThreadMessage>>(null);
+  const flatListRef = useRef<React.ComponentRef<typeof FlashList<ThreadMessage>> | null>(null);
 
   const topInset =
     Platform.OS === 'android'
@@ -632,6 +620,7 @@ export default function ChatThreadScreen() {
   const [pendingAttachment, setPendingAttachment] =
     useState<PendingAttachment | null>(null);
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
+  const [attachmentPopupVisible, setAttachmentPopupVisible] = useState(false);
   const markedReadRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -1128,7 +1117,7 @@ export default function ChatThreadScreen() {
     sending,
   ]);
 
-  const pickAttachment = useCallback(async () => {
+  const handlePickDocument = useCallback(async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         multiple: false,
@@ -1146,12 +1135,80 @@ export default function ChatThreadScreen() {
         name: file.name,
         mimeType,
         size: file.size,
-        isImage: mimeType.startsWith('image/'),
+        isImage: false, // Always treat as document if picked via document picker
       });
     } catch {
       Alert.alert('Attachment', 'Unable to pick file.');
     }
   }, []);
+
+  const handlePickGallery = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Gallery access is required to pick photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      setPendingAttachment({
+        uri: asset.uri,
+        name: asset.fileName || `image-${Date.now()}.jpg`,
+        mimeType: asset.mimeType || 'image/jpeg',
+        size: asset.fileSize,
+        isImage: true,
+      });
+    } catch {
+      Alert.alert('Attachment', 'Unable to pick image from gallery.');
+    }
+  }, []);
+
+  const handlePickCamera = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera access is required to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      setPendingAttachment({
+        uri: asset.uri,
+        name: asset.fileName || `camera-${Date.now()}.jpg`,
+        mimeType: asset.mimeType || 'image/jpeg',
+        size: asset.fileSize,
+        isImage: true,
+      });
+    } catch {
+      Alert.alert('Attachment', 'Unable to use camera.');
+    }
+  }, []);
+
+  const handleSelectAttachmentAction = useCallback((type: AttachmentActionType) => {
+    if (type === 'gallery') {
+      void handlePickGallery();
+    } else if (type === 'camera') {
+      void handlePickCamera();
+    } else if (type === 'document') {
+      void handlePickDocument();
+    }
+  }, [handlePickGallery, handlePickCamera, handlePickDocument]);
 
   const sendAttachmentMessage = useCallback(async () => {
     if (!pendingAttachment || sending) return;
@@ -1313,6 +1370,35 @@ export default function ChatThreadScreen() {
     }
   }, []);
 
+  const handleShareFile = useCallback(async (uri: string, fileName?: string | null) => {
+    try {
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (!isSharingAvailable) {
+        Alert.alert('Sharing', 'Sharing is not available on this device.');
+        return;
+      }
+
+      const name = (fileName || uri.split('/').pop() || 'attachment').replace(/[^a-zA-Z0-9.]/g, '_');
+      const fileUri = FileSystem.cacheDirectory + name;
+
+      const downloadResult = await FileSystem.downloadAsync(uri, fileUri);
+      if (downloadResult.status !== 200) {
+        throw new Error('Failed to download file');
+      }
+
+      await Sharing.shareAsync(downloadResult.uri, {
+        dialogTitle: 'Open with',
+      });
+    } catch {
+      Alert.alert('Error', 'Unable to open file with other apps.');
+    }
+  }, []);
+
+  const isImageFile = useCallback((fileName?: string | null) => {
+    const name = (fileName || '').toLowerCase();
+    return /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name);
+  }, []);
+
   const handleAttachmentPress = useCallback(
     (message: ThreadMessage) => {
       if (!message.fileUrl) {
@@ -1320,7 +1406,7 @@ export default function ChatThreadScreen() {
         return;
       }
 
-      if (message.messageType === 'image') {
+      if (message.messageType === 'image' || isImageFile(message.fileName)) {
         setImagePreview({
           uri: message.fileUrl,
           name: message.fileName,
@@ -1330,7 +1416,7 @@ export default function ChatThreadScreen() {
 
       void openAttachmentUrl(message.fileUrl);
     },
-    [openAttachmentUrl]
+    [isImageFile, openAttachmentUrl]
   );
 
   const keyExtractor = useCallback((item: ThreadMessage) => item.id, []);
@@ -1534,7 +1620,13 @@ export default function ChatThreadScreen() {
         </View>
       </Modal>
 
-      <FlatList
+      <AttachmentPopup
+        visible={attachmentPopupVisible}
+        onClose={() => setAttachmentPopupVisible(false)}
+        onSelect={handleSelectAttachmentAction}
+      />
+
+      <FlashList
         ref={flatListRef}
         data={messages}
         keyExtractor={keyExtractor}
@@ -1544,12 +1636,7 @@ export default function ChatThreadScreen() {
           Platform.OS === 'ios' ? 'interactive' : 'on-drag'
         }
         keyboardShouldPersistTaps="handled"
-        initialNumToRender={16}
-        maxToRenderPerBatch={12}
-        windowSize={7}
-        updateCellsBatchingPeriod={50}
         removeClippedSubviews={Platform.OS === 'android'}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
         refreshControl={
           <RefreshControl
             refreshing={messagesRefetching || fetchingOlderMessages}
@@ -1578,7 +1665,7 @@ export default function ChatThreadScreen() {
           { paddingBottom: composerBottomPadding },
         ]}
       >
-        <Pressable style={styles.attachButton} onPress={pickAttachment}>
+        <Pressable style={styles.attachButton} onPress={() => setAttachmentPopupVisible(true)}>
           <Ionicons
             name="add-circle-outline"
             size={20}
@@ -1653,7 +1740,7 @@ export default function ChatThreadScreen() {
               style={styles.composerInput}
               multiline
             />
-            <Pressable style={styles.smallAction} onPress={pickAttachment}>
+            <Pressable style={styles.smallAction} onPress={handlePickCamera}>
               <Ionicons
                 name="camera-outline"
                 size={18}

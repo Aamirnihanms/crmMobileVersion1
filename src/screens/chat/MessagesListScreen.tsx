@@ -17,7 +17,6 @@ import {
   StyleSheet,
   TextInput,
   View,
-  type ListRenderItemInfo,
 } from 'react-native';
 
 import {
@@ -883,33 +882,30 @@ export default function MessagesListScreen() {
     onMessage: handleWsMessage,
   });
 
-  const usersList = useMemo(
-    () =>
-      usersData?.pages.flatMap((page) => page.users || []) || [],
-    [usersData]
-  );
+  const usersList = useMemo(() => {
+    return usersData?.pages.flatMap((page: any) => {
+      return page.users || page.results || page.data?.users || page.data?.results || [];
+    }) || [];
+  }, [usersData]);
 
-  const studentsList = useMemo(
-    () =>
-      studentsData?.pages.flatMap(
-        (page) => (page.data?.students as ChatStudent[] | undefined) || []
-      ) || [],
-    [studentsData]
-  );
+  const studentsList = useMemo(() => {
+    return studentsData?.pages.flatMap((page: any) => {
+      return page.results || page.students || page.data?.students || page.data?.results || [];
+    }) || [];
+  }, [studentsData]);
 
-  const batchesList = useMemo(
-    () =>
-      batchesData?.pages.flatMap((page) => page.batches || []) || [],
-    [batchesData]
-  );
+  const batchesList = useMemo(() => {
+    return batchesData?.pages.flatMap((page: any) => {
+      return page.results || page.batches || page.data?.batches || page.data?.results || [];
+    }) || [];
+  }, [batchesData]);
 
   const groupCandidates = useMemo<(ActiveUser | ChatStudent)[]>(
     () =>
       groupTab === 'users'
-        ? groupUsersData?.pages.flatMap((page) => page.users || []) || []
+        ? groupUsersData?.pages.flatMap((page: any) => page.users || page.results || page.data?.users || []) || []
         : groupStudentsData?.pages.flatMap(
-          (page) => (page.data?.students as ChatStudent[] | undefined) || []
-        ) || [],
+          (page: any) => page.students || page.results || page.data?.students || []) || [],
     [groupStudentsData, groupTab, groupUsersData]
   );
 
@@ -1021,7 +1017,7 @@ export default function MessagesListScreen() {
   );
 
   const renderChatItem = useCallback((
-    { item }: ListRenderItemInfo<ChatPreview>
+    { item }: any
   ) => (
     <ChatRow
       chat={item}
@@ -1109,6 +1105,19 @@ export default function MessagesListScreen() {
       )}
     </View>
   ), [chatLoadError, chatsLoading, refetchChats]);
+
+  const renderChatRow = useCallback(
+    ({ item }: any) => (
+      <ChatRow
+        chat={item}
+        onOpenChat={navigateToChat}
+        onMenuPress={handleMenuPress}
+      />
+    ),
+    [navigateToChat, handleMenuPress]
+  );
+
+  const keyExtractor = useCallback((item: ChatPreview) => item.id, []);
 
   return (
     <View style={styles.container}>
@@ -1207,12 +1216,8 @@ export default function MessagesListScreen() {
       <FlatList
         data={filteredChats}
         keyExtractor={chatKeyExtractor}
-        getItemLayout={getChatItemLayout}
         contentContainerStyle={styles.list}
         initialNumToRender={14}
-        maxToRenderPerBatch={10}
-        windowSize={7}
-        updateCellsBatchingPeriod={50}
         removeClippedSubviews
         refreshControl={
           <RefreshControl
@@ -1304,13 +1309,13 @@ export default function MessagesListScreen() {
             ) : (
               <FlatList
                 data={activeRecipients}
-                keyExtractor={(item, idx) =>
+                keyExtractor={(item: RecipientItem, idx: number) =>
                   String(item.uid || item.user_id || item.id || idx)
                 }
                 contentContainerStyle={styles.modalList}
                 onEndReached={loadMoreRecipients}
                 onEndReachedThreshold={0.35}
-                renderItem={({ item }) => (
+                renderItem={({ item }: { item: RecipientItem }) => (
                   <Pressable
                     style={styles.modalListRow}
                     onPress={() =>
@@ -1444,13 +1449,13 @@ export default function MessagesListScreen() {
             ) : (
               <FlatList
                 data={groupCandidates}
-                keyExtractor={(item, idx) =>
+                keyExtractor={(item: ActiveUser | ChatStudent, idx: number) =>
                   String(item.uid || item.user_id || item.id || idx)
                 }
                 contentContainerStyle={styles.modalList}
                 onEndReached={loadMoreGroupCandidates}
                 onEndReachedThreshold={0.35}
-                renderItem={({ item }) => {
+                renderItem={({ item }: { item: ActiveUser | ChatStudent }) => {
                   const participantId = getParticipantId(item);
                   const selected =
                     typeof participantId === 'number' &&

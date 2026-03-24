@@ -1,7 +1,7 @@
+import { FlashList } from '@shopify/flash-list';
 import type { InfiniteData } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -93,6 +93,17 @@ export default function LeadsListScreen() {
 
   /* ---------------- STATES ---------------- */
 
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <LeadCard
+      lead={item}
+      onPress={() =>
+        navigation.navigate('LeadDetails', {
+          id: item.id,
+        })
+      }
+    />
+  ), [navigation]);
+
   if (isLoading) {
     return <AppLoader />;
   }
@@ -161,19 +172,10 @@ export default function LeadsListScreen() {
           </AppText>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={leads}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <LeadCard
-              lead={item}
-              onPress={() =>
-                navigation.navigate('LeadDetails', {
-                  id: item.id,
-                })
-              }
-            />
-          )}
+          renderItem={renderItem}
           contentContainerStyle={styles.list}
           onEndReached={() => {
             if (

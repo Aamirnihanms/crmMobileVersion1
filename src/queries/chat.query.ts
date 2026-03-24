@@ -76,6 +76,10 @@ export const useInfiniteChatUsers = ({
         search: search?.trim() || undefined,
       }),
     getNextPageParam: (lastPage, allPages) => {
+      // Try DRF-style "next" first
+      if (lastPage?.next) return allPages.length + 1;
+
+      // Fallback to custom "total_pages" logic
       const currentPage = Number(lastPage?.page ?? allPages.length);
       const totalPages = Number(lastPage?.total_pages ?? currentPage);
       if (!Number.isFinite(currentPage) || !Number.isFinite(totalPages)) {
@@ -101,7 +105,11 @@ export const useInfiniteChatStudents = ({
         page_size: pageSize,
         search: search?.trim() || undefined,
       }),
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage, allPages) => {
+      // Standard DRF "next"
+      if (lastPage?.next) return allPages.length + 1;
+
+      // Custom "data.pagination"
       const pagination = lastPage?.data?.pagination;
       if (!pagination?.has_next) return undefined;
       const currentPage = Number(pagination.current_page || 1);
@@ -125,7 +133,11 @@ export const useInfiniteChatBatches = ({
         page_size: pageSize,
         search: search?.trim() || undefined,
       }),
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage, allPages) => {
+      // Standard DRF "next"
+      if (lastPage?.next) return allPages.length + 1;
+
+      // Custom "pagination"
       const pagination = lastPage?.pagination;
       const currentPage = Number(pagination?.current_page || 1);
       const totalPages = Number(pagination?.total_pages || currentPage);

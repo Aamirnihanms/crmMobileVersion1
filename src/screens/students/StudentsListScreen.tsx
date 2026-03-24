@@ -1,5 +1,5 @@
+import { FlashList } from '@shopify/flash-list';
 import {
-  FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 
 import type { InfiniteData } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
@@ -64,6 +64,17 @@ export default function StudentsListScreen() {
     isRefetching: boolean;
   };
 
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <StudentCard
+      student={item}
+      onPress={() =>
+        navigation.navigate('StudentDetails', {
+          id: item.uid,
+        })
+      }
+    />
+  ), [navigation]);
+
   if (isLoading) return <AppLoader />;
 
   if (isError) {
@@ -111,19 +122,10 @@ export default function StudentsListScreen() {
           </AppText>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={students}
           keyExtractor={(item) => item.uid}
-          renderItem={({ item }) => (
-            <StudentCard
-              student={item}
-              onPress={() =>
-                navigation.navigate('StudentDetails', {
-                  id: item.uid,
-                })
-              }
-            />
-          )}
+          renderItem={renderItem}
           contentContainerStyle={styles.list}
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) {
