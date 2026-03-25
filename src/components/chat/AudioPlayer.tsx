@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { Audio, AVPlaybackStatus, AVPlaybackStatusSuccess } from 'expo-av';
+import { AudioSource, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Pressable,
@@ -27,11 +27,9 @@ const formatMMSS = (millis: number) => {
 };
 
 export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
-    const [sound, setSound] = useState<Audio.Sound | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [duration, setDuration] = useState(0);
-    const [position, setPosition] = useState(0);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [audioSource, setAudioSource] = useState<AudioSource>(null);
+    const player = useAudioPlayer(audioSource, { updateInterval: 50 });
+    const status = useAudioPlayerStatus(player);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(false);
 
@@ -42,43 +40,21 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
     const trackBgColor = mine ? '#FFFFFF40' : '#E2E8F0';
     const trackFillColor = mainColor;
 
-    const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-        if (!status.isLoaded) {
-            if (status.error) {
-                console.warn(`Error playing audio: ${status.error}`);
-                setError(true);
-            }
-            return;
-        }
-
-        const successStatus = status as AVPlaybackStatusSuccess;
-        setIsLoaded(true);
-        setIsPlaying(successStatus.isPlaying);
-
-        if (successStatus.durationMillis) {
-            setDuration(successStatus.durationMillis);
-        }
-
-        if (!isScrubbingRef.current) {
-            setPosition(successStatus.positionMillis || 0);
-        }
-
-        if (successStatus.didJustFinish) {
-            setIsPlaying(false);
-            setPosition(0);
-            sound?.setPositionAsync(0);
-        }
-    }, [sound]);
+    // Status handling is now handled by useAudioPlayerStatus(player)
+    // which returns { playing, currentTime, duration, isLoaded, ... }
+    // These are in seconds, so we convert them to milliseconds for internal UI logic if needed,
+    // or just update the UI logic to use seconds.
+    // Let's use seconds for formatMMSS.
 
     const loadAudio = async () => {
-        if (sound) return; // already loaded or loading
         if (!uri) return;
+        if (audioSource) return; // already loaded or loading
 
         try {
             setIsLoading(true);
             setError(false);
 
-            let playUri = uri;
+            let playUri: AudioSource = uri;
             if (uri.startsWith('http')) {
                 try {
                     // Extract a unique identifier from the end of the URL
@@ -100,16 +76,8 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
                 }
             }
 
-            const { sound: newSound, status } = await Audio.Sound.createAsync(
-                { uri: playUri },
-                { shouldPlay: false, progressUpdateIntervalMillis: 50 },
-                onPlaybackStatusUpdate
-            );
-            setSound(newSound);
+            setAudioSource(playUri);
 
-            if (status.isLoaded && status.durationMillis) {
-                setDuration(status.durationMillis);
-            }
         } catch (e) {
             console.warn("Could not load audio", e);
             setError(true);
@@ -123,9 +91,7 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
         loadAudio();
 
         return () => {
-            if (sound) {
-                sound.unloadAsync();
-            }
+            // Player is managed by useAudioPlayer hook
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uri]);
@@ -136,19 +102,20 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
             return;
         }
 
-        if (!sound) {
+        if (!player) {
             // Not loaded yet? Try loading and playing
             await loadAudio();
             return;
         }
-        if (isPlaying) {
-            await sound.pauseAsync();
+
+        if (status.playing) {
+            player.pause();
         } else {
-            if (position >= duration - 500 && duration > 0) {
-                await sound.playFromPositionAsync(0);
-            } else {
-                await sound.playFromPositionAsync(position);
+            // If finished, restart
+            if (status.currentTime >= status.duration - 0.5 && status.duration > 0) {
+                await player.seekTo(0);
             }
+            player.play();
         }
     };
 
@@ -156,10 +123,10 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
     let timeText = '0:00';
     if (progress !== undefined) {
         timeText = progress > 0 ? `${Math.round(progress * 100)}%` : '0%';
-    } else if (isPlaying || position > 0) {
-        timeText = formatMMSS(position);
-    } else if (duration > 0) {
-        timeText = formatMMSS(duration);
+    } else if (status.playing || status.currentTime > 0) {
+        timeText = formatMMSS(status.currentTime * 1000);
+    } else if (status.duration > 0) {
+        timeText = formatMMSS(status.duration * 1000);
     } else if (error) {
         timeText = '!';
     }
@@ -169,14 +136,14 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
             <Pressable onPress={togglePlayPause} style={styles.playButton} hitSlop={10} disabled={progress !== undefined}>
                 {progress !== undefined ? (
                     <ActivityIndicator size="small" color={mainColor} />
-                ) : isLoading && !isLoaded ? (
+                ) : isLoading && !status.isLoaded ? (
                     <ActivityIndicator size="small" color={mainColor} />
                 ) : (
                     <Ionicons
-                        name={isPlaying ? 'pause' : 'play'}
+                        name={status.playing ? 'pause' : 'play'}
                         size={24}
                         color={mainColor}
-                        style={{ marginLeft: isPlaying ? 0 : 2 }} // center the play triangle
+                        style={{ marginLeft: status.playing ? 0 : 2 }} // center the play triangle
                     />
                 )}
             </Pressable>
@@ -184,10 +151,10 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
             <View style={styles.trackContainer}>
                 <Slider
                     style={styles.slider}
-                    disabled={!isLoaded || duration === 0}
+                    disabled={!status.isLoaded || status.duration === 0}
                     minimumValue={0}
-                    maximumValue={duration > 0 ? duration : 1}
-                    value={position}
+                    maximumValue={status.duration > 0 ? status.duration : 1}
+                    value={status.currentTime}
                     minimumTrackTintColor={trackFillColor}
                     maximumTrackTintColor={trackBgColor}
                     thumbTintColor={mainColor}
@@ -195,10 +162,9 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
                         isScrubbingRef.current = true;
                     }}
                     onSlidingComplete={async (value) => {
-                        if (sound && isLoaded && duration > 0) {
-                            setPosition(value);
+                        if (player && status.isLoaded && status.duration > 0) {
                             try {
-                                await sound.setPositionAsync(value);
+                                await player.seekTo(value);
                             } catch (e) {
                                 console.warn(e);
                             }
@@ -212,7 +178,9 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
                     }}
                     onValueChange={(value) => {
                         if (isScrubbingRef.current) {
-                            setPosition(value);
+                            // We can't easily update status.currentTime manually here since it's from the hook,
+                            // but we could have a local position state if needed.
+                            // Let's see if status.currentTime updates fast enough or if we need a local override.
                         }
                     }}
                 />

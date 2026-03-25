@@ -7,7 +7,7 @@ import {
 } from '@react-navigation/native';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
-import { Audio } from 'expo-av';
+import { AudioModule, AudioRecorder, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
@@ -679,7 +679,7 @@ export default function ChatThreadScreen() {
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState('');
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recording, setRecording] = useState<AudioRecorder | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -842,7 +842,7 @@ export default function ChatThreadScreen() {
     }
   }, [chatId, isFocused, refetchMessages]);
 
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingRef = useRef<AudioRecorder | null>(null);
   useEffect(() => {
     recordingRef.current = recording;
   }, [recording]);
@@ -853,7 +853,7 @@ export default function ChatThreadScreen() {
         clearInterval(recordingTimerRef.current);
       }
       if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => { });
+        recordingRef.current.stop().catch(() => { });
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1455,25 +1455,27 @@ export default function ChatThreadScreen() {
 
   const startRecording = useCallback(async () => {
     try {
-      const permission = await Audio.requestPermissionsAsync();
+      const permission = await requestRecordingPermissionsAsync();
       if (permission.status !== 'granted') {
         Alert.alert('Permission needed', 'Microphone access is required to record audio.');
         return;
       }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      const newRecording = new AudioModule.AudioRecorder(RecordingPresets.HIGH_QUALITY);
+      await newRecording.prepareToRecordAsync();
+      newRecording.record();
+
       setRecording(newRecording);
       setIsRecording(true);
       setRecordingDuration(0);
 
       const interval = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
+        const status = newRecording.getStatus();
+        setRecordingDuration(Math.floor(status.durationMillis / 1000));
       }, 1000);
       recordingTimerRef.current = interval;
     } catch (err) {
@@ -1490,11 +1492,11 @@ export default function ChatThreadScreen() {
         recordingTimerRef.current = null;
       }
       setIsRecording(false);
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
+      await recording.stop();
+      await setAudioModeAsync({
+        allowsRecording: false,
       });
-      const uri = recording.getURI();
+      const uri = recording.uri;
       setRecording(null);
       setRecordingDuration(0);
       return uri;
