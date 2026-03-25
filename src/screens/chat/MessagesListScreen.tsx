@@ -1,11 +1,12 @@
+import AttachmentPopup, { type AttachmentActionType } from '@/src/components/chat/AttachmentPopup';
 import { Ionicons } from '@expo/vector-icons';
 import {
   useIsFocused,
   useNavigation,
 } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as DocumentPicker from 'expo-document-picker';
 import { Image as ExpoImage } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -382,6 +383,7 @@ export default function MessagesListScreen() {
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
   const [groupIcon, setGroupIcon] = useState<PickerFile | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [groupTab, setGroupTab] = useState<GroupTab>('users');
   const [groupSearch, setGroupSearch] = useState('');
   const [debouncedGroupSearch, setDebouncedGroupSearch] = useState('');
@@ -699,22 +701,53 @@ export default function MessagesListScreen() {
     []
   );
 
-  const pickGroupIcon = useCallback(async () => {
+  const handleIconPickerSelect = useCallback(async (type: AttachmentActionType) => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        multiple: false,
-        copyToCacheDirectory: true,
-        type: 'image/*',
-      });
+      if (type === 'gallery') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission needed', 'Gallery permission is required to choose a group icon.');
+          return;
+        }
 
-      if (result.canceled || !result.assets?.length) return;
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
 
-      const file = result.assets[0];
-      setGroupIcon({
-        uri: file.uri,
-        name: file.name,
-        mimeType: file.mimeType || 'image/jpeg',
-      });
+        if (!result.canceled && result.assets?.[0]) {
+          const file = result.assets[0];
+          setGroupIcon({
+            uri: file.uri,
+            name: file.fileName || file.uri.split('/').pop() || 'group-icon.jpg',
+            mimeType: file.mimeType || 'image/jpeg',
+          });
+        }
+      } else if (type === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission needed', 'Camera permission is required to take a group icon.');
+          return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets?.[0]) {
+          const file = result.assets[0];
+          setGroupIcon({
+            uri: file.uri,
+            name: file.fileName || file.uri.split('/').pop() || 'group-icon-camera.jpg',
+            mimeType: file.mimeType || 'image/jpeg',
+          });
+        }
+      }
     } catch {
       // ignore
     }
@@ -727,6 +760,7 @@ export default function MessagesListScreen() {
     setGroupSearch('');
     setGroupTab('users');
     setSelectedGroupParticipants([]);
+    setShowIconPicker(false);
   }, []);
 
   const handleCreateGroup = useCallback(async () => {
@@ -1397,11 +1431,40 @@ export default function MessagesListScreen() {
               style={styles.groupInput}
             />
 
-            <Pressable style={styles.iconPickerBtn} onPress={pickGroupIcon}>
-              <Ionicons name="image-outline" size={16} color={colors.textSecondary} />
-              <AppText variant="caption" color={colors.textSecondary}>
-                {groupIcon ? groupIcon.name : 'Pick group icon (optional)'}
-              </AppText>
+            <Pressable style={styles.iconPickerBtn} onPress={() => setShowIconPicker(true)}>
+              {groupIcon ? (
+                <>
+                  <ExpoImage
+                    source={{ uri: groupIcon.uri }}
+                    style={styles.groupIconPreview}
+                    contentFit="cover"
+                  />
+                  <View style={styles.groupIconActionRow}>
+                    <AppText variant="caption" color={colors.primary}>
+                      Change Icon
+                    </AppText>
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setGroupIcon(null);
+                      }}
+                      hitSlop={10}
+                      style={{ marginLeft: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.iconPlaceholder}>
+                    <Ionicons name="camera-outline" size={24} color={colors.textSecondary} />
+                  </View>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    Add group icon (optional)
+                  </AppText>
+                </>
+              )}
             </Pressable>
 
             <View style={styles.tabsRow}>
@@ -1526,6 +1589,13 @@ export default function MessagesListScreen() {
           </View>
         </View>
       </Modal>
+
+      <AttachmentPopup
+        visible={showIconPicker}
+        onClose={() => setShowIconPicker(false)}
+        onSelect={handleIconPickerSelect}
+        options={['camera', 'gallery']}
+      />
     </View>
   );
 }
@@ -1798,6 +1868,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  groupIconPreview: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  groupIconActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flex: 1,
+  },
+  iconPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   createGroupBtn: {
     marginTop: spacing.md,

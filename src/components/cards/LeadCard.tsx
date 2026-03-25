@@ -41,11 +41,22 @@ const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
           </View>
           <View style={styles.mainInfo}>
             <View style={styles.nameRow}>
-              <AppText variant="subtitle" style={styles.name}>
+              <AppText variant="subtitle" style={styles.name} numberOfLines={1}>
                 {lead.name ?? 'Unknown Lead'}
               </AppText>
-              <View style={[styles.badge, { backgroundColor: lead.lead_status_details.color + '15', borderColor: lead.lead_status_details.color }]}>
-                <AppText style={[styles.badgeText, { color: lead.lead_status_details.color }]}>
+              <View style={[styles.badge, {
+                backgroundColor: lead.lead_status_details.color.startsWith('#')
+                  ? lead.lead_status_details.color + '15'
+                  : lead.lead_status_details.color.replace(/,?\s*[\d.]+\)$/, ', 0.15)'),
+                borderColor: lead.lead_status_details.color.startsWith('rgba')
+                  ? lead.lead_status_details.color.replace(/,?\s*[\d.]+\)$/, ', 1)')
+                  : lead.lead_status_details.color
+              }]}>
+                <AppText style={[styles.badgeText, {
+                  color: lead.lead_status_details.color.startsWith('rgba')
+                    ? lead.lead_status_details.color.replace(/,?\s*[\d.]+\)$/, ', 1)')
+                    : lead.lead_status_details.color
+                }]}>
                   {lead.lead_status_details.name}
                 </AppText>
               </View>
@@ -131,6 +142,8 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: '700',
     fontSize: 15,
+    flex: 1,
+    marginRight: spacing.sm,
   },
   badge: {
     paddingHorizontal: 8,

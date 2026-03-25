@@ -7,12 +7,15 @@ import {
 } from '@react-navigation/native';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
+import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -44,6 +47,8 @@ import {
 } from '@/src/api/chat.api';
 import { http } from '@/src/api/http';
 import AttachmentPopup, { AttachmentActionType } from '@/src/components/chat/AttachmentPopup';
+import AudioPlayer from '@/src/components/chat/AudioPlayer';
+import ForwardMessageModal from '@/src/components/chat/ForwardMessageModal';
 import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
@@ -65,6 +70,7 @@ type ReplyPreview = {
 };
 
 type ThreadMessage = {
+  clientId?: string;
   id: string;
   mine: boolean;
   text: string;
@@ -82,6 +88,7 @@ type ThreadMessage = {
 type ImagePreview = {
   uri: string;
   name?: string | null;
+  messageId?: string;
 };
 
 type PendingAttachment = {
@@ -367,6 +374,8 @@ type MessageRowProps = {
   onReply: (message: ThreadMessage) => void;
   onAttachmentPress: (message: ThreadMessage) => void;
   showSenderInfo?: boolean;
+  progress?: number;
+  onDownload: (message: ThreadMessage) => void;
 };
 
 const MessageRow = memo(function MessageRow({
@@ -375,6 +384,8 @@ const MessageRow = memo(function MessageRow({
   onReply,
   onAttachmentPress,
   showSenderInfo,
+  progress,
+  onDownload,
 }: MessageRowProps) {
   const swipeableRef = useRef<Swipeable>(null);
 
@@ -455,7 +466,7 @@ const MessageRow = memo(function MessageRow({
           style={[
             styles.bubble,
             item.mine ? styles.myBubble : styles.theirBubble,
-            item.mine ? styles.myBubbleShadow : styles.theirBubbleShadow,
+            item.messageType === 'image' && !shouldShowMessageText(item) && !item.replyPreview ? styles.imageOnlyBubble : null,
           ]}
         >
           {showSenderInfo && item.senderName && !item.mine ? (
@@ -468,7 +479,7 @@ const MessageRow = memo(function MessageRow({
               {item.senderName}
             </AppText>
           ) : null}
-          {item.replyPreview ? (
+          {item.replyPreview && !isMessageDeleted(item.raw) ? (
             <View style={[
               styles.replyPreviewBox,
               { borderLeftColor: item.mine ? '#FFFFFF88' : colors.primary }
@@ -495,7 +506,9 @@ const MessageRow = memo(function MessageRow({
             </View>
           ) : null}
 
-          {item.messageType === 'image' || item.messageType === 'file' ? (
+          {!isMessageDeleted(item.raw) && item.messageType === 'audio' && item.fileUrl ? (
+            <AudioPlayer uri={item.fileUrl} mine={item.mine} progress={progress} />
+          ) : !isMessageDeleted(item.raw) && (item.messageType === 'image' || item.messageType === 'file') ? (
             <Pressable onPress={() => onAttachmentPress(item)}>
               {item.messageType === 'image' && item.fileUrl ? (
                 <View style={styles.imageBubbleWrap}>
@@ -506,35 +519,76 @@ const MessageRow = memo(function MessageRow({
                     cachePolicy="memory-disk"
                     transition={120}
                   />
-                  <View style={styles.imagePreviewHint}>
-                    <Ionicons
-                      name="expand-outline"
-                      size={13}
-                      color="#FFFFFF"
-                    />
-                    <AppText variant="caption" color="#FFFFFF">
-                      Tap to view
-                    </AppText>
-                  </View>
+                  {progress !== undefined ? (
+                    <View style={styles.downloadOverlay}>
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                      <AppText variant="caption" color="#FFFFFF" style={styles.downloadProgressText}>
+                        {progress > 0
+                          ? `${Math.round(progress * 100)}%`
+                          : (progress < 0
+                            ? `${(Math.abs(progress) / 1024 / 1024).toFixed(1)}MB`
+                            : '0%')}
+                      </AppText>
+                    </View>
+                  ) : (
+                    <View style={styles.imagePreviewHint}>
+                      <Ionicons
+                        name="expand-outline"
+                        size={13}
+                        color="#FFFFFF"
+                      />
+                      <AppText variant="caption" color="#FFFFFF">
+                        Tap to view
+                      </AppText>
+                    </View>
+                  )}
                 </View>
               ) : (
                 <View style={[
                   styles.fileCard,
                   item.mine && { backgroundColor: '#FFFFFF20', borderColor: '#FFFFFF40' }
                 ]}>
-                  <Ionicons
-                    name="document-attach-outline"
-                    size={16}
-                    color={item.mine ? '#FFFFFF' : colors.textSecondary}
-                  />
+                  {progress !== undefined ? (
+                    <ActivityIndicator color={item.mine ? '#FFFFFF' : colors.primary} size="small" style={{ marginRight: 8 }} />
+                  ) : (
+                    <Ionicons
+                      name="document-attach-outline"
+                      size={16}
+                      color={item.mine ? '#FFFFFF' : colors.textSecondary}
+                    />
+                  )}
                   <AppText
                     style={styles.fileName}
                     color={item.mine ? '#FFFFFF' : colors.textPrimary}
-                    numberOfLines={1}
+                    numberOfLines={2}
                     variant="caption"
                   >
-                    {item.fileName || 'Attachment'}
+                    {progress !== undefined
+                      ? (progress > 0
+                        ? `Downloading... ${Math.round(progress * 100)}%`
+                        : (progress < 0
+                          ? `Downloading... ${(Math.abs(progress) / 1024 / 1024).toFixed(1)}MB`
+                          : 'Downloading... 0%'))
+                      : (item.fileName || 'Attachment')}
                   </AppText>
+                  {progress === undefined && item.fileUrl && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        onDownload(item);
+                      }}
+                      style={[
+                        styles.downloadButton,
+                        item.mine ? { backgroundColor: '#FFFFFF' } : { backgroundColor: colors.primary }
+                      ]}
+                    >
+                      <Ionicons
+                        name="download-outline"
+                        size={16}
+                        color={item.mine ? colors.primary : '#FFFFFF'}
+                      />
+                    </Pressable>
+                  )}
                 </View>
               )}
             </Pressable>
@@ -572,13 +626,14 @@ const MessageRow = memo(function MessageRow({
             ) : null}
           </View>
         </View>
-      </Pressable>
-    </Swipeable>
+      </Pressable >
+    </Swipeable >
   );
 }, (prev, next) =>
   prev.onLongPress === next.onLongPress &&
   prev.onReply === next.onReply &&
   prev.onAttachmentPress === next.onAttachmentPress &&
+  prev.progress === next.progress &&
   areThreadMessagesEqual(prev.item, next.item)
 );
 
@@ -600,6 +655,16 @@ export default function ChatThreadScreen() {
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ThreadMessage>> | null>(null);
+  const isAtBottomRef = useRef(true);
+
+  const handleScroll = useCallback((e: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+
+    const isAtBottom =
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - 50;
+
+    isAtBottomRef.current = isAtBottom;
+  }, []);
 
   const topInset =
     Platform.OS === 'android'
@@ -614,11 +679,17 @@ export default function ChatThreadScreen() {
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState('');
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [replyingTo, setReplyingTo] = useState<ThreadMessage | null>(null);
   const [messageMenuVisible, setMessageMenuVisible] = useState(false);
+  const [forwardModalVisible, setForwardModalVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ThreadMessage | null>(null);
   const [pendingAttachment, setPendingAttachment] =
     useState<PendingAttachment | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
   const [attachmentPopupVisible, setAttachmentPopupVisible] = useState(false);
   const markedReadRef = useRef<Set<string>>(new Set());
@@ -771,6 +842,23 @@ export default function ChatThreadScreen() {
     }
   }, [chatId, isFocused, refetchMessages]);
 
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  useEffect(() => {
+    recordingRef.current = recording;
+  }, [recording]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => { });
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!queryMessages.length) {
       setMessages((prev) =>
@@ -795,6 +883,7 @@ export default function ChatThreadScreen() {
         // Maintain local-only state like 'read' during server sync
         return {
           ...serverMsg,
+          clientId: localMsg.clientId,
           status: localMsg.status === 'read' ? 'read' : serverMsg.status,
         };
       });
@@ -812,12 +901,12 @@ export default function ChatThreadScreen() {
   }, [queryMessages]);
 
   useEffect(() => {
-    if (messages.length > 0 && isFocused) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+    if (!messages.length) return;
+
+    if (isAtBottomRef.current) {
+      flatListRef.current?.scrollToEnd({ animated: true });
     }
-  }, [messages.length, isFocused]);
+  }, [messages]);
 
   const latestMessagePage = useMemo(
     () =>
@@ -1034,6 +1123,7 @@ export default function ChatThreadScreen() {
 
     const tempId = `temp-${Date.now()}`;
     const optimistic: ThreadMessage = {
+      clientId: tempId,
       id: tempId,
       mine: true,
       text,
@@ -1076,11 +1166,16 @@ export default function ChatThreadScreen() {
 
       if (confirmed?.uid) {
         const mapped = mapApiMessage(confirmed);
+        mapped.clientId = tempId;
         syncMessageToCache(confirmed);
         setMessages((prev) => {
-          const withoutTemp = prev.filter((message) => message.id !== tempId);
-          const exists = withoutTemp.some((message) => message.id === mapped.id);
-          return exists ? withoutTemp : [...withoutTemp, mapped];
+          const existsFromWs = prev.some((m) => m.id === mapped.id && m.id !== tempId);
+          if (existsFromWs) {
+            return prev
+              .filter(m => m.id !== tempId && m.id !== mapped.id)
+              .concat([mapped]);
+          }
+          return prev.map(m => m.id === tempId ? mapped : m);
         });
       } else {
         setMessages((prev) =>
@@ -1218,6 +1313,7 @@ export default function ChatThreadScreen() {
     const messageType = pendingAttachment.isImage ? 'image' : 'file';
 
     const optimistic: ThreadMessage = {
+      clientId: tempId,
       id: tempId,
       mine: true,
       text: caption || (pendingAttachment.isImage ? 'Image' : 'Attachment'),
@@ -1244,6 +1340,7 @@ export default function ChatThreadScreen() {
     };
 
     setMessages((prev) => [...prev, optimistic]);
+    setDownloadProgress((prev) => ({ ...prev, [tempId]: 0 }));
     setInput('');
     setReplyingTo(null);
     setPendingAttachment(null);
@@ -1266,7 +1363,10 @@ export default function ChatThreadScreen() {
         type: pendingAttachment.mimeType,
       };
 
-      await uploadFileToPresignedPost(presigned, uploadFile);
+      await uploadFileToPresignedPost(presigned, uploadFile, (event) => {
+        const percent = event.loaded / (event.total || event.loaded);
+        setDownloadProgress((prev) => ({ ...prev, [tempId]: percent }));
+      });
 
       const uploadedUrl = getUploadedFileUrl(presigned);
       if (!uploadedUrl) {
@@ -1297,12 +1397,16 @@ export default function ChatThreadScreen() {
 
       if (confirmed?.uid) {
         const mapped = mapApiMessage(confirmed);
+        mapped.clientId = tempId;
         syncMessageToCache(confirmed);
         setMessages((prev) => {
-          const withoutTemp = prev.filter((message) => message.id !== tempId);
-          const exists = withoutTemp.some((message) => message.id === mapped.id);
-          if (exists) return withoutTemp;
-          return [...withoutTemp, mapped];
+          const existsFromWs = prev.some((m) => m.id === mapped.id && m.id !== tempId);
+          if (existsFromWs) {
+            return prev
+              .filter(m => m.id !== tempId && m.id !== mapped.id)
+              .concat([mapped]);
+          }
+          return prev.map(m => m.id === tempId ? mapped : m);
         });
       } else {
         setMessages((prev) =>
@@ -1332,6 +1436,11 @@ export default function ChatThreadScreen() {
       Alert.alert('Attachment failed', message);
     } finally {
       setSending(false);
+      setDownloadProgress((prev) => {
+        const next = { ...prev };
+        delete next[tempId];
+        return next;
+      });
     }
   }, [
     chatId,
@@ -1343,6 +1452,199 @@ export default function ChatThreadScreen() {
     replyingTo,
     sending,
   ]);
+
+  const startRecording = useCallback(async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('Permission needed', 'Microphone access is required to record audio.');
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      const interval = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+      recordingTimerRef.current = interval;
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      Alert.alert('Error', 'Failed to start recording.');
+    }
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    if (!recording) return null;
+    try {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      setIsRecording(false);
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
+      const uri = recording.getURI();
+      setRecording(null);
+      setRecordingDuration(0);
+      return uri;
+    } catch (err) {
+      console.error('Failed to stop recording', err);
+      return null;
+    }
+  }, [recording]);
+
+  const cancelRecording = useCallback(async () => {
+    await stopRecording();
+  }, [stopRecording]);
+
+  const sendAudioMessage = useCallback(async (uri: string) => {
+    if (!uri || sending) return;
+
+    const tempId = `temp-audio-${Date.now()}`;
+    const mappedUri = uri;
+
+    const optimistic: ThreadMessage = {
+      clientId: tempId,
+      id: tempId,
+      mine: true,
+      text: 'Voice message',
+      time: formatTime(new Date().toISOString()),
+      status: 'sending',
+      messageType: 'audio',
+      fileUrl: mappedUri,
+      fileName: 'voice-note.m4a',
+      replyPreview: replyingTo
+        ? {
+          id: replyingTo.id,
+          senderName: replyingTo.mine ? 'You' : (replyingTo.senderName || name),
+          text: replyComposerText,
+          messageType: replyingTo.messageType,
+        }
+        : null,
+      raw: {
+        uid: tempId,
+        content: 'Voice message',
+        message_type: 'audio',
+        file_name: 'voice-note.m4a',
+        file_url: mappedUri,
+      },
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+    setDownloadProgress((prev) => ({ ...prev, [tempId]: 0 }));
+    setReplyingTo(null);
+
+    try {
+      setSending(true);
+
+      const presigned = await generatePresignedUploadUrl({
+        file_name: `voice-note-${Date.now()}.m4a`,
+        folder: 'chat',
+      });
+
+      if (!presigned?.success) {
+        throw new Error('Unable to generate upload URL');
+      }
+
+      const uploadFile: PresignedUploadFile = {
+        uri: mappedUri,
+        name: `voice-note-${Date.now()}.m4a`,
+        type: 'audio/m4a',
+      };
+
+      await uploadFileToPresignedPost(presigned, uploadFile, (event) => {
+        const percent = event.loaded / (event.total || event.loaded);
+        setDownloadProgress((prev) => ({ ...prev, [tempId]: percent }));
+      });
+
+      const uploadedUrl = getUploadedFileUrl(presigned);
+      if (!uploadedUrl) {
+        throw new Error('Uploaded URL missing');
+      }
+
+      const payload: Record<string, unknown> = {
+        content: 'Voice message',
+        message_type: 'audio',
+        file_url: uploadedUrl,
+        file: uploadedUrl,
+        attachment_url: uploadedUrl,
+        file_name: `voice-note-${Date.now()}.m4a`,
+        original_filename: `voice-note-${Date.now()}.m4a`,
+        s3_key: presigned.s3_key,
+        content_type: 'audio/m4a',
+      };
+
+      if (optimistic.replyPreview?.id) {
+        payload.reply_to = optimistic.replyPreview.id;
+      }
+
+      const response = await createMessage(chatId, payload);
+      const confirmed = response?.message as ApiMessage | undefined;
+
+      if (confirmed?.uid) {
+        const mapped = mapApiMessage(confirmed);
+        mapped.clientId = tempId;
+        syncMessageToCache(confirmed);
+        setMessages((prev) => {
+          const existsFromWs = prev.some((m) => m.id === mapped.id && m.id !== tempId);
+          if (existsFromWs) {
+            return prev
+              .filter(m => m.id !== tempId && m.id !== mapped.id)
+              .concat([mapped]);
+          }
+          return prev.map(m => m.id === tempId ? mapped : m);
+        });
+      } else {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === tempId
+              ? { ...message, status: 'delivered', fileUrl: uploadedUrl }
+              : message
+          )
+        );
+      }
+    } catch (err: any) {
+      const messageError =
+        err?.response?.data?.detail ??
+        err?.response?.data?.message ??
+        err?.message ??
+        'Failed to send audio message';
+
+      setMessages((prev) =>
+        prev.map((item) =>
+          item.id === tempId ? { ...item, status: 'failed' } : item
+        )
+      );
+      Alert.alert('Message failed', messageError);
+    } finally {
+      setSending(false);
+      setDownloadProgress((prev) => {
+        const next = { ...prev };
+        delete next[tempId];
+        return next;
+      });
+    }
+  }, [
+    chatId, mapApiMessage, name, replyComposerText, replyingTo, sending, syncMessageToCache
+  ]);
+
+  const stopAndSendRecording = useCallback(async () => {
+    const uri = await stopRecording();
+    if (uri) {
+      void sendAudioMessage(uri);
+    }
+  }, [stopRecording, sendAudioMessage]);
 
   const handleSend = useCallback(() => {
     if (pendingAttachment) {
@@ -1399,6 +1701,162 @@ export default function ChatThreadScreen() {
     return /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name);
   }, []);
 
+  const getMimeType = useCallback((fileName?: string | null) => {
+    const ext = (fileName || '').split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'pdf': return 'application/pdf';
+      case 'doc':
+      case 'docx': return 'application/msword';
+      case 'xls':
+      case 'xlsx': return 'application/vnd.ms-excel';
+      case 'ppt':
+      case 'pptx': return 'application/vnd.ms-powerpoint';
+      case 'txt': return 'text/plain';
+      case 'png': return 'image/png';
+      case 'jpg':
+      case 'jpeg': return 'image/jpeg';
+      case 'gif': return 'image/gif';
+      default: return '*/*';
+    }
+  }, []);
+
+  const handleOpenWith = useCallback(async (message: ThreadMessage) => {
+    const { fileUrl, fileName } = message;
+    if (!fileUrl) return;
+
+    try {
+      const name = (fileName || fileUrl.split('/').pop() || 'attachment').replace(/[^a-zA-Z0-9.]/g, '_');
+      const fileUri = FileSystem.cacheDirectory + name;
+
+      // Check if file exists in cache first to be fast
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      let localUri = fileUri;
+
+      if (!fileInfo.exists) {
+        // Download if not in cache
+        const downloadResult = await FileSystem.downloadAsync(fileUrl, fileUri);
+        if (downloadResult.status !== 200) {
+          throw new Error('Failed to download file for opening');
+        }
+        localUri = downloadResult.uri;
+      }
+
+      if (Platform.OS === 'android') {
+        const contentUri = await FileSystem.getContentUriAsync(localUri);
+        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+          data: contentUri,
+          flags: 1,
+          type: getMimeType(fileName),
+        });
+      } else {
+        // On iOS, Sharing.shareAsync provides the "Open in..." options
+        await Sharing.shareAsync(localUri);
+      }
+    } catch (err) {
+      // console.error('Open with error:', err);
+      Alert.alert('Error', 'Unable to open file. Please try downloading it first.');
+    }
+  }, [getMimeType]);
+
+  const handleDownload = useCallback(async (message: ThreadMessage) => {
+    const { fileUrl, fileName, id } = message;
+    if (!fileUrl) return;
+
+    // For files on Android, if the user wants "direct" download,
+    // Using Linking.openURL is the most reliable way to trigger the browser's manager
+    // which saves directly to Downloads without a share sheet popup.
+    if (Platform.OS === 'android' && message.messageType !== 'image' && !isImageFile(fileName)) {
+      try {
+        await Linking.openURL(fileUrl);
+        return;
+      } catch (err) {
+        // Fallback to the in-app downloader if Linking fails
+        // console.warn('Linking openURL failed, falling back to downloader', err);
+      }
+    }
+
+    try {
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (!isSharingAvailable) {
+        Alert.alert('Sharing', 'Sharing is not available on this device.');
+        return;
+      }
+
+      const name = (fileName || fileUrl.split('/').pop() || 'attachment').replace(/[^a-zA-Z0-9.]/g, '_');
+      const fileUri = FileSystem.cacheDirectory + name;
+
+      // Check if already downloading
+      if (downloadProgress[id] !== undefined) return;
+
+      // Start by setting an initial progress to show we've started
+      setDownloadProgress((prev) => ({ ...prev, [id]: 0.0001 }));
+
+      let fallbackTotalSize = 0;
+      try {
+        // Use fetch with HEAD for better platform compatibility
+        const headRes = await fetch(fileUrl, { method: 'HEAD' });
+        const len = headRes.headers.get('content-length');
+        if (len) fallbackTotalSize = parseInt(len, 10);
+      } catch (e) {
+        // console.warn('HEAD check failed', e);
+      }
+
+      const downloadResumable = FileSystem.createDownloadResumable(
+        fileUrl,
+        fileUri,
+        {},
+        (p) => {
+          const totalFromSrv = p.totalBytesExpectedToWrite;
+          const total = totalFromSrv > 0 ? totalFromSrv : fallbackTotalSize;
+          const written = p.totalBytesWritten;
+
+          if (total > 0) {
+            const val = Math.min(1, Math.max(0, written / total));
+            setDownloadProgress((prev) => ({ ...prev, [id]: val }));
+          } else {
+            // Indeterminate size: Store the negative of written bytes to signify "indeterminate"
+            // We can use this in the UI to show MB downloaded
+            setDownloadProgress((prev) => ({ ...prev, [id]: -written }));
+          }
+        }
+      );
+
+      const downloadResult = await downloadResumable.downloadAsync();
+
+      setDownloadProgress((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+
+      if (downloadResult && downloadResult.uri) {
+        if (message.messageType === 'image' || isImageFile(fileName)) {
+          const { status } = await MediaLibrary.requestPermissionsAsync();
+          if (status === 'granted') {
+            await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
+            Alert.alert('Success', 'Image saved to gallery');
+          } else {
+            // Fallback to sharing if permission denied
+            await Sharing.shareAsync(downloadResult.uri);
+          }
+        } else {
+          // For files (especially iOS), always use sharing to provide "Save to Files"
+          await Sharing.shareAsync(downloadResult.uri, {
+            dialogTitle: `Download ${fileName || 'file'}`,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+      Alert.alert('Error', 'Failed to download file');
+      setDownloadProgress((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  }, [downloadProgress, isImageFile]);
+
   const handleAttachmentPress = useCallback(
     (message: ThreadMessage) => {
       if (!message.fileUrl) {
@@ -1410,16 +1868,18 @@ export default function ChatThreadScreen() {
         setImagePreview({
           uri: message.fileUrl,
           name: message.fileName,
+          messageId: message.id,
         });
         return;
       }
 
-      void openAttachmentUrl(message.fileUrl);
+      // For documents/files, use "Open with" logic
+      void handleOpenWith(message);
     },
-    [isImageFile, openAttachmentUrl]
+    [isImageFile, handleOpenWith]
   );
 
-  const keyExtractor = useCallback((item: ThreadMessage) => item.id, []);
+  const keyExtractor = useCallback((item: ThreadMessage) => item.clientId || item.id, []);
 
   const handleMessageLongPress = useCallback((message: ThreadMessage) => {
     setSelectedMessage(message);
@@ -1433,6 +1893,11 @@ export default function ChatThreadScreen() {
     setMessageMenuVisible(false);
     setSelectedMessage(null);
   }, [selectedMessage]);
+
+  const handleMenuForward = useCallback(() => {
+    setForwardModalVisible(true);
+    setMessageMenuVisible(false);
+  }, []);
 
   const handleDeleteMessage = useCallback(async () => {
     if (!selectedMessage || !chatId) return;
@@ -1474,8 +1939,10 @@ export default function ChatThreadScreen() {
       onReply={setReplyingTo}
       onAttachmentPress={handleAttachmentPress}
       showSenderInfo={!item.mine && (chatType === 'group' || chatType === 'batch')}
+      progress={downloadProgress[item.id] ?? downloadProgress[item.clientId || '']}
+      onDownload={handleDownload}
     />
-  ), [chatType, handleAttachmentPress, handleMessageLongPress]);
+  ), [chatType, handleAttachmentPress, handleMessageLongPress, downloadProgress, handleDownload]);
 
   const loadOlderMessages = useCallback(() => {
     if (!hasOlderMessages || fetchingOlderMessages) return;
@@ -1503,6 +1970,14 @@ export default function ChatThreadScreen() {
       )}
     </View>
   ), [messagesLoadError, messagesLoading]);
+
+  const formatRecordingTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const isMicButton = input.trim() === '' && !pendingAttachment;
 
   return (
     <View style={styles.safeArea}>
@@ -1562,6 +2037,11 @@ export default function ChatThreadScreen() {
               <Ionicons name="arrow-undo-outline" size={20} color={colors.textPrimary} />
               <AppText style={styles.menuItemText}>Reply</AppText>
             </Pressable>
+            <View style={styles.menuDivider} />
+            <Pressable style={styles.menuItem} onPress={handleMenuForward}>
+              <Ionicons name="arrow-redo-outline" size={20} color={colors.textPrimary} />
+              <AppText style={styles.menuItemText}>Forward</AppText>
+            </Pressable>
             {selectedMessage?.mine && (
               <>
                 <View style={styles.menuDivider} />
@@ -1594,6 +2074,36 @@ export default function ChatThreadScreen() {
               >
                 <Ionicons name="open-outline" size={20} color="#FFFFFF" />
               </Pressable>
+              {imagePreview?.uri && (
+                <Pressable
+                  style={styles.imagePreviewAction}
+                  onPress={() => {
+                    const msg = messages.find(m => m.id === imagePreview.messageId);
+                    if (msg) {
+                      void handleDownload(msg);
+                    } else {
+                      // Fallback if message not found in current list (rare)
+                      void handleDownload({
+                        id: imagePreview.messageId || 'temp',
+                        fileUrl: imagePreview.uri,
+                        fileName: imagePreview.name,
+                        messageType: 'image',
+                        mine: false,
+                        text: '',
+                        time: '',
+                        raw: {} as any,
+                      });
+                    }
+                  }}
+                  disabled={Boolean(imagePreview.messageId && downloadProgress[imagePreview.messageId])}
+                >
+                  {imagePreview.messageId && downloadProgress[imagePreview.messageId] !== undefined ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Ionicons name="download-outline" size={20} color="#FFFFFF" />
+                  )}
+                </Pressable>
+              )}
               <Pressable
                 style={styles.imagePreviewAction}
                 onPress={() => setImagePreview(null)}
@@ -1652,11 +2162,8 @@ export default function ChatThreadScreen() {
         renderItem={renderMessageItem}
         ListHeaderComponent={renderMessagesFooter}
         ListEmptyComponent={renderEmptyState}
-        onContentSizeChange={() => {
-          if (!fetchingOlderMessages) {
-            flatListRef.current?.scrollToEnd({ animated: false });
-          }
-        }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
 
       <View
@@ -1665,102 +2172,135 @@ export default function ChatThreadScreen() {
           { paddingBottom: composerBottomPadding },
         ]}
       >
-        <Pressable style={styles.attachButton} onPress={() => setAttachmentPopupVisible(true)}>
-          <Ionicons
-            name="add-circle-outline"
-            size={20}
-            color={colors.textSecondary}
-          />
-        </Pressable>
+        {!isRecording && (
+          <Pressable style={styles.attachButton} onPress={() => setAttachmentPopupVisible(true)}>
+            <Ionicons
+              name="add-circle-outline"
+              size={20}
+              color={colors.textSecondary}
+            />
+          </Pressable>
+        )}
 
-        <View style={styles.composerInputWrap}>
-          {replyingTo ? (
-            <View style={styles.replyingComposerBar}>
-              <View style={styles.replyingTextWrap}>
-                <AppText variant="caption" color="#166534" numberOfLines={1}>
-                  Replying to {replyingTo.mine ? 'yourself' : name}
-                </AppText>
+        {isRecording ? (
+          <View style={styles.recordingBar}>
+            <View style={styles.recordingIndicator}>
+              <View style={styles.recordingDot} />
+              <AppText style={styles.recordingTime}>
+                {formatRecordingTime(recordingDuration)}
+              </AppText>
+            </View>
+            <AppText color={colors.textMuted} variant="caption">
+              Recording...
+            </AppText>
+            <Pressable style={styles.cancelRecordButton} onPress={cancelRecording}>
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.composerInputWrap}>
+            {replyingTo ? (
+              <View style={styles.replyingComposerBar}>
+                <View style={styles.replyingTextWrap}>
+                  <AppText variant="caption" color="#166534" numberOfLines={1}>
+                    Replying to {replyingTo.mine ? 'yourself' : name}
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color={colors.textSecondary}
+                    numberOfLines={1}
+                  >
+                    {replyComposerText}
+                  </AppText>
+                </View>
+                <Pressable onPress={() => setReplyingTo(null)}>
+                  <Ionicons
+                    name="close"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+            ) : null}
+
+            {pendingAttachment ? (
+              <View style={styles.pendingAttachmentBar}>
+                <Ionicons
+                  name={
+                    pendingAttachment.isImage
+                      ? 'image-outline'
+                      : 'document-outline'
+                  }
+                  size={15}
+                  color={colors.textSecondary}
+                />
                 <AppText
                   variant="caption"
                   color={colors.textSecondary}
                   numberOfLines={1}
+                  style={styles.pendingAttachmentText}
                 >
-                  {replyComposerText}
+                  {pendingAttachment.name}
                 </AppText>
+                <Pressable onPress={() => setPendingAttachment(null)}>
+                  <Ionicons
+                    name="close"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
               </View>
-              <Pressable onPress={() => setReplyingTo(null)}>
-                <Ionicons
-                  name="close"
-                  size={16}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            </View>
-          ) : null}
+            ) : null}
 
-          {pendingAttachment ? (
-            <View style={styles.pendingAttachmentBar}>
-              <Ionicons
-                name={
-                  pendingAttachment.isImage
-                    ? 'image-outline'
-                    : 'document-outline'
+            <View style={styles.composerInputRow}>
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                placeholder={
+                  pendingAttachment
+                    ? 'Add a caption (optional)'
+                    : 'Type a message'
                 }
-                size={15}
-                color={colors.textSecondary}
+                placeholderTextColor={colors.textMuted}
+                style={styles.composerInput}
+                multiline
               />
-              <AppText
-                variant="caption"
-                color={colors.textSecondary}
-                numberOfLines={1}
-                style={styles.pendingAttachmentText}
-              >
-                {pendingAttachment.name}
-              </AppText>
-              <Pressable onPress={() => setPendingAttachment(null)}>
+              <Pressable style={styles.smallAction} onPress={handlePickCamera}>
                 <Ionicons
-                  name="close"
-                  size={16}
+                  name="camera-outline"
+                  size={18}
                   color={colors.textSecondary}
                 />
               </Pressable>
             </View>
-          ) : null}
-
-          <View style={styles.composerInputRow}>
-            <TextInput
-              value={input}
-              onChangeText={setInput}
-              placeholder={
-                pendingAttachment
-                  ? 'Add a caption (optional)'
-                  : 'Type a message'
-              }
-              placeholderTextColor={colors.textMuted}
-              style={styles.composerInput}
-              multiline
-            />
-            <Pressable style={styles.smallAction} onPress={handlePickCamera}>
-              <Ionicons
-                name="camera-outline"
-                size={18}
-                color={colors.textSecondary}
-              />
-            </Pressable>
           </View>
-        </View>
+        )}
 
         <Pressable
           style={[
             styles.sendButton,
             sending && styles.sendButtonDisabled,
+            isRecording && styles.sendButtonRecording,
           ]}
-          onPress={handleSend}
+          onPress={isRecording ? stopAndSendRecording : (isMicButton ? startRecording : handleSend)}
           disabled={sending}
         >
-          <Ionicons name="send" size={16} color="#FFFFFF" />
+          <Ionicons name={isRecording || !isMicButton ? 'send' : 'mic'} size={16} color="#FFFFFF" />
         </Pressable>
       </View>
+
+      <ForwardMessageModal
+        visible={forwardModalVisible}
+        messageContent={selectedMessage?.raw?.content || selectedMessage?.text || null}
+        messageType={selectedMessage?.messageType || 'text'}
+        onClose={() => {
+          setForwardModalVisible(false);
+          setSelectedMessage(null);
+        }}
+        onForwardSuccess={() => {
+          Alert.alert('Success', 'Message forwarded successfully');
+        }}
+      />
     </View>
   );
 }
@@ -1816,7 +2356,6 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     padding: spacing.lg,
-    gap: spacing.sm,
     flexGrow: 1,
   },
   emptyState: {
@@ -1832,6 +2371,7 @@ const styles = StyleSheet.create({
   },
   bubbleRow: {
     flexDirection: 'row',
+    marginBottom: 8,
   },
   mineRow: {
     justifyContent: 'flex-end',
@@ -1849,23 +2389,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
-  theirBubbleShadow: {
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-  },
   myBubble: {
     backgroundColor: colors.primary,
     borderTopRightRadius: 4,
   },
-  myBubbleShadow: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+  imageOnlyBubble: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   replyPreviewBox: {
     borderLeftWidth: 3,
@@ -1891,15 +2421,28 @@ const styles = StyleSheet.create({
   fileName: {
     flex: 1,
     fontWeight: '500',
+    fontSize: 12,
+  },
+  downloadButton: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   imageBubbleWrap: {
     borderRadius: 14,
     overflow: 'hidden',
     width: 240,
     backgroundColor: '#E2E8F0',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
     marginBottom: 4,
+  },
+  downloadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   imageBubble: {
     width: '100%',
@@ -1908,15 +2451,17 @@ const styles = StyleSheet.create({
   },
   imagePreviewHint: {
     position: 'absolute',
-    right: spacing.sm,
-    bottom: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 12,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 15,
+    padding: 6,
+    zIndex: 10,
+  },
+  downloadProgressText: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: '600',
   },
   metaRow: {
     marginTop: 2,
@@ -2133,5 +2678,44 @@ const styles = StyleSheet.create({
   avatarContainer: {
     justifyContent: 'flex-end',
     paddingBottom: 2,
+  },
+  recordingBar: {
+    flex: 1,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.sm,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.danger,
+    opacity: 0.8,
+  },
+  recordingTime: {
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  cancelRecordButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+    backgroundColor: colors.danger + '15',
+  },
+  sendButtonRecording: {
+    backgroundColor: colors.danger,
   },
 });

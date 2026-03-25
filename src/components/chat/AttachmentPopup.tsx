@@ -22,6 +22,7 @@ interface Props {
     visible: boolean;
     onClose: () => void;
     onSelect: (type: AttachmentActionType) => void;
+    options?: AttachmentActionType[];
 }
 
 const AttachmentAction = ({
@@ -52,7 +53,7 @@ const AttachmentAction = ({
     </Pressable>
 );
 
-export default function AttachmentPopup({ visible, onClose, onSelect }: Props) {
+export default function AttachmentPopup({ visible, onClose, onSelect, options = ['camera', 'gallery', 'document'] }: Props) {
     const translateY = useRef(new Animated.Value(height)).current;
     const opacity = useRef(new Animated.Value(0)).current;
 
@@ -112,24 +113,30 @@ export default function AttachmentPopup({ visible, onClose, onSelect }: Props) {
                 </AppText>
 
                 <View style={styles.content}>
-                    <AttachmentAction
-                        icon="camera"
-                        label="Camera"
-                        color={colors.primary}
-                        onPress={() => handleSelect('camera')}
-                    />
-                    <AttachmentAction
-                        icon="image"
-                        label="Gallery"
-                        color={colors.success}
-                        onPress={() => handleSelect('gallery')}
-                    />
-                    <AttachmentAction
-                        icon="document-text"
-                        label="Document"
-                        color="#3B82F6"
-                        onPress={() => handleSelect('document')}
-                    />
+                    {options.includes('camera') && (
+                        <AttachmentAction
+                            icon="camera"
+                            label="Camera"
+                            color={colors.primary}
+                            onPress={() => handleSelect('camera')}
+                        />
+                    )}
+                    {options.includes('gallery') && (
+                        <AttachmentAction
+                            icon="image"
+                            label="Gallery"
+                            color={colors.success}
+                            onPress={() => handleSelect('gallery')}
+                        />
+                    )}
+                    {options.includes('document') && (
+                        <AttachmentAction
+                            icon="document-text"
+                            label="Document"
+                            color="#3B82F6"
+                            onPress={() => handleSelect('document')}
+                        />
+                    )}
                 </View>
 
                 <Pressable

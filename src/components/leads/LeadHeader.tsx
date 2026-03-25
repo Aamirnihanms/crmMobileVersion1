@@ -32,9 +32,21 @@ export default function LeadHeader({
             <AppText variant="h2" style={styles.name}>
               {lead.name || 'Unnamed Lead'}
             </AppText>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor + '15' }]}>
-              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-              <AppText variant="caption" style={[styles.statusText, { color: statusColor }]}>
+            <View style={[styles.statusBadge, {
+              backgroundColor: statusColor.startsWith('#')
+                ? statusColor + '15'
+                : statusColor.replace(/,?\s*[\d.]+\)$/, ', 0.15)'),
+            }]}>
+              <View style={[styles.statusDot, {
+                backgroundColor: statusColor.startsWith('rgba')
+                  ? statusColor.replace(/,?\s*[\d.]+\)$/, ', 1)')
+                  : statusColor
+              }]} />
+              <AppText variant="caption" style={[styles.statusText, {
+                color: statusColor.startsWith('rgba')
+                  ? statusColor.replace(/,?\s*[\d.]+\)$/, ', 1)')
+                  : statusColor
+              }]}>
                 {lead.lead_status_details?.name}
               </AppText>
             </View>

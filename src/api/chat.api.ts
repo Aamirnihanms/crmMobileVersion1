@@ -431,3 +431,16 @@ export const deleteChat = async (chatUid: string) => {
   const res = await http.delete(`/chats/${chatUid}/delete/`);
   return res.data;
 };
+
+export type BulkSendMessagePayload = {
+  batch_uids: string[];
+  chat_uids: string[];
+  content: string;
+  message_type: string;
+  user_ids: number[];
+};
+
+export const bulkSendMessage = async (payload: BulkSendMessagePayload) => {
+  const res = await http.post('/chats/messages/bulk/', payload);
+  return res.data;
+};
