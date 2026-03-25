@@ -27,6 +27,10 @@ export type DashboardStackParamList = {
     participantId?: number;
     chatType?: 'individual' | 'group' | 'batch';
   };
+  GroupDetails: {
+    chatId: string;
+    chatType: 'group' | 'batch';
+  };
 };
 
 const Stack = createNativeStackNavigator<DashboardStackParamList>();
@@ -123,6 +127,14 @@ export default function DashboardStack() {
         component={ChatThreadScreen}
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="GroupDetails"
+        component={require('../screens/chat/GroupDetailsScreen').default}
+        options={{
+          title: 'Group Info',
+          headerTitleAlign: 'center',
         }}
       />
     </Stack.Navigator>

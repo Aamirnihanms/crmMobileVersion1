@@ -5,6 +5,7 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
 import { AudioModule, AudioRecorder, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
@@ -49,6 +50,7 @@ import { http } from '@/src/api/http';
 import AttachmentPopup, { AttachmentActionType } from '@/src/components/chat/AttachmentPopup';
 import AudioPlayer from '@/src/components/chat/AudioPlayer';
 import ForwardMessageModal from '@/src/components/chat/ForwardMessageModal';
+import MessageReadInfoModal from '@/src/components/chat/MessageReadInfoModal';
 import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
@@ -638,7 +640,7 @@ const MessageRow = memo(function MessageRow({
 );
 
 export default function ChatThreadScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<DashboardStackParamList>>();
   const isFocused = useIsFocused();
   const queryClient = useQueryClient();
   const { params } = useRoute<ChatThreadRouteProp>();
@@ -687,6 +689,7 @@ export default function ChatThreadScreen() {
   const [messageMenuVisible, setMessageMenuVisible] = useState(false);
   const [forwardModalVisible, setForwardModalVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ThreadMessage | null>(null);
+  const [readInfoVisible, setReadInfoVisible] = useState(false);
   const [pendingAttachment, setPendingAttachment] =
     useState<PendingAttachment | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
@@ -1901,6 +1904,11 @@ export default function ChatThreadScreen() {
     setMessageMenuVisible(false);
   }, []);
 
+  const handleShowReadInfo = useCallback(() => {
+    setMessageMenuVisible(false);
+    setReadInfoVisible(true);
+  }, []);
+
   const handleDeleteMessage = useCallback(async () => {
     if (!selectedMessage || !chatId) return;
 
@@ -1999,20 +2007,30 @@ export default function ChatThreadScreen() {
           <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
 
-        <HeaderAvatar label={name} avatarColor={avatarColor} uri={profilePic} />
+        <Pressable
+          style={styles.headerTitleContainer}
+          onPress={() => {
+            if (chatType === 'group') {
+              navigation.navigate('GroupDetails', { chatId, chatType });
+            }
+          }}
+          disabled={chatType !== 'group'}
+        >
+          <HeaderAvatar label={name} avatarColor={avatarColor} uri={profilePic} />
 
-        <View style={styles.headerTitleWrap}>
-          <AppText variant="subtitle" color="#FFFFFF" style={{ fontWeight: '800' }}>
-            {name}
-          </AppText>
-          <AppText
-            variant="caption"
-            color="rgba(255,255,255,0.85)"
-            style={styles.statusText}
-          >
-            {online ? 'Online' : 'Last seen recently'}
-          </AppText>
-        </View>
+          <View style={styles.headerTitleWrap}>
+            <AppText variant="subtitle" color="#FFFFFF" style={{ fontWeight: '800' }}>
+              {name}
+            </AppText>
+            <AppText
+              variant="caption"
+              color="rgba(255,255,255,0.85)"
+              style={styles.statusText}
+            >
+              {online ? 'Online' : 'Last seen recently'}
+            </AppText>
+          </View>
+        </Pressable>
 
         <View style={styles.headerRight}>
           <Pressable style={styles.headerIcon}>
@@ -2046,6 +2064,11 @@ export default function ChatThreadScreen() {
             </Pressable>
             {selectedMessage?.mine && (
               <>
+                <View style={styles.menuDivider} />
+                <Pressable style={styles.menuItem} onPress={handleShowReadInfo}>
+                  <Ionicons name="information-circle-outline" size={20} color={colors.textPrimary} />
+                  <AppText style={styles.menuItemText}>Info</AppText>
+                </Pressable>
                 <View style={styles.menuDivider} />
                 <Pressable style={styles.menuItem} onPress={handleDeleteMessage}>
                   <Ionicons name="trash-outline" size={20} color={colors.danger} />
@@ -2136,6 +2159,13 @@ export default function ChatThreadScreen() {
         visible={attachmentPopupVisible}
         onClose={() => setAttachmentPopupVisible(false)}
         onSelect={handleSelectAttachmentAction}
+      />
+
+      <MessageReadInfoModal
+        visible={readInfoVisible}
+        onClose={() => setReadInfoVisible(false)}
+        chatUid={chatId}
+        messageUid={selectedMessage?.id || ''}
       />
 
       <FlashList
@@ -2323,6 +2353,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: colors.border + '50',
+  },
+  headerTitleContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: spacing.xs,
   },
   headerAvatar: {
     width: 34,

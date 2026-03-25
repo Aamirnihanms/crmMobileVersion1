@@ -10,7 +10,7 @@ import PaymentsStack from './PaymentsStack';
 import StudentsStack from './StudentsStack';
 
 const Tab = createBottomTabNavigator();
-const HIDE_TAB_ROUTES = ['MessagesList', 'ChatThread'];
+const HIDE_TAB_ROUTES = ['MessagesList', 'ChatThread', 'GroupDetails'];
 
 const baseTabBarStyle = {
   backgroundColor: '#FFFFFF',
