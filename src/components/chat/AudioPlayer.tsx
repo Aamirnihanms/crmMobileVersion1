@@ -26,6 +26,12 @@ const formatMMSS = (millis: number) => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
+const toProgressPercent = (progress: number) => {
+    if (!Number.isFinite(progress)) return 0;
+    const normalized = progress > 1 && progress <= 100 ? progress / 100 : progress;
+    return Math.round(Math.min(1, Math.max(0, normalized)) * 100);
+};
+
 export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
     const [audioSource, setAudioSource] = useState<AudioSource>(null);
     const player = useAudioPlayer(audioSource, { updateInterval: 50 });
@@ -122,7 +128,7 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
     // Decide what text to show on the right side
     let timeText = '0:00';
     if (progress !== undefined) {
-        timeText = progress > 0 ? `${Math.round(progress * 100)}%` : '0%';
+        timeText = `${toProgressPercent(progress)}%`;
     } else if (status.playing || status.currentTime > 0) {
         timeText = formatMMSS(status.currentTime * 1000);
     } else if (status.duration > 0) {

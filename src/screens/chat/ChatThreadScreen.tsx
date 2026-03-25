@@ -8,7 +8,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
-import { AudioModule, AudioRecorder, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import { AudioModule, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, type AudioRecorder } from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as MediaLibrary from 'expo-media-library';
+import * as SecureStore from 'expo-secure-store';
 import * as Sharing from 'expo-sharing';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -117,6 +118,9 @@ const getThreadMessageSortValue = (message: ThreadMessage) => {
 };
 
 const DELETED_MESSAGE_TEXT = 'This message was deleted';
+const DOWNLOAD_DIR_URI_KEY = 'chat_download_directory_uri_v1';
+const APP_DOWNLOADS_FOLDER_NAME = 'CRM Mobile Downloads';
+const MAX_FILE_NAME_LENGTH = 30;
 
 const formatTime = (rawValue?: string | null) => {
   if (!rawValue) return '';
@@ -185,6 +189,49 @@ const getAttachmentFileName = (msg?: ApiMessage | null) => {
   }
 };
 
+const isFileLikeMessageType = (messageType?: string | null) => {
+  if (!messageType) return false;
+  const normalized = messageType.trim().toLowerCase();
+  return normalized === 'file' || normalized === 'document';
+};
+
+const getDisplayFileName = (message: ThreadMessage) => {
+  const rawFileName = (message.fileName || '').trim();
+  if (rawFileName) return rawFileName;
+
+  const fallbackText = (message.text || '').trim();
+  const normalizedFallback = fallbackText.toLowerCase();
+  if (
+    fallbackText &&
+    normalizedFallback !== 'file attachment' &&
+    normalizedFallback !== 'attachment' &&
+    normalizedFallback !== DELETED_MESSAGE_TEXT.toLowerCase()
+  ) {
+    return fallbackText;
+  }
+
+  return 'Attachment';
+};
+
+const truncateFileName = (name: string, maxLength = MAX_FILE_NAME_LENGTH) => {
+  if (name.length <= maxLength) return name;
+
+  const lastDotIndex = name.lastIndexOf('.');
+  const hasExtension = lastDotIndex > 0 && lastDotIndex < name.length - 1;
+  if (!hasExtension) return `${name.slice(0, Math.max(maxLength - 3, 1))}...`;
+
+  const extension = name.slice(lastDotIndex);
+  const baseName = name.slice(0, lastDotIndex);
+  const minBaseLength = 4;
+
+  if (extension.length + 3 + minBaseLength > maxLength) {
+    return `${name.slice(0, Math.max(maxLength - 3, 1))}...`;
+  }
+
+  const visibleBaseLength = maxLength - extension.length - 3;
+  return `${baseName.slice(0, visibleBaseLength)}...${extension}`;
+};
+
 const isMessageDeleted = (msg?: ApiMessage | null) =>
   Boolean(msg?.deleted_at || msg?.is_deleted);
 
@@ -198,14 +245,15 @@ const getMessageSummary = (msg?: ApiMessage | null) => {
   const messageType = msg.message_type || 'text';
   if (messageType === 'image') return 'Image';
   if (messageType === 'audio') return 'Voice message';
-  if (messageType === 'file') {
+  if (isFileLikeMessageType(messageType)) {
     return getAttachmentFileName(msg) || 'Attachment';
   }
   return '';
 };
 
 const normalizeMessageType = (msg: ApiMessage) => {
-  return msg.message_type || 'text';
+  const rawType = msg.message_type || 'text';
+  return isFileLikeMessageType(rawType) ? 'file' : rawType;
 };
 
 const shouldShowMessageText = (message: ThreadMessage) => {
@@ -219,7 +267,11 @@ const shouldShowMessageText = (message: ThreadMessage) => {
     return normalized !== 'image' && normalized !== 'image attachment';
   }
 
-  if (message.messageType === 'file') {
+  if (message.messageType === 'audio') {
+    return false;
+  }
+
+  if (isFileLikeMessageType(message.messageType)) {
     const normalized = text.toLowerCase();
     const fileName = (message.fileName || '').trim().toLowerCase();
     if (normalized === fileName) return false;
@@ -253,6 +305,138 @@ const areThreadMessagesEqual = (a: ThreadMessage, b: ThreadMessage) =>
   a.raw?.is_edited === b.raw?.is_edited &&
   a.raw?.content === b.raw?.content &&
   a.raw?.created_at === b.raw?.created_at;
+
+const areMessagesLikelySameOutgoing = (
+  local: ThreadMessage,
+  incoming: ThreadMessage
+) => {
+  if (!local.mine || local.status !== 'sending') return false;
+  if (local.messageType !== incoming.messageType) return false;
+
+  if (incoming.messageType === 'text') {
+    return local.text.trim() === incoming.text.trim();
+  }
+
+  const localFileName = (local.fileName || '').trim().toLowerCase();
+  const incomingFileName = (incoming.fileName || '').trim().toLowerCase();
+  if (localFileName && incomingFileName) {
+    return localFileName === incomingFileName;
+  }
+
+  return local.text.trim() === incoming.text.trim();
+};
+
+const clampUnitProgress = (value: number) => Math.min(1, Math.max(0, value));
+
+const toUnitProgress = (value: unknown) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  if (value > 1 && value <= 100) {
+    return clampUnitProgress(value / 100);
+  }
+  return clampUnitProgress(value);
+};
+
+const getUploadProgressValue = (event: {
+  progress?: number;
+  loaded?: number;
+  total?: number;
+}, options?: {
+  fallbackTotal?: number;
+  previous?: number;
+}) => {
+  const previous =
+    typeof options?.previous === 'number' &&
+      Number.isFinite(options.previous) &&
+      options.previous >= 0
+      ? clampUnitProgress(options.previous)
+      : 0;
+
+  const progressValue = toUnitProgress(event.progress);
+
+  const loaded =
+    typeof event.loaded === 'number' && Number.isFinite(event.loaded)
+      ? event.loaded
+      : 0;
+  const totalFromEvent =
+    typeof event.total === 'number' && Number.isFinite(event.total)
+      ? event.total
+      : 0;
+  const fallbackTotal =
+    typeof options?.fallbackTotal === 'number' &&
+      Number.isFinite(options.fallbackTotal) &&
+      options.fallbackTotal > 0
+      ? options.fallbackTotal
+      : 0;
+  const total = totalFromEvent > 0 ? totalFromEvent : fallbackTotal;
+
+  const byteProgress =
+    total > 0 && loaded >= 0
+      ? clampUnitProgress(loaded / total)
+      : null;
+
+  if (byteProgress !== null && progressValue !== null) {
+    return Math.max(previous, byteProgress, progressValue);
+  }
+  if (byteProgress !== null) {
+    return Math.max(previous, byteProgress);
+  }
+  if (progressValue !== null) {
+    return Math.max(previous, progressValue);
+  }
+
+  if (loaded > 0) {
+    return -loaded;
+  }
+
+  return previous;
+};
+
+const getProgressPercentText = (progress: number) =>
+  `${Math.round(clampUnitProgress(progress) * 100)}%`;
+
+const getProgressAmountText = (progress: number) =>
+  `${(Math.abs(progress) / 1024 / 1024).toFixed(1)}MB`;
+
+const getProgressStatusText = (progress: number, transferVerb: string) => {
+  if (progress >= 0) {
+    return `${transferVerb}... ${getProgressPercentText(progress)}`;
+  }
+  return `${transferVerb}... ${getProgressAmountText(progress)}`;
+};
+
+const getSafDirectoryName = (uri?: string | null) => {
+  if (!uri) return '';
+  const decoded = decodeURIComponent(uri);
+  const fromDocument = decoded.split('/document/')[1] || decoded;
+  const pathPart = fromDocument.includes(':')
+    ? fromDocument.split(':')[1]
+    : fromDocument;
+  const segments = pathPart.split('/').filter(Boolean);
+  return segments[segments.length - 1] || '';
+};
+
+const promptSelectDownloadFolder = () =>
+  new Promise<boolean>((resolve) => {
+    let settled = false;
+    const finish = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
+    Alert.alert(
+      'Select Download Folder',
+      'Please select a folder to save downloaded files (recommended: Downloads).',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => finish(false) },
+        { text: 'Continue', onPress: () => finish(true) },
+      ],
+      {
+        cancelable: true,
+        onDismiss: () => finish(false),
+      }
+    );
+  });
 
 const buildReplyPreviewFromApi = (msg: ApiMessage): ReplyPreview | null => {
   const replyToContent = msg.reply_to_content;
@@ -377,7 +561,9 @@ type MessageRowProps = {
   onAttachmentPress: (message: ThreadMessage) => void;
   showSenderInfo?: boolean;
   progress?: number;
+  progressDirection?: 'upload' | 'download';
   onDownload: (message: ThreadMessage) => void;
+  onCancelDownload: (message: ThreadMessage) => void;
 };
 
 const MessageRow = memo(function MessageRow({
@@ -387,9 +573,39 @@ const MessageRow = memo(function MessageRow({
   onAttachmentPress,
   showSenderInfo,
   progress,
+  progressDirection,
   onDownload,
+  onCancelDownload,
 }: MessageRowProps) {
   const swipeableRef = useRef<Swipeable>(null);
+  const [isImageLoading, setIsImageLoading] = useState(
+    item.messageType === 'image' && Boolean(item.fileUrl)
+  );
+
+  useEffect(() => {
+    if (item.messageType === 'image' && item.fileUrl) {
+      setIsImageLoading(true);
+      return;
+    }
+    setIsImageLoading(false);
+  }, [item.fileUrl, item.id, item.messageType]);
+
+  const hasProgress = typeof progress === 'number' && Number.isFinite(progress);
+  const progressValue = hasProgress ? progress : 0;
+  const isUploading =
+    progressDirection === 'upload' ||
+    (progressDirection === undefined && item.mine && item.status === 'sending');
+  const canCancelDownload = hasProgress && !isUploading;
+  const transferVerb = isUploading ? 'Uploading' : 'Downloading';
+  const imageProgressText = hasProgress
+    ? progressValue >= 0
+      ? `${transferVerb} ${getProgressPercentText(progressValue)}`
+      : `${transferVerb} ${getProgressAmountText(progressValue)}`
+    : null;
+  const fileTitleText = truncateFileName(getDisplayFileName(item));
+  const fileProgressText = hasProgress
+    ? getProgressStatusText(progressValue, transferVerb)
+    : null;
 
   const renderLeftActions = useCallback(
     (_progress: any, dragX: any) => {
@@ -501,7 +717,7 @@ const MessageRow = memo(function MessageRow({
               >
                 {item.replyPreview.messageType === 'image'
                   ? 'Image'
-                  : item.replyPreview.messageType === 'file'
+                  : isFileLikeMessageType(item.replyPreview.messageType)
                     ? 'Attachment'
                     : item.replyPreview.text}
               </AppText>
@@ -510,7 +726,7 @@ const MessageRow = memo(function MessageRow({
 
           {!isMessageDeleted(item.raw) && item.messageType === 'audio' && item.fileUrl ? (
             <AudioPlayer uri={item.fileUrl} mine={item.mine} progress={progress} />
-          ) : !isMessageDeleted(item.raw) && (item.messageType === 'image' || item.messageType === 'file') ? (
+          ) : !isMessageDeleted(item.raw) && (item.messageType === 'image' || isFileLikeMessageType(item.messageType)) ? (
             <Pressable onPress={() => onAttachmentPress(item)}>
               {item.messageType === 'image' && item.fileUrl ? (
                 <View style={styles.imageBubbleWrap}>
@@ -520,16 +736,34 @@ const MessageRow = memo(function MessageRow({
                     contentFit="cover"
                     cachePolicy="memory-disk"
                     transition={120}
+                    recyclingKey={`${item.id}-${item.fileUrl || ''}`}
+                    onLoadStart={() => setIsImageLoading(true)}
+                    onLoad={() => setIsImageLoading(false)}
+                    onError={() => setIsImageLoading(false)}
                   />
-                  {progress !== undefined ? (
+                  {hasProgress ? (
                     <View style={styles.downloadOverlay}>
                       <ActivityIndicator color="#FFFFFF" size="small" />
                       <AppText variant="caption" color="#FFFFFF" style={styles.downloadProgressText}>
-                        {progress > 0
-                          ? `${Math.round(progress * 100)}%`
-                          : (progress < 0
-                            ? `${(Math.abs(progress) / 1024 / 1024).toFixed(1)}MB`
-                            : '0%')}
+                        {imageProgressText}
+                      </AppText>
+                      {canCancelDownload ? (
+                        <Pressable
+                          style={styles.overlayCancelButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            onCancelDownload(item);
+                          }}
+                        >
+                          <Ionicons name="close" size={14} color="#FFFFFF" />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ) : isImageLoading ? (
+                    <View style={styles.imageLoadingOverlay}>
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                      <AppText variant="caption" color="#FFFFFF" style={styles.imageLoadingText}>
+                        Loading image...
                       </AppText>
                     </View>
                   ) : (
@@ -548,32 +782,51 @@ const MessageRow = memo(function MessageRow({
               ) : (
                 <View style={[
                   styles.fileCard,
-                  item.mine && { backgroundColor: '#FFFFFF20', borderColor: '#FFFFFF40' }
+                  item.mine && { backgroundColor: '#FFFFFFE8', borderColor: '#FFFFFF' }
                 ]}>
-                  {progress !== undefined ? (
-                    <ActivityIndicator color={item.mine ? '#FFFFFF' : colors.primary} size="small" style={{ marginRight: 8 }} />
+                  {hasProgress ? (
+                    <View style={styles.fileProgressIndicator}>
+                      <ActivityIndicator color={item.mine ? '#FFFFFF' : colors.primary} size="small" />
+                      <AppText
+                        variant="caption"
+                        color={colors.primary}
+                        style={styles.fileProgressPercent}
+                        numberOfLines={1}
+                      >
+                        {progressValue >= 0
+                          ? getProgressPercentText(progressValue)
+                          : getProgressAmountText(progressValue)}
+                      </AppText>
+                    </View>
                   ) : (
                     <Ionicons
                       name="document-attach-outline"
                       size={16}
-                      color={item.mine ? '#FFFFFF' : colors.textSecondary}
+                      color={item.mine ? colors.primary : colors.textSecondary}
                     />
                   )}
-                  <AppText
-                    style={styles.fileName}
-                    color={item.mine ? '#FFFFFF' : colors.textPrimary}
-                    numberOfLines={2}
-                    variant="caption"
-                  >
-                    {progress !== undefined
-                      ? (progress > 0
-                        ? `Downloading... ${Math.round(progress * 100)}%`
-                        : (progress < 0
-                          ? `Downloading... ${(Math.abs(progress) / 1024 / 1024).toFixed(1)}MB`
-                          : 'Downloading... 0%'))
-                      : (item.fileName || 'Attachment')}
-                  </AppText>
-                  {progress === undefined && item.fileUrl && (
+                  <View style={styles.fileTextWrap}>
+                    <AppText
+                      style={styles.fileName}
+                      color={item.mine ? '#0F172A' : colors.textPrimary}
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                      variant="caption"
+                    >
+                      {fileTitleText}
+                    </AppText>
+                    {fileProgressText ? (
+                      <AppText
+                        style={styles.fileProgress}
+                        color={item.mine ? '#1E3A8A' : colors.textSecondary}
+                        numberOfLines={1}
+                        variant="caption"
+                      >
+                        {fileProgressText}
+                      </AppText>
+                    ) : null}
+                  </View>
+                  {!hasProgress && item.fileUrl && (
                     <Pressable
                       onPress={(e) => {
                         e.stopPropagation();
@@ -588,6 +841,24 @@ const MessageRow = memo(function MessageRow({
                         name="download-outline"
                         size={16}
                         color={item.mine ? colors.primary : '#FFFFFF'}
+                      />
+                    </Pressable>
+                  )}
+                  {canCancelDownload && item.fileUrl && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        onCancelDownload(item);
+                      }}
+                      style={[
+                        styles.downloadButton,
+                        styles.cancelButton,
+                      ]}
+                    >
+                      <Ionicons
+                        name="close"
+                        size={16}
+                        color="#FFFFFF"
                       />
                     </Pressable>
                   )}
@@ -636,6 +907,8 @@ const MessageRow = memo(function MessageRow({
   prev.onReply === next.onReply &&
   prev.onAttachmentPress === next.onAttachmentPress &&
   prev.progress === next.progress &&
+  prev.progressDirection === next.progressDirection &&
+  prev.onCancelDownload === next.onCancelDownload &&
   areThreadMessagesEqual(prev.item, next.item)
 );
 
@@ -657,6 +930,7 @@ export default function ChatThreadScreen() {
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ThreadMessage>> | null>(null);
+  const hasInitiallyPositionedRef = useRef(false);
   const isAtBottomRef = useRef(true);
 
   const handleScroll = useCallback((e: any) => {
@@ -696,6 +970,9 @@ export default function ChatThreadScreen() {
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
   const [attachmentPopupVisible, setAttachmentPopupVisible] = useState(false);
   const markedReadRef = useRef<Set<string>>(new Set());
+  const downloadDirectoryUriRef = useRef<string | null>(null);
+  const activeDownloadTasksRef = useRef<Record<string, FileSystem.DownloadResumable | undefined>>({});
+  const canceledDownloadIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let isMounted = true;
@@ -788,10 +1065,17 @@ export default function ChatThreadScreen() {
     queryClient.setQueryData(['chat-messages', chatId], (old: any) => {
       if (!old?.pages?.length) return old;
       const newPages = [...old.pages];
+      const firstPageMessages = Array.isArray(newPages[0]?.messages)
+        ? (newPages[0].messages as ApiMessage[])
+        : [];
+      const exists = firstPageMessages.some(
+        (existing) => existing?.uid && existing.uid === msg.uid
+      );
+      if (exists) return old;
       // API returns newest first. We add the newest message at the top of the first page.
       newPages[0] = {
         ...newPages[0],
-        messages: [msg, ...(newPages[0].messages || [])],
+        messages: [msg, ...firstPageMessages],
       };
       return { ...old, pages: newPages };
     });
@@ -810,6 +1094,7 @@ export default function ChatThreadScreen() {
 
   const queryMessages = useMemo(() => {
     if (!messagesQueryData?.pages?.length) return [];
+    const seen = new Set<string>();
 
     // Pages are returned newest-first (Page 1 = messages 100-50, Page 2 = 50-0)
     // We want to reverse pages so we have [OlderPage, NewerPage]
@@ -819,6 +1104,11 @@ export default function ChatThreadScreen() {
       .flatMap((page) => {
         if (!Array.isArray(page.messages)) return [];
         return [...page.messages].reverse();
+      })
+      .filter((message) => {
+        if (!message?.uid || seen.has(message.uid)) return false;
+        seen.add(message.uid);
+        return true;
       })
       .map(mapApiMessage);
   }, [mapApiMessage, messagesQueryData]);
@@ -836,6 +1126,8 @@ export default function ChatThreadScreen() {
 
   useEffect(() => {
     markedReadRef.current.clear();
+    isAtBottomRef.current = true;
+    hasInitiallyPositionedRef.current = false;
     setMessages([]);
   }, [chatId]);
 
@@ -906,8 +1198,16 @@ export default function ChatThreadScreen() {
   useEffect(() => {
     if (!messages.length) return;
 
+    if (!hasInitiallyPositionedRef.current) {
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+        hasInitiallyPositionedRef.current = true;
+      });
+      return;
+    }
+
     if (isAtBottomRef.current) {
-      flatListRef.current?.scrollToEnd({ animated: true });
+      flatListRef.current?.scrollToEnd({ animated: false });
     }
   }, [messages]);
 
@@ -939,13 +1239,51 @@ export default function ChatThreadScreen() {
     });
   }, [chatId, isMineMessage, isReadByMe, latestMessagePage]);
 
-  const upsertIncomingMessage = useCallback(
-    (msg: ApiMessage) => {
+  const upsertServerMessage = useCallback(
+    (msg: ApiMessage, options?: { tempId?: string }) => {
       const mapped = mapApiMessage(msg);
       setMessages((prev) => {
-        const exists = prev.some((item) => item.id === mapped.id);
-        if (exists) return prev;
-        return [...prev, mapped];
+        const next = [...prev];
+        const explicitTempIndex = options?.tempId
+          ? next.findIndex(
+            (item) => item.id === options.tempId || item.clientId === options.tempId
+          )
+          : -1;
+        const matchedOptimisticIndex =
+          explicitTempIndex !== -1
+            ? explicitTempIndex
+            : next.findIndex((item) => areMessagesLikelySameOutgoing(item, mapped));
+        const existingServerIndex = next.findIndex((item) => item.id === mapped.id);
+
+        if (matchedOptimisticIndex !== -1) {
+          const optimistic = next[matchedOptimisticIndex];
+          next[matchedOptimisticIndex] = {
+            ...mapped,
+            // Keep key stable to avoid remount flicker after confirmation
+            clientId: optimistic.clientId || optimistic.id,
+            // Preserve local read status if it was already applied
+            status: optimistic.status === 'read' ? 'read' : mapped.status,
+          };
+          if (
+            existingServerIndex !== -1 &&
+            existingServerIndex !== matchedOptimisticIndex
+          ) {
+            next.splice(existingServerIndex, 1);
+          }
+          return next;
+        }
+
+        if (existingServerIndex !== -1) {
+          const existing = next[existingServerIndex];
+          next[existingServerIndex] = {
+            ...mapped,
+            clientId: existing.clientId,
+            status: existing.status === 'read' ? 'read' : mapped.status,
+          };
+          return next;
+        }
+
+        return [...next, mapped];
       });
     },
     [mapApiMessage]
@@ -969,7 +1307,7 @@ export default function ChatThreadScreen() {
         if (!incomingChatUid || incomingChatUid !== chatId) return;
         if (!rawMessage.uid) return;
 
-        upsertIncomingMessage(rawMessage);
+        upsertServerMessage(rawMessage);
 
         if (!isMineMessage(rawMessage)) {
           try {
@@ -1091,7 +1429,7 @@ export default function ChatThreadScreen() {
         );
       }
     },
-    [chatId, isMineMessage, upsertIncomingMessage]
+    [chatId, isMineMessage, upsertServerMessage]
   );
 
   const {
@@ -1116,7 +1454,9 @@ export default function ChatThreadScreen() {
   const replyComposerText = useMemo(() => {
     if (!replyingTo) return '';
     if (replyingTo.messageType === 'image') return 'Image';
-    if (replyingTo.messageType === 'file') return replyingTo.fileName || 'Attachment';
+    if (isFileLikeMessageType(replyingTo.messageType)) {
+      return truncateFileName(getDisplayFileName(replyingTo));
+    }
     return replyingTo.text || 'Message';
   }, [replyingTo]);
 
@@ -1168,18 +1508,8 @@ export default function ChatThreadScreen() {
       const confirmed = response?.message as ApiMessage | undefined;
 
       if (confirmed?.uid) {
-        const mapped = mapApiMessage(confirmed);
-        mapped.clientId = tempId;
         syncMessageToCache(confirmed);
-        setMessages((prev) => {
-          const existsFromWs = prev.some((m) => m.id === mapped.id && m.id !== tempId);
-          if (existsFromWs) {
-            return prev
-              .filter(m => m.id !== tempId && m.id !== mapped.id)
-              .concat([mapped]);
-          }
-          return prev.map(m => m.id === tempId ? mapped : m);
-        });
+        upsertServerMessage(confirmed, { tempId });
       } else {
         setMessages((prev) =>
           prev.map((message) =>
@@ -1208,11 +1538,12 @@ export default function ChatThreadScreen() {
   }, [
     chatId,
     input,
-    mapApiMessage,
     name,
     replyComposerText,
     replyingTo,
     sending,
+    syncMessageToCache,
+    upsertServerMessage,
   ]);
 
   const handlePickDocument = useCallback(async () => {
@@ -1365,10 +1696,33 @@ export default function ChatThreadScreen() {
         name: pendingAttachment.name,
         type: pendingAttachment.mimeType,
       };
+      let fallbackTotal =
+        typeof pendingAttachment.size === 'number' &&
+          Number.isFinite(pendingAttachment.size) &&
+          pendingAttachment.size > 0
+          ? pendingAttachment.size
+          : undefined;
+      if (!fallbackTotal) {
+        try {
+          const localInfo = await FileSystem.getInfoAsync(pendingAttachment.uri);
+          const size = (localInfo as { size?: unknown })?.size;
+          if (typeof size === 'number' && Number.isFinite(size) && size > 0) {
+            fallbackTotal = size;
+          }
+        } catch {
+          fallbackTotal = undefined;
+        }
+      }
 
       await uploadFileToPresignedPost(presigned, uploadFile, (event) => {
-        const percent = event.loaded / (event.total || event.loaded);
-        setDownloadProgress((prev) => ({ ...prev, [tempId]: percent }));
+        setDownloadProgress((prev) => {
+          const previous = prev[tempId];
+          const progressValue = getUploadProgressValue(event, {
+            fallbackTotal,
+            previous: typeof previous === 'number' ? previous : undefined,
+          });
+          return { ...prev, [tempId]: progressValue };
+        });
       });
 
       const uploadedUrl = getUploadedFileUrl(presigned);
@@ -1399,18 +1753,8 @@ export default function ChatThreadScreen() {
       const confirmed = response?.message as ApiMessage | undefined;
 
       if (confirmed?.uid) {
-        const mapped = mapApiMessage(confirmed);
-        mapped.clientId = tempId;
         syncMessageToCache(confirmed);
-        setMessages((prev) => {
-          const existsFromWs = prev.some((m) => m.id === mapped.id && m.id !== tempId);
-          if (existsFromWs) {
-            return prev
-              .filter(m => m.id !== tempId && m.id !== mapped.id)
-              .concat([mapped]);
-          }
-          return prev.map(m => m.id === tempId ? mapped : m);
-        });
+        upsertServerMessage(confirmed, { tempId });
       } else {
         setMessages((prev) =>
           prev.map((message) =>
@@ -1448,12 +1792,13 @@ export default function ChatThreadScreen() {
   }, [
     chatId,
     input,
-    mapApiMessage,
     name,
     pendingAttachment,
     replyComposerText,
     replyingTo,
     sending,
+    syncMessageToCache,
+    upsertServerMessage,
   ]);
 
   const startRecording = useCallback(async () => {
@@ -1468,7 +1813,10 @@ export default function ChatThreadScreen() {
         playsInSilentMode: true,
       });
 
-      const newRecording = new AudioModule.AudioRecorder(RecordingPresets.HIGH_QUALITY);
+      const RecorderCtor = (AudioModule as any).AudioRecorder as new (
+        options: unknown
+      ) => AudioRecorder;
+      const newRecording = new RecorderCtor(RecordingPresets.HIGH_QUALITY);
       await newRecording.prepareToRecordAsync();
       newRecording.record();
 
@@ -1567,10 +1915,26 @@ export default function ChatThreadScreen() {
         name: `voice-note-${Date.now()}.m4a`,
         type: 'audio/m4a',
       };
+      let fallbackTotal: number | undefined;
+      try {
+        const localInfo = await FileSystem.getInfoAsync(mappedUri);
+        const size = (localInfo as { size?: unknown })?.size;
+        if (typeof size === 'number' && Number.isFinite(size) && size > 0) {
+          fallbackTotal = size;
+        }
+      } catch {
+        fallbackTotal = undefined;
+      }
 
       await uploadFileToPresignedPost(presigned, uploadFile, (event) => {
-        const percent = event.loaded / (event.total || event.loaded);
-        setDownloadProgress((prev) => ({ ...prev, [tempId]: percent }));
+        setDownloadProgress((prev) => {
+          const previous = prev[tempId];
+          const progressValue = getUploadProgressValue(event, {
+            fallbackTotal,
+            previous: typeof previous === 'number' ? previous : undefined,
+          });
+          return { ...prev, [tempId]: progressValue };
+        });
       });
 
       const uploadedUrl = getUploadedFileUrl(presigned);
@@ -1598,18 +1962,8 @@ export default function ChatThreadScreen() {
       const confirmed = response?.message as ApiMessage | undefined;
 
       if (confirmed?.uid) {
-        const mapped = mapApiMessage(confirmed);
-        mapped.clientId = tempId;
         syncMessageToCache(confirmed);
-        setMessages((prev) => {
-          const existsFromWs = prev.some((m) => m.id === mapped.id && m.id !== tempId);
-          if (existsFromWs) {
-            return prev
-              .filter(m => m.id !== tempId && m.id !== mapped.id)
-              .concat([mapped]);
-          }
-          return prev.map(m => m.id === tempId ? mapped : m);
-        });
+        upsertServerMessage(confirmed, { tempId });
       } else {
         setMessages((prev) =>
           prev.map((message) =>
@@ -1641,7 +1995,7 @@ export default function ChatThreadScreen() {
       });
     }
   }, [
-    chatId, mapApiMessage, name, replyComposerText, replyingTo, sending, syncMessageToCache
+    chatId, name, replyComposerText, replyingTo, sending, syncMessageToCache, upsertServerMessage
   ]);
 
   const stopAndSendRecording = useCallback(async () => {
@@ -1725,6 +2079,132 @@ export default function ChatThreadScreen() {
     }
   }, []);
 
+  const resolveAndroidDownloadDirectoryUri = useCallback(async () => {
+    const saf = FileSystem.StorageAccessFramework;
+
+    const tryExistingDirectory = async (uri?: string | null) => {
+      if (!uri) return null;
+      try {
+        await saf.readDirectoryAsync(uri);
+        return uri;
+      } catch {
+        return null;
+      }
+    };
+
+    const cachedUri = await tryExistingDirectory(downloadDirectoryUriRef.current);
+    if (cachedUri) return cachedUri;
+
+    const persistedUri = await SecureStore.getItemAsync(DOWNLOAD_DIR_URI_KEY);
+    const persistedDirectory = await tryExistingDirectory(persistedUri);
+    if (persistedDirectory) {
+      downloadDirectoryUriRef.current = persistedDirectory;
+      return persistedDirectory;
+    }
+
+    const defaultDownloadUri = saf.getUriForDirectoryInRoot('Download');
+    const existingDownloadUri = await tryExistingDirectory(defaultDownloadUri);
+    if (existingDownloadUri) {
+      downloadDirectoryUriRef.current = existingDownloadUri;
+      const existingChildren = await saf.readDirectoryAsync(existingDownloadUri);
+      const existingAppFolder = existingChildren.find(
+        (childUri) => getSafDirectoryName(childUri) === APP_DOWNLOADS_FOLDER_NAME
+      );
+
+      const resolvedUri = existingAppFolder || await saf.makeDirectoryAsync(
+        existingDownloadUri,
+        APP_DOWNLOADS_FOLDER_NAME
+      ).catch(() => existingDownloadUri);
+
+      downloadDirectoryUriRef.current = resolvedUri;
+      await SecureStore.setItemAsync(DOWNLOAD_DIR_URI_KEY, resolvedUri);
+      return resolvedUri;
+    }
+
+    // Do not force-select root Download folder; some OEMs (Realme/Oppo) can reject it.
+    // Let user pick any allowed folder once, then persist that grant.
+    const shouldContinue = await promptSelectDownloadFolder();
+    if (!shouldContinue) {
+      throw new Error('Folder selection cancelled');
+    }
+
+    const permission = await saf.requestDirectoryPermissionsAsync();
+    if (!permission.granted || !permission.directoryUri) {
+      throw new Error('Storage permission not granted');
+    }
+
+    const grantedUri = permission.directoryUri;
+    const grantedName = getSafDirectoryName(grantedUri);
+
+    let finalDirectoryUri = grantedUri;
+    if (grantedName !== APP_DOWNLOADS_FOLDER_NAME) {
+      try {
+        const children = await saf.readDirectoryAsync(grantedUri);
+        const existingAppFolder = children.find(
+          (childUri) => getSafDirectoryName(childUri) === APP_DOWNLOADS_FOLDER_NAME
+        );
+        if (existingAppFolder) {
+          finalDirectoryUri = existingAppFolder;
+        } else {
+          finalDirectoryUri = await saf.makeDirectoryAsync(
+            grantedUri,
+            APP_DOWNLOADS_FOLDER_NAME
+          );
+        }
+      } catch {
+        finalDirectoryUri = grantedUri;
+      }
+    }
+
+    downloadDirectoryUriRef.current = finalDirectoryUri;
+    await SecureStore.setItemAsync(DOWNLOAD_DIR_URI_KEY, finalDirectoryUri);
+    return finalDirectoryUri;
+  }, []);
+
+  const saveFileToAndroidStorage = useCallback(async (
+    localUri: string,
+    fileName: string,
+    mimeType: string
+  ) => {
+    const saf = FileSystem.StorageAccessFramework;
+    const directoryUri = await resolveAndroidDownloadDirectoryUri();
+
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const dotIndex = safeFileName.lastIndexOf('.');
+    const baseName = dotIndex > 0 ? safeFileName.slice(0, dotIndex) : safeFileName;
+    const extension = dotIndex > 0 ? safeFileName.slice(dotIndex) : '';
+
+    let destinationUri: string;
+    try {
+      destinationUri = await saf.createFileAsync(
+        directoryUri,
+        safeFileName,
+        mimeType
+      );
+    } catch {
+      destinationUri = await saf.createFileAsync(
+        directoryUri,
+        `${baseName}-${Date.now()}${extension}`,
+        mimeType
+      );
+    }
+
+    try {
+      await saf.copyAsync({
+        from: localUri,
+        to: destinationUri,
+      });
+    } catch {
+      // Fallback for devices where SAF copy can be flaky.
+      const base64 = await FileSystem.readAsStringAsync(localUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      await saf.writeAsStringAsync(destinationUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    }
+  }, [resolveAndroidDownloadDirectoryUri]);
+
   const handleOpenWith = useCallback(async (message: ThreadMessage) => {
     const { fileUrl, fileName } = message;
     if (!fileUrl) return;
@@ -1763,30 +2243,38 @@ export default function ChatThreadScreen() {
     }
   }, [getMimeType]);
 
+  const clearDownloadState = useCallback((messageId: string) => {
+    delete activeDownloadTasksRef.current[messageId];
+    canceledDownloadIdsRef.current.delete(messageId);
+    setDownloadProgress((prev) => {
+      const next = { ...prev };
+      delete next[messageId];
+      return next;
+    });
+  }, []);
+
+  const handleCancelDownload = useCallback(async (message: ThreadMessage) => {
+    const messageId = message.id;
+    const task = activeDownloadTasksRef.current[messageId];
+
+    canceledDownloadIdsRef.current.add(messageId);
+
+    if (task) {
+      try {
+        await task.cancelAsync();
+      } catch {
+        // ignore cancellation errors
+      }
+    }
+
+    clearDownloadState(messageId);
+  }, [clearDownloadState]);
+
   const handleDownload = useCallback(async (message: ThreadMessage) => {
     const { fileUrl, fileName, id } = message;
     if (!fileUrl) return;
 
-    // For files on Android, if the user wants "direct" download,
-    // Using Linking.openURL is the most reliable way to trigger the browser's manager
-    // which saves directly to Downloads without a share sheet popup.
-    if (Platform.OS === 'android' && message.messageType !== 'image' && !isImageFile(fileName)) {
-      try {
-        await Linking.openURL(fileUrl);
-        return;
-      } catch (err) {
-        // Fallback to the in-app downloader if Linking fails
-        // console.warn('Linking openURL failed, falling back to downloader', err);
-      }
-    }
-
     try {
-      const isSharingAvailable = await Sharing.isAvailableAsync();
-      if (!isSharingAvailable) {
-        Alert.alert('Sharing', 'Sharing is not available on this device.');
-        return;
-      }
-
       const name = (fileName || fileUrl.split('/').pop() || 'attachment').replace(/[^a-zA-Z0-9.]/g, '_');
       const fileUri = FileSystem.cacheDirectory + name;
 
@@ -1795,6 +2283,7 @@ export default function ChatThreadScreen() {
 
       // Start by setting an initial progress to show we've started
       setDownloadProgress((prev) => ({ ...prev, [id]: 0.0001 }));
+      canceledDownloadIdsRef.current.delete(id);
 
       let fallbackTotalSize = 0;
       try {
@@ -1825,14 +2314,18 @@ export default function ChatThreadScreen() {
           }
         }
       );
+      activeDownloadTasksRef.current[id] = downloadResumable;
 
       const downloadResult = await downloadResumable.downloadAsync();
-
-      setDownloadProgress((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
+      const wasCancelled = canceledDownloadIdsRef.current.has(id);
+      if (!downloadResult || wasCancelled) {
+        clearDownloadState(id);
+        return;
+      }
+      if (downloadResult?.uri) {
+        console.log('Saved file:', downloadResult.uri);
+      }
+      clearDownloadState(id);
 
       if (downloadResult && downloadResult.uri) {
         if (message.messageType === 'image' || isImageFile(fileName)) {
@@ -1842,25 +2335,57 @@ export default function ChatThreadScreen() {
             Alert.alert('Success', 'Image saved to gallery');
           } else {
             // Fallback to sharing if permission denied
-            await Sharing.shareAsync(downloadResult.uri);
+            const isSharingAvailable = await Sharing.isAvailableAsync();
+            if (isSharingAvailable) {
+              await Sharing.shareAsync(downloadResult.uri);
+            } else {
+              Alert.alert('Error', 'Storage permission is required to save this image.');
+            }
           }
         } else {
-          // For files (especially iOS), always use sharing to provide "Save to Files"
-          await Sharing.shareAsync(downloadResult.uri, {
-            dialogTitle: `Download ${fileName || 'file'}`,
-          });
+          if (Platform.OS === 'android') {
+            await saveFileToAndroidStorage(
+              downloadResult.uri,
+              name,
+              getMimeType(fileName)
+            );
+            await handleOpenWith({
+              ...message,
+              fileUrl: downloadResult.uri,
+              fileName: name,
+            });
+            Alert.alert(
+              'Download Complete',
+              `Saved to:\n${APP_DOWNLOADS_FOLDER_NAME} folder\n\nFile: ${name}`
+            );
+          } else {
+            // iOS fallback uses system "Save to Files" sheet.
+            const isSharingAvailable = await Sharing.isAvailableAsync();
+            if (!isSharingAvailable) {
+              Alert.alert('Sharing', 'Sharing is not available on this device.');
+              return;
+            }
+            await Sharing.shareAsync(downloadResult.uri, {
+              dialogTitle: `Download ${fileName || 'file'}`,
+            });
+          }
         }
       }
     } catch (err) {
-      console.error('Download error:', err);
-      Alert.alert('Error', 'Failed to download file');
-      setDownloadProgress((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
+      const wasCancelled = canceledDownloadIdsRef.current.has(id);
+      clearDownloadState(id);
+      if (wasCancelled) return;
+
+      const errorMessage =
+        err instanceof Error ? err.message : '';
+      if (errorMessage === 'Folder selection cancelled') {
+        Alert.alert('Download Cancelled', 'Folder selection was cancelled.');
+      } else {
+        console.error('Download error:', err);
+        Alert.alert('Error', 'Failed to download file');
+      }
     }
-  }, [downloadProgress, isImageFile]);
+  }, [clearDownloadState, downloadProgress, getMimeType, handleOpenWith, isImageFile, saveFileToAndroidStorage]);
 
   const handleAttachmentPress = useCallback(
     (message: ThreadMessage) => {
@@ -1942,17 +2467,33 @@ export default function ChatThreadScreen() {
     }
   }, [selectedMessage, chatId, refetchMessages]);
 
-  const renderMessageItem = useCallback(({ item }: ListRenderItemInfo<ThreadMessage>) => (
-    <MessageRow
-      item={item}
-      onLongPress={handleMessageLongPress}
-      onReply={setReplyingTo}
-      onAttachmentPress={handleAttachmentPress}
-      showSenderInfo={!item.mine && (chatType === 'group' || chatType === 'batch')}
-      progress={downloadProgress[item.id] ?? downloadProgress[item.clientId || '']}
-      onDownload={handleDownload}
-    />
-  ), [chatType, handleAttachmentPress, handleMessageLongPress, downloadProgress, handleDownload]);
+  const renderMessageItem = useCallback(({ item }: ListRenderItemInfo<ThreadMessage>) => {
+    const idProgress = downloadProgress[item.id];
+    const clientProgress = item.clientId ? downloadProgress[item.clientId] : undefined;
+    const progress = idProgress ?? clientProgress;
+
+    let progressDirection: 'upload' | 'download' | undefined;
+    if (idProgress !== undefined) {
+      const isTempId = item.id.startsWith('temp-');
+      progressDirection = isTempId || item.status === 'sending' ? 'upload' : 'download';
+    } else if (clientProgress !== undefined) {
+      progressDirection = 'upload';
+    }
+
+    return (
+      <MessageRow
+        item={item}
+        onLongPress={handleMessageLongPress}
+        onReply={setReplyingTo}
+        onAttachmentPress={handleAttachmentPress}
+        showSenderInfo={!item.mine && (chatType === 'group' || chatType === 'batch')}
+        progress={progress}
+        progressDirection={progressDirection}
+        onDownload={handleDownload}
+        onCancelDownload={handleCancelDownload}
+      />
+    );
+  }, [chatType, handleAttachmentPress, handleCancelDownload, handleMessageLongPress, downloadProgress, handleDownload]);
 
   const loadOlderMessages = useCallback(() => {
     if (!hasOlderMessages || fetchingOlderMessages) return;
@@ -2174,6 +2715,11 @@ export default function ChatThreadScreen() {
         keyExtractor={keyExtractor}
         style={styles.messagesArea}
         contentContainerStyle={styles.messagesList}
+        maintainVisibleContentPosition={{
+          startRenderingFromBottom: true,
+          autoscrollToBottomThreshold: 0.05,
+          animateAutoScrollToBottom: false,
+        }}
         keyboardDismissMode={
           Platform.OS === 'ios' ? 'interactive' : 'on-drag'
         }
@@ -2455,11 +3001,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     marginBottom: 4,
+    minWidth: 190,
+    maxWidth: '100%',
   },
   fileName: {
-    flex: 1,
+    flexShrink: 1,
     fontWeight: '500',
     fontSize: 12,
+  },
+  fileTextWrap: {
+    flexShrink: 1,
+    minWidth: 90,
+    maxWidth: 190,
+    gap: 2,
+  },
+  fileProgress: {
+    fontSize: 11,
+  },
+  fileProgressIndicator: {
+    width: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  fileProgressPercent: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   downloadButton: {
     width: 26,
@@ -2468,6 +3035,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
+  },
+  cancelButton: {
+    backgroundColor: colors.danger,
   },
   imageBubbleWrap: {
     borderRadius: 14,
@@ -2481,6 +3051,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  imageLoadingText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  overlayCancelButton: {
+    marginTop: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 77, 77, 0.85)',
   },
   imageBubble: {
     width: '100%',
