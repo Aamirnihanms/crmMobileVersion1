@@ -1,7 +1,7 @@
 import { Qualification } from '@/src/types/qualification';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppCard from './../common/AppCard';
 import AppInput from './../common/AppInput';
 import AppSelect from './../common/AppSelect';

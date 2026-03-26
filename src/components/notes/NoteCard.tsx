@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import type { LeadNote } from '../../api/notes.api';
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
@@ -36,16 +36,16 @@ export default function NoteCard({ note }: { note: LeadNote }) {
       {note.importance !== 'NORMAL' && (
         <View style={[
           styles.importanceBadge,
-          { backgroundColor: note.importance === 'URGENT' ? colors.danger + '10' : '#F59E0B15' }
+          { backgroundColor: note.importance === 'URGENT' ? colors.danger + '10' : colors.warning + '15' }
         ]}>
           <Ionicons
             name="alert-circle"
             size={12}
-            color={note.importance === 'URGENT' ? colors.danger : '#F59E0B'}
+            color={note.importance === 'URGENT' ? colors.danger : colors.warning}
           />
           <AppText
             variant="caption"
-            color={note.importance === 'URGENT' ? colors.danger : '#F59E0B'}
+            color={note.importance === 'URGENT' ? colors.danger : colors.warning}
             style={styles.importanceText}
           >
             {note.importance}

@@ -42,7 +42,7 @@ export default function LeadsFilterBar({
 
         {activeCount > 0 && (
           <View style={styles.badge}>
-            <AppText color="#fff" style={styles.badgeText}>{activeCount}</AppText>
+            <AppText color={colors.surface} style={styles.badgeText}>{activeCount}</AppText>
           </View>
         )}
       </Pressable>
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutralSoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,

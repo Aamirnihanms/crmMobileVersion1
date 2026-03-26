@@ -53,7 +53,7 @@ export default function EnrollmentDetailsScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.gradientHeader}
           >
-            <AppText variant="h2" color="#fff" style={styles.headerTitle}>
+            <AppText variant="h2" color={colors.surface} style={styles.headerTitle}>
               {data.batch?.batch_name || 'General Enrollment'}
             </AppText>
             <AppText variant="caption" color="rgba(255,255,255,0.8)">
@@ -115,13 +115,13 @@ export default function EnrollmentDetailsScreen() {
           </View>
 
           <View style={styles.financialStats}>
-            <View style={[styles.fStat, { backgroundColor: '#F0FDF4' }]}>
-              <AppText variant="caption" color="#16A34A" style={{ fontWeight: '700' }}>Paid</AppText>
-              <AppText variant="subtitle" style={{ color: '#16A34A', fontWeight: '800' }}>₹{data.total_amount_paid}</AppText>
+            <View style={[styles.fStat, { backgroundColor: colors.successBg }]}>
+              <AppText variant="caption" color={colors.successStrong} style={{ fontWeight: '700' }}>Paid</AppText>
+              <AppText variant="subtitle" style={{ color: colors.successStrong, fontWeight: '800' }}>₹{data.total_amount_paid}</AppText>
             </View>
-            <View style={[styles.fStat, { backgroundColor: '#FEF2F2' }]}>
-              <AppText variant="caption" color="#DC2626" style={{ fontWeight: '700' }}>Remaining</AppText>
-              <AppText variant="subtitle" style={{ color: '#DC2626', fontWeight: '800' }}>₹{data.total_pending_amount}</AppText>
+            <View style={[styles.fStat, { backgroundColor: colors.dangerBg }]}>
+              <AppText variant="caption" color={colors.dangerStrong} style={{ fontWeight: '700' }}>Remaining</AppText>
+              <AppText variant="subtitle" style={{ color: colors.dangerStrong, fontWeight: '800' }}>₹{data.total_pending_amount}</AppText>
             </View>
           </View>
         </AppCard>
@@ -134,7 +134,7 @@ export default function EnrollmentDetailsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
+    backgroundColor: colors.background,
   },
   container: {
     padding: spacing.lg,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: spacing.lg,
     marginTop: -spacing.lg,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     justifyContent: 'space-between',
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
   },
   sectionTitle: {
     fontWeight: '700',
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
     borderRadius: 4,
     overflow: 'hidden',
   },

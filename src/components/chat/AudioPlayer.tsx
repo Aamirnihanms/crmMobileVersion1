@@ -41,9 +41,9 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
 
     const isScrubbingRef = useRef(false);
 
-    const mainColor = mine ? '#FFFFFF' : colors.primary;
-    const mutedColor = mine ? '#FFFFFFCC' : colors.textMuted;
-    const trackBgColor = mine ? '#FFFFFF40' : '#E2E8F0';
+    const mainColor = mine ? colors.surface : colors.primary;
+    const mutedColor = mine ? colors.surfaceAlpha80 : colors.textMuted;
+    const trackBgColor = mine ? colors.surfaceAlpha25 : colors.border;
     const trackFillColor = mainColor;
 
     // Status handling is now handled by useAudioPlayerStatus(player)

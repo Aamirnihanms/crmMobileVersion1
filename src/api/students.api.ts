@@ -90,6 +90,33 @@ export const fetchStudentProfile = async (id: string) => {
 
 
 
+/* ---------------- UPDATE STUDENT PROFILE ---------------- */
+
+export const updateStudent = async (
+  id: string,
+  payload: any
+) => {
+  try {
+    console.log(`➡️ PATCH /student/profile/${id}/update/ payload:`, payload);
+
+    const res = await http.patch(
+      `/student/profile/${id}/update/`,
+      payload
+    );
+
+    console.log(`✅ PATCH /student/profile/${id}/update/ success:`, res.data);
+
+    return res.data;
+  } catch (error: any) {
+    console.log(
+      `❌ PATCH /student/profile/${id}/update/ error:`,
+      error?.response?.data || error
+    );
+    throw error;
+  }
+};
+
+
 /* ---------------- CONVERT LEAD → STUDENT ---------------- */
 
 export const convertLeadToStudent = async (payload: any) => {

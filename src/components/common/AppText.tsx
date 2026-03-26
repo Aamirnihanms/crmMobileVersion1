@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TextProps } from 'react-native';
-import { colors, typography } from '../../theme';
+import { colors, typography } from '@/src/theme';
 
 type AppTextProps = TextProps & {
   variant?: keyof typeof typography;

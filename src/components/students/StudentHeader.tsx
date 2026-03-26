@@ -1,6 +1,7 @@
 import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
 import { colors, spacing } from '@/src/theme';
+import { callNumber, openEmail, openWhatsApp } from '@/src/utils/contactActions';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -24,7 +25,7 @@ export default function StudentHeader({ student }: any) {
               {initials}
             </AppText>
           </View>
-          <View style={[styles.statusDot, { backgroundColor: student.status?.color || '#22C55E' }]} />
+          <View style={[styles.statusDot, { backgroundColor: student.status?.color || colors.successBright }]} />
         </View>
 
         <View style={styles.mainInfo}>
@@ -51,14 +52,39 @@ export default function StudentHeader({ student }: any) {
           </View>
 
           <View style={styles.actionRow}>
-            <Pressable style={styles.actionBtn}>
-              <Ionicons name="call-outline" size={20} color={colors.primary} />
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionBtn,
+                !student.phone_number && styles.disabledBtn,
+                pressed && styles.pressedBtn,
+              ]}
+              onPress={() => callNumber(student.phone_number)}
+              disabled={!student.phone_number}
+            >
+              <Ionicons name="call-outline" size={20} color={student.phone_number ? colors.primary : colors.textMuted} />
             </Pressable>
-            <Pressable style={styles.actionBtn}>
-              <Ionicons name="mail-outline" size={20} color={colors.primary} />
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { backgroundColor: colors.whatsapp + '15' },
+                !(student.user?.whatsapp_number || student.phone_number) && styles.disabledBtn,
+                pressed && styles.pressedBtn,
+              ]}
+              onPress={() => openWhatsApp(student.user?.whatsapp_number || student.phone_number)}
+              disabled={!(student.user?.whatsapp_number || student.phone_number)}
+            >
+              <Ionicons name="logo-whatsapp" size={20} color={colors.whatsapp} />
             </Pressable>
-            <Pressable style={[styles.actionBtn, styles.primaryAction]}>
-              <AppText color="#fff" style={{ fontWeight: '700' }}>Edit Profile</AppText>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionBtn,
+                !student.email && styles.disabledBtn,
+                pressed && styles.pressedBtn,
+              ]}
+              onPress={() => openEmail(student.email)}
+              disabled={!student.email}
+            >
+              <Ionicons name="mail-outline" size={20} color={student.email ? colors.primary : colors.textMuted} />
             </Pressable>
           </View>
         </View>
@@ -93,16 +119,16 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 15,
     elevation: 10,
     borderWidth: 4,
-    borderColor: '#fff',
+    borderColor: colors.surface,
   },
   avatarText: {
     fontWeight: '800',
@@ -115,7 +141,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.surface,
   },
   mainInfo: {
     flex: 1,
@@ -154,10 +180,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  primaryAction: {
-    flex: 1,
-    height: 44,
-    backgroundColor: colors.primary,
-    flexDirection: 'row',
+  disabledBtn: {
+    opacity: 0.4,
+  },
+  pressedBtn: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
 });

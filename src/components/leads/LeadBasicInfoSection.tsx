@@ -1,9 +1,10 @@
+import { colors, spacing } from '@/src/theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '../../theme';
 import AppCard from './../common/AppCard';
 import AppInput from './../common/AppInput';
 import AppText from './../common/AppText';
+import PhoneInputWithCode, { CountryCode } from './../common/PhoneInputWithCode';
 
 type Props = {
   form: any;
@@ -27,21 +28,27 @@ export default function LeadBasicInfoSection({
           containerStyle={styles.inputContainer}
         />
 
-        <AppInput
+        <PhoneInputWithCode
           label="Phone Number"
           placeholder="Primary contact number"
-          keyboardType="phone-pad"
           value={form.phone_number}
+          countryCode={form.phone_country_code}
           onChangeText={(v) => setForm({ ...form, phone_number: v })}
+          onChangeCountryCode={(c: CountryCode) =>
+            setForm({ ...form, phone_country_code: c })
+          }
           containerStyle={styles.inputContainer}
         />
 
-        <AppInput
+        <PhoneInputWithCode
           label="WhatsApp Number"
           placeholder="Same as phone or different"
-          keyboardType="phone-pad"
           value={form.whatsapp_number}
+          countryCode={form.whatsapp_country_code}
           onChangeText={(v) => setForm({ ...form, whatsapp_number: v })}
+          onChangeCountryCode={(c: CountryCode) =>
+            setForm({ ...form, whatsapp_country_code: c })
+          }
           containerStyle={styles.inputContainer}
         />
 

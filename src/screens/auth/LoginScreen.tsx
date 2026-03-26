@@ -7,7 +7,7 @@ import AppInput from '../../components/common/AppInput';
 import AppText from '../../components/common/AppText';
 import { useLogin } from '../../queries/auth.query';
 import { useAuthStore } from '../../store/auth.store';
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import { saveToken } from '../../utils/token';
 
 export default function LoginScreen() {

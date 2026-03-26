@@ -50,26 +50,26 @@ export default function DashboardScreen() {
                     <View style={styles.heroContent}>
                         <View>
                             <AppText variant="subtitle" color="rgba(255,255,255,0.8)" style={{ fontWeight: '600' }}>Overall Revenue</AppText>
-                            <AppText variant="h1" color="#FFFFFF" style={styles.heroValue}>₹12,84,320</AppText>
+                            <AppText variant="h1" color={colors.surface} style={styles.heroValue}>₹12,84,320</AppText>
                             <View style={styles.heroBadge}>
-                                <Ionicons name="stats-chart" size={12} color="#FFFFFF" />
-                                <AppText variant="caption" color="#FFFFFF" style={styles.heroBadgeText}>+18.4% growth</AppText>
+                                <Ionicons name="stats-chart" size={12} color={colors.surface} />
+                                <AppText variant="caption" color={colors.surface} style={styles.heroBadgeText}>+18.4% growth</AppText>
                             </View>
                         </View>
                         <View style={styles.heroActionCircle}>
-                            <Ionicons name="wallet" size={28} color="#FFFFFF" />
+                            <Ionicons name="wallet" size={28} color={colors.surface} />
                         </View>
                     </View>
 
                     <View style={styles.heroFooter}>
                         <View style={styles.heroFooterItem}>
                             <AppText variant="caption" color="rgba(255,255,255,0.6)">Target</AppText>
-                            <AppText variant="subtitle" color="#FFFFFF" style={{ fontWeight: '700' }}>₹15.0L</AppText>
+                            <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '700' }}>₹15.0L</AppText>
                         </View>
                         <View style={styles.footerDivider} />
                         <View style={styles.heroFooterItem}>
                             <AppText variant="caption" color="rgba(255,255,255,0.6)">Last Month</AppText>
-                            <AppText variant="subtitle" color="#FFFFFF" style={{ fontWeight: '700' }}>₹10.2L</AppText>
+                            <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '700' }}>₹10.2L</AppText>
                         </View>
                     </View>
                 </LinearGradient>
@@ -87,14 +87,14 @@ export default function DashboardScreen() {
                         value="1,248"
                         icon="people-outline"
                         trend="+12%"
-                        color="#6366F1"
+                        color={colors.gradientEnd}
                     />
                     <StatCard
                         title="New Students"
                         value="384"
                         icon="school-outline"
                         trend="+8%"
-                        color="#8B5CF6"
+                        color={colors.primary}
                     />
                 </View>
 
@@ -104,13 +104,13 @@ export default function DashboardScreen() {
                         value="32%"
                         icon="rocket-outline"
                         trend="+4%"
-                        color="#EC4899"
+                        color={colors.accentPink}
                     />
                     <StatCard
                         title="Avg. Deal"
                         value="₹45k"
                         icon="cash-outline"
-                        color="#F59E0B"
+                        color={colors.warning}
                     />
                 </View>
 
@@ -123,8 +123,8 @@ export default function DashboardScreen() {
 
                 <AppCard style={styles.activityCard}>
                     <View style={styles.activityItem}>
-                        <View style={[styles.activityIcon, { backgroundColor: '#EEF2FF' }]}>
-                            <Ionicons name="person-add-outline" size={18} color="#6366F1" />
+                        <View style={[styles.activityIcon, { backgroundColor: colors.indigoSoft }]}>
+                            <Ionicons name="person-add-outline" size={18} color={colors.gradientEnd} />
                         </View>
                         <View style={styles.activityContent}>
                             <AppText variant="subtitle" style={{ fontWeight: '700' }}>New Lead Generated</AppText>
@@ -136,8 +136,8 @@ export default function DashboardScreen() {
                     <View style={styles.divider} />
 
                     <View style={styles.activityItem}>
-                        <View style={[styles.activityIcon, { backgroundColor: '#ECFDF5' }]}>
-                            <Ionicons name="checkmark-circle-outline" size={18} color="#10B981" />
+                        <View style={[styles.activityIcon, { backgroundColor: colors.emeraldSoft }]}>
+                            <Ionicons name="checkmark-circle-outline" size={18} color={colors.success} />
                         </View>
                         <View style={styles.activityContent}>
                             <AppText variant="subtitle" style={{ fontWeight: '700' }}>Lead Converted</AppText>
@@ -149,8 +149,8 @@ export default function DashboardScreen() {
                     <View style={styles.divider} />
 
                     <View style={styles.activityItem}>
-                        <View style={[styles.activityIcon, { backgroundColor: '#FFF7ED' }]}>
-                            <Ionicons name="call-outline" size={18} color="#F59E0B" />
+                        <View style={[styles.activityIcon, { backgroundColor: colors.warningSoft }]}>
+                            <Ionicons name="call-outline" size={18} color={colors.warning} />
                         </View>
                         <View style={styles.activityContent}>
                             <AppText variant="subtitle" style={{ fontWeight: '700' }}>Follow-up Reminder</AppText>
@@ -169,7 +169,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
-        backgroundColor: '#F8F9FE',
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingBottom: 40,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.surfaceSubtle,
     },
     statHeader: {
         flexDirection: 'row',
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     trendBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F0FDF4',
+        backgroundColor: colors.successBg,
         paddingHorizontal: 6,
         paddingVertical: 3,
         borderRadius: 8,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.surfaceSubtle,
     },
     activityItem: {
         flexDirection: 'row',
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSubtle,
         marginHorizontal: spacing.lg,
     },
 });

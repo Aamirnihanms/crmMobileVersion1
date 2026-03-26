@@ -1,9 +1,10 @@
+import { colors, spacing } from '@/src/theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '../../theme';
 import AppCard from './../common/AppCard';
 import AppInput from './../common/AppInput';
 import AppText from './../common/AppText';
+import PhoneInputWithCode, { CountryCode } from './../common/PhoneInputWithCode';
 
 type Props = {
   form: any;
@@ -27,12 +28,15 @@ export default function LeadContactSection({
           containerStyle={styles.inputContainer}
         />
 
-        <AppInput
+        <PhoneInputWithCode
           label="Parent Phone"
           placeholder="Emergency contact number"
-          keyboardType="phone-pad"
           value={form.parent_phone_number}
+          countryCode={form.parent_phone_country_code}
           onChangeText={(v) => setForm({ ...form, parent_phone_number: v })}
+          onChangeCountryCode={(c: CountryCode) =>
+            setForm({ ...form, parent_phone_country_code: c })
+          }
           containerStyle={styles.inputContainer}
         />
 

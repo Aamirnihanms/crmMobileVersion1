@@ -158,7 +158,7 @@ const MessageReadInfoModal: React.FC<MessageReadInfoModalProps> = ({
                             <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
                             <AppText style={styles.errorText}>{error}</AppText>
                             <Pressable style={styles.retryButton} onPress={fetchReadInfo}>
-                                <AppText color="#FFFFFF">Retry</AppText>
+                                <AppText color={colors.surface}>Retry</AppText>
                             </Pressable>
                         </View>
                     ) : info?.read_by && info.read_by.length > 0 ? (
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     container: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         height: '70%',

@@ -19,7 +19,7 @@ function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colo
             <Pressable
                 style={({ pressed }) => [
                     styles.menuItem,
-                    pressed && { backgroundColor: '#F1F5F9' }
+                    pressed && { backgroundColor: colors.surfaceSubtle }
                 ]}
                 onPress={onPress}
             >
@@ -64,11 +64,11 @@ export default function MoreListScreen() {
                             <Ionicons name="person" size={40} color={colors.primary} />
                         </View>
                         <View style={styles.profileInfo}>
-                            <AppText variant="h2" color="#fff" style={{ fontWeight: '800' }}>Aamir Nihan</AppText>
+                            <AppText variant="h2" color={colors.surface} style={{ fontWeight: '800' }}>Aamir Nihan</AppText>
                             <AppText variant="caption" color="rgba(255,255,255,0.8)">Administrator</AppText>
                         </View>
                         <Pressable style={styles.editBtn}>
-                            <Ionicons name="pencil" size={16} color="#fff" />
+                            <Ionicons name="pencil" size={16} color={colors.surface} />
                         </Pressable>
                     </View>
                 </AppCard>
@@ -80,21 +80,21 @@ export default function MoreListScreen() {
                         label="Personal Profile"
                         sublabel="Manage your personal details"
                         onPress={() => { }}
-                        color="#6366F1"
+                        color={colors.gradientEnd}
                     />
                     <MenuItem
                         icon="notifications-outline"
                         label="Notifications"
                         sublabel="Preference & alerts"
                         onPress={() => { }}
-                        color="#8B5CF6"
+                        color={colors.primary}
                     />
                     <MenuItem
                         icon="shield-checkmark-outline"
                         label="Security"
                         sublabel="Password & authentication"
                         onPress={() => { }}
-                        color="#10B981"
+                        color={colors.success}
                         isLast
                     />
                 </AppCard>
@@ -106,14 +106,14 @@ export default function MoreListScreen() {
                         label="Help Center"
                         sublabel="FAQs and support chat"
                         onPress={() => { }}
-                        color="#F59E0B"
+                        color={colors.warning}
                     />
                     <MenuItem
                         icon="information-circle-outline"
                         label="About App"
                         sublabel="v3.1.0 - Elite Edition"
                         onPress={() => { }}
-                        color="#64748B"
+                        color={colors.slate}
                     />
                     <MenuItem
                         icon="log-out-outline"
@@ -138,7 +138,7 @@ export default function MoreListScreen() {
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
-        backgroundColor: '#F8F9FE',
+        backgroundColor: colors.background,
     },
     container: {
         padding: spacing.lg,
@@ -170,10 +170,10 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 24,
-        backgroundColor: '#fff',
+        backgroundColor: colors.surface,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSubtle,
         marginHorizontal: spacing.xl,
     },
     footer: {

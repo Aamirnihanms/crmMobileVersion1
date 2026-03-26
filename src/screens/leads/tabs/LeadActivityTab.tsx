@@ -10,7 +10,7 @@ import ActivityCard from '../../../components/activities/ActivityCard';
 import AppLoader from '../../../components/common/AppLoader';
 import AppText from '../../../components/common/AppText';
 import { useInfiniteLeadActivities } from '../../../queries/activities.query';
-import { colors, spacing } from '../../../theme';
+import { colors, spacing } from '@/src/theme';
 
 export default function LeadActivitiesTab({
   id,

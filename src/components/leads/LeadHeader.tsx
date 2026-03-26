@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import { callNumber, openWhatsApp } from '../../utils/contactActions';
 import AppText from '../common/AppText';
 
@@ -71,8 +71,14 @@ export default function LeadHeader({
             label="WhatsApp"
             onPress={() => openWhatsApp(lead.whatsapp_number)}
             disabled={!lead.whatsapp_number}
-            color="#25D366"
+            color={colors.whatsapp}
           />
+          {/* <ActionCard
+            icon="mail-outline"
+            label="Email"
+            onPress={() => openEmail(lead.email)}
+            disabled={!lead.email}
+          /> */}
           <ActionCard
             icon="school-outline"
             label="Convert"
@@ -157,10 +163,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -172,12 +178,12 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,

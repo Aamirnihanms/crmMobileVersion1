@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
 
 type Method = 'phone' | 'whatsapp';
@@ -90,7 +90,7 @@ export default function UpdateFollowUpStatusModal({
             <View style={styles.statusRow}>
               {(['completed', 'postponed', 'canceled'] as Status[]).map((s) => {
                 const isActive = status === s;
-                const activeColor = s === 'completed' ? colors.success : s === 'canceled' ? colors.danger : '#F59E0B';
+                const activeColor = s === 'completed' ? colors.success : s === 'canceled' ? colors.danger : colors.warning;
 
                 return (
                   <Pressable
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.divider,
     alignItems: 'center',
-    backgroundColor: '#F8F9FB',
+    backgroundColor: colors.backgroundSoft,
   },
   chipText: {
     fontSize: 10,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   saveBtnText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
   },

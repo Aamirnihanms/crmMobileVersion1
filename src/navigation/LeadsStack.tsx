@@ -5,7 +5,7 @@ import LeadsListScreen from '../screens/leads/LeadsListScreen';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
-import { colors } from '../theme';
+import { colors } from '@/src/theme';
 
 export type LeadsStackParamList = {
   LeadsList: undefined;

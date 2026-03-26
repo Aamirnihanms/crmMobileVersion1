@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import type { NoteImportance } from '../../api/notes.api';
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
 
 const IMPORTANCE: NoteImportance[] = [
@@ -85,7 +85,7 @@ export default function AddEditNoteModal({
             <View style={styles.importanceRow}>
               {IMPORTANCE.map((level) => {
                 const isActive = importance === level;
-                const activeColor = level === 'URGENT' ? colors.danger : level === 'IMPORTANT' ? '#F59E0B' : colors.primary;
+                const activeColor = level === 'URGENT' ? colors.danger : level === 'IMPORTANT' ? colors.warning : colors.primary;
 
                 return (
                   <Pressable
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.divider,
     alignItems: 'center',
-    backgroundColor: '#F8F9FB',
+    backgroundColor: colors.backgroundSoft,
   },
   chipText: {
     fontSize: 11,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   saveBtnText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
   },

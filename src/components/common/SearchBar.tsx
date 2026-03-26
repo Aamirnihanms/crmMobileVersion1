@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing, typography } from '@/src/theme';
 
 interface SearchBarProps {
   onSearch: (searchText: string) => void;

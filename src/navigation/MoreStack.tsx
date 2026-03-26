@@ -1,6 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MoreListScreen from '../screens/more/MoreListScreen';
-import { colors } from '../theme';
+import { colors } from '@/src/theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,7 +15,7 @@ export default function MoreStack() {
           color: colors.textPrimary,
         },
         headerStyle: {
-          backgroundColor: '#F8F9FE',
+          backgroundColor: colors.background,
         },
       }}
     >

@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   applyBtnText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
   },

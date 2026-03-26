@@ -700,11 +700,11 @@ const MessageRow = memo(function MessageRow({
           {item.replyPreview && !isMessageDeleted(item.raw) ? (
             <View style={[
               styles.replyPreviewBox,
-              { borderLeftColor: item.mine ? '#FFFFFF88' : colors.primary }
+              { borderLeftColor: item.mine ? colors.surfaceAlpha53 : colors.primary }
             ]}>
               <AppText
                 variant="caption"
-                color={item.mine ? '#FFFFFF' : colors.primary}
+                color={item.mine ? colors.surface : colors.primary}
                 numberOfLines={1}
                 style={{ fontWeight: '700' }}
               >
@@ -712,7 +712,7 @@ const MessageRow = memo(function MessageRow({
               </AppText>
               <AppText
                 variant="caption"
-                color={item.mine ? '#FFFFFFEE' : colors.textSecondary}
+                color={item.mine ? colors.surfaceAlpha93 : colors.textSecondary}
                 numberOfLines={1}
               >
                 {item.replyPreview.messageType === 'image'
@@ -743,8 +743,8 @@ const MessageRow = memo(function MessageRow({
                   />
                   {hasProgress ? (
                     <View style={styles.downloadOverlay}>
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                      <AppText variant="caption" color="#FFFFFF" style={styles.downloadProgressText}>
+                      <ActivityIndicator color={colors.surface} size="small" />
+                      <AppText variant="caption" color={colors.surface} style={styles.downloadProgressText}>
                         {imageProgressText}
                       </AppText>
                       {canCancelDownload ? (
@@ -755,14 +755,14 @@ const MessageRow = memo(function MessageRow({
                             onCancelDownload(item);
                           }}
                         >
-                          <Ionicons name="close" size={14} color="#FFFFFF" />
+                          <Ionicons name="close" size={14} color={colors.surface} />
                         </Pressable>
                       ) : null}
                     </View>
                   ) : isImageLoading ? (
                     <View style={styles.imageLoadingOverlay}>
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                      <AppText variant="caption" color="#FFFFFF" style={styles.imageLoadingText}>
+                      <ActivityIndicator color={colors.surface} size="small" />
+                      <AppText variant="caption" color={colors.surface} style={styles.imageLoadingText}>
                         Loading image...
                       </AppText>
                     </View>
@@ -771,9 +771,9 @@ const MessageRow = memo(function MessageRow({
                       <Ionicons
                         name="expand-outline"
                         size={13}
-                        color="#FFFFFF"
+                        color={colors.surface}
                       />
-                      <AppText variant="caption" color="#FFFFFF">
+                      <AppText variant="caption" color={colors.surface}>
                         Tap to view
                       </AppText>
                     </View>
@@ -782,11 +782,11 @@ const MessageRow = memo(function MessageRow({
               ) : (
                 <View style={[
                   styles.fileCard,
-                  item.mine && { backgroundColor: '#FFFFFFE8', borderColor: '#FFFFFF' }
+                  item.mine && { backgroundColor: colors.surfaceAlpha91, borderColor: colors.surface }
                 ]}>
                   {hasProgress ? (
                     <View style={styles.fileProgressIndicator}>
-                      <ActivityIndicator color={item.mine ? '#FFFFFF' : colors.primary} size="small" />
+                      <ActivityIndicator color={item.mine ? colors.surface : colors.primary} size="small" />
                       <AppText
                         variant="caption"
                         color={colors.primary}
@@ -808,7 +808,7 @@ const MessageRow = memo(function MessageRow({
                   <View style={styles.fileTextWrap}>
                     <AppText
                       style={styles.fileName}
-                      color={item.mine ? '#0F172A' : colors.textPrimary}
+                      color={colors.textPrimary}
                       numberOfLines={1}
                       ellipsizeMode="middle"
                       variant="caption"
@@ -818,7 +818,7 @@ const MessageRow = memo(function MessageRow({
                     {fileProgressText ? (
                       <AppText
                         style={styles.fileProgress}
-                        color={item.mine ? '#1E3A8A' : colors.textSecondary}
+                        color={item.mine ? colors.blueDeep : colors.textSecondary}
                         numberOfLines={1}
                         variant="caption"
                       >
@@ -834,13 +834,13 @@ const MessageRow = memo(function MessageRow({
                       }}
                       style={[
                         styles.downloadButton,
-                        item.mine ? { backgroundColor: '#FFFFFF' } : { backgroundColor: colors.primary }
+                        item.mine ? { backgroundColor: colors.surface } : { backgroundColor: colors.primary }
                       ]}
                     >
                       <Ionicons
                         name="download-outline"
                         size={16}
-                        color={item.mine ? colors.primary : '#FFFFFF'}
+                        color={item.mine ? colors.primary : colors.surface}
                       />
                     </Pressable>
                   )}
@@ -858,7 +858,7 @@ const MessageRow = memo(function MessageRow({
                       <Ionicons
                         name="close"
                         size={16}
-                        color="#FFFFFF"
+                        color={colors.surface}
                       />
                     </Pressable>
                   )}
@@ -868,12 +868,12 @@ const MessageRow = memo(function MessageRow({
           ) : null}
 
           {shouldShowMessageText(item) ? (
-            <AppText color={item.mine ? '#FFFFFF' : colors.textPrimary}>{item.text}</AppText>
+            <AppText color={item.mine ? colors.surface : colors.textPrimary}>{item.text}</AppText>
           ) : null}
           <View style={styles.metaRow}>
             <AppText
               variant="caption"
-              color={item.mine ? '#FFFFFFCC' : colors.textMuted}
+              color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
               style={{ fontSize: 10 }}
             >
               {item.time}
@@ -890,10 +890,10 @@ const MessageRow = memo(function MessageRow({
                 size={12}
                 color={
                   item.status === 'failed'
-                    ? '#FFDADA'
+                    ? colors.dangerSoft
                     : item.status === 'read'
-                      ? '#FFFFFF'
-                      : '#FFFFFFCC'
+                      ? colors.surface
+                      : colors.surfaceAlpha80
                 }
               />
             ) : null}
@@ -2545,7 +2545,7 @@ export default function ChatThreadScreen() {
           style={styles.headerIcon}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={colors.surface} />
         </Pressable>
 
         <Pressable
@@ -2560,7 +2560,7 @@ export default function ChatThreadScreen() {
           <HeaderAvatar label={name} avatarColor={avatarColor} uri={profilePic} />
 
           <View style={styles.headerTitleWrap}>
-            <AppText variant="subtitle" color="#FFFFFF" style={{ fontWeight: '800' }}>
+            <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '800' }}>
               {name}
             </AppText>
             <AppText
@@ -2575,10 +2575,10 @@ export default function ChatThreadScreen() {
 
         <View style={styles.headerRight}>
           <Pressable style={styles.headerIcon}>
-            <Ionicons name="call-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="call-outline" size={20} color={colors.surface} />
           </Pressable>
           <Pressable style={styles.headerIcon}>
-            <Ionicons name="ellipsis-vertical" size={20} color="#FFFFFF" />
+            <Ionicons name="ellipsis-vertical" size={20} color={colors.surface} />
           </Pressable>
         </View>
       </LinearGradient>
@@ -2629,7 +2629,7 @@ export default function ChatThreadScreen() {
       >
         <View style={styles.imagePreviewOverlay}>
           <View style={styles.imagePreviewHeader}>
-            <AppText color="#FFFFFF" numberOfLines={1} style={styles.imagePreviewTitle}>
+            <AppText color={colors.surface} numberOfLines={1} style={styles.imagePreviewTitle}>
               {imagePreview?.name || 'Image preview'}
             </AppText>
 
@@ -2638,7 +2638,7 @@ export default function ChatThreadScreen() {
                 style={styles.imagePreviewAction}
                 onPress={() => void openAttachmentUrl(imagePreview?.uri)}
               >
-                <Ionicons name="open-outline" size={20} color="#FFFFFF" />
+                <Ionicons name="open-outline" size={20} color={colors.surface} />
               </Pressable>
               {imagePreview?.uri && (
                 <Pressable
@@ -2664,9 +2664,9 @@ export default function ChatThreadScreen() {
                   disabled={Boolean(imagePreview.messageId && downloadProgress[imagePreview.messageId])}
                 >
                   {imagePreview.messageId && downloadProgress[imagePreview.messageId] !== undefined ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <ActivityIndicator color={colors.surface} size="small" />
                   ) : (
-                    <Ionicons name="download-outline" size={20} color="#FFFFFF" />
+                    <Ionicons name="download-outline" size={20} color={colors.surface} />
                   )}
                 </Pressable>
               )}
@@ -2674,7 +2674,7 @@ export default function ChatThreadScreen() {
                 style={styles.imagePreviewAction}
                 onPress={() => setImagePreview(null)}
               >
-                <Ionicons name="close" size={22} color="#FFFFFF" />
+                <Ionicons name="close" size={22} color={colors.surface} />
               </Pressable>
             </View>
           </View>
@@ -2780,7 +2780,7 @@ export default function ChatThreadScreen() {
             {replyingTo ? (
               <View style={styles.replyingComposerBar}>
                 <View style={styles.replyingTextWrap}>
-                  <AppText variant="caption" color="#166534" numberOfLines={1}>
+                  <AppText variant="caption" color={colors.successDeep} numberOfLines={1}>
                     Replying to {replyingTo.mine ? 'yourself' : name}
                   </AppText>
                   <AppText
@@ -2863,7 +2863,7 @@ export default function ChatThreadScreen() {
           onPress={isRecording ? stopAndSendRecording : (isMicButton ? startRecording : handleSend)}
           disabled={sending}
         >
-          <Ionicons name={isRecording || !isMicButton ? 'send' : 'mic'} size={16} color="#FFFFFF" />
+          <Ionicons name={isRecording || !isMicButton ? 'send' : 'mic'} size={16} color={colors.surface} />
         </Pressable>
       </View>
 
@@ -2886,7 +2886,7 @@ export default function ChatThreadScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   chatBody: {
     flex: 1,
@@ -2896,7 +2896,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border + '50',
   },
@@ -2936,7 +2936,7 @@ const styles = StyleSheet.create({
   },
   messagesArea: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
+    backgroundColor: colors.background,
   },
   messagesList: {
     padding: spacing.lg,
@@ -2968,10 +2968,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   theirBubble: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.surfaceSubtle,
   },
   myBubble: {
     backgroundColor: colors.primary,
@@ -2983,7 +2983,7 @@ const styles = StyleSheet.create({
   },
   replyPreviewBox: {
     borderLeftWidth: 3,
-    borderLeftColor: '#10B981',
+    borderLeftColor: colors.success,
     paddingLeft: spacing.sm,
     marginBottom: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -3043,7 +3043,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     width: 240,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border,
     marginBottom: 4,
   },
   downloadOverlay: {
@@ -3075,7 +3075,7 @@ const styles = StyleSheet.create({
   imageBubble: {
     width: '100%',
     height: 240,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border,
   },
   imagePreviewHint: {
     position: 'absolute',
@@ -3103,11 +3103,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.surfaceSubtle,
     gap: spacing.sm,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
@@ -3119,18 +3119,18 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   composerInputWrap: {
     flex: 1,
     minHeight: 44,
     maxHeight: 160,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 22,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     paddingLeft: spacing.md,
     paddingRight: spacing.sm,
     paddingVertical: spacing.xs,
@@ -3152,8 +3152,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: colors.surface,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -3178,13 +3178,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     marginBottom: spacing.xs,
     gap: spacing.sm,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   pendingAttachmentText: {
     flex: 1,
@@ -3210,7 +3210,7 @@ const styles = StyleSheet.create({
   },
   imagePreviewOverlay: {
     flex: 1,
-    backgroundColor: '#000000D0',
+    backgroundColor: colors.overlayStrong,
   },
   imagePreviewHeader: {
     paddingTop: spacing.xl * 1.8,
@@ -3233,7 +3233,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF22',
+    backgroundColor: colors.surfaceAlpha14,
   },
   imagePreviewBody: {
     flex: 1,
@@ -3253,10 +3253,10 @@ const styles = StyleSheet.create({
   },
   menuContent: {
     width: 220,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingVertical: 8,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
@@ -3276,7 +3276,7 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
     marginHorizontal: 8,
   },
   swipeActionContainer: {
@@ -3314,10 +3314,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.sm,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   recordingIndicator: {
     flexDirection: 'row',

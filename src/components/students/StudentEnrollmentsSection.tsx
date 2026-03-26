@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.surfaceSubtle,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -122,13 +122,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
     marginVertical: spacing.md,
   },
   cardFooter: {

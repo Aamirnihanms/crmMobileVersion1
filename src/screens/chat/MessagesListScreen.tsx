@@ -129,9 +129,9 @@ const formatChatTime = (rawValue?: string | null) => {
 };
 
 const getAvatarColor = (chatType: 'individual' | 'group' | 'batch') => {
-  if (chatType === 'group') return '#E2F2FF';
-  if (chatType === 'batch') return '#FFE8D8';
-  return '#D7F5E2';
+  if (chatType === 'group') return colors.chatGroupBg;
+  if (chatType === 'batch') return colors.chatBatchBg;
+  return colors.chatDirectBg;
 };
 
 const mapApiChatToPreview = (
@@ -1180,8 +1180,8 @@ export default function MessagesListScreen() {
               setShowNewChatModal(true);
             }}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={16} color="#0F766E" />
-            <AppText variant="caption" color="#0F766E">
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.tealStrong} />
+            <AppText variant="caption" color={colors.tealStrong}>
               New Chat
             </AppText>
           </Pressable>
@@ -1194,8 +1194,8 @@ export default function MessagesListScreen() {
               setGroupTab('users');
             }}
           >
-            <Ionicons name="people-outline" size={16} color="#1D4ED8" />
-            <AppText variant="caption" color="#1D4ED8">
+            <Ionicons name="people-outline" size={16} color={colors.blueStrong} />
+            <AppText variant="caption" color={colors.blueStrong}>
               Create Group
             </AppText>
           </Pressable>
@@ -1207,9 +1207,9 @@ export default function MessagesListScreen() {
             <Ionicons
               name={showArchivedOnly ? "archive" : "archive-outline"}
               size={16}
-              color={showArchivedOnly ? colors.primary : "#475569"}
+              color={showArchivedOnly ? colors.primary : colors.textSecondary}
             />
-            <AppText variant="caption" color={showArchivedOnly ? colors.primary : "#475569"}>
+            <AppText variant="caption" color={showArchivedOnly ? colors.primary : colors.textSecondary}>
               {showArchivedOnly ? 'All Chats' : 'Archived'}
             </AppText>
           </Pressable>
@@ -1308,7 +1308,7 @@ export default function MessagesListScreen() {
                 >
                   <AppText
                     variant="caption"
-                    color={recipientTab === tab ? '#FFFFFF' : colors.textSecondary}
+                    color={recipientTab === tab ? colors.surface : colors.textSecondary}
                   >
                     {tab === 'users'
                       ? 'Users'
@@ -1482,7 +1482,7 @@ export default function MessagesListScreen() {
                 >
                   <AppText
                     variant="caption"
-                    color={groupTab === tab ? '#FFFFFF' : colors.textSecondary}
+                    color={groupTab === tab ? colors.surface : colors.textSecondary}
                   >
                     {tab === 'users' ? 'Users' : 'Students'}
                   </AppText>
@@ -1549,7 +1549,7 @@ export default function MessagesListScreen() {
                       <Ionicons
                         name={selected ? 'checkmark-circle' : 'ellipse-outline'}
                         size={20}
-                        color={selected ? '#16A34A' : colors.textMuted}
+                        color={selected ? colors.successStrong : colors.textMuted}
                       />
                     </Pressable>
                   );
@@ -1582,7 +1582,7 @@ export default function MessagesListScreen() {
                 creatingGroup
               }
             >
-              <AppText variant="subtitle" color="#FFFFFF">
+              <AppText variant="subtitle" color={colors.surface}>
                 {creatingGroup ? 'Creating...' : 'Create Group'}
               </AppText>
             </Pressable>
@@ -1603,24 +1603,24 @@ export default function MessagesListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
+    backgroundColor: colors.background,
   },
   searchWrap: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     gap: spacing.sm,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
     borderRadius: 16,
     paddingHorizontal: spacing.md,
     height: 48,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   searchInput: {
     flex: 1,
@@ -1638,11 +1638,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   quickActionBtnActive: {
     backgroundColor: colors.primaryLight + '20',
@@ -1657,11 +1657,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.surfaceSubtle,
   },
   chatRowActive: {
     backgroundColor: colors.primaryLight + '10',
@@ -1687,8 +1687,8 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-    backgroundColor: '#10B981',
+    borderColor: colors.surface,
+    backgroundColor: colors.success,
   },
   chatMiddle: {
     flex: 1,
@@ -1731,7 +1731,7 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '800',
   },
   emptyState: {
@@ -1754,21 +1754,21 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
     maxHeight: '85%',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 20,
   },
   modalCardTall: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: spacing.lg,
@@ -1791,7 +1791,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
   },
   tabBtnActive: {
     backgroundColor: colors.primary,
@@ -1799,12 +1799,12 @@ const styles = StyleSheet.create({
   modalSearchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 14,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   modalSearchInput: {
     flex: 1,
@@ -1826,7 +1826,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.surfaceSubtle,
     gap: spacing.md,
   },
   modalListAvatar: {
@@ -1847,27 +1847,27 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl * 2,
   },
   groupInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 14,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     color: colors.textPrimary,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     fontSize: 15,
   },
   iconPickerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 14,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   groupIconPreview: {
     width: 48,
@@ -1884,7 +1884,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1920,10 +1920,10 @@ const styles = StyleSheet.create({
   },
   menuContent: {
     width: 220,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingVertical: 8,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
@@ -1943,7 +1943,7 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceSubtle,
     marginHorizontal: 8,
   },
 });

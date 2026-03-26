@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
 
 type Importance = 'NORMAL' | 'IMPORTANT' | 'URGENT';
@@ -137,7 +137,7 @@ export default function AddFollowUpModal({
             <View style={styles.importanceRow}>
               {(['NORMAL', 'IMPORTANT', 'URGENT'] as Importance[]).map((level) => {
                 const isActive = importance === level;
-                const activeColor = level === 'URGENT' ? colors.danger : level === 'IMPORTANT' ? '#F59E0B' : colors.primary;
+                const activeColor = level === 'URGENT' ? colors.danger : level === 'IMPORTANT' ? colors.warning : colors.primary;
 
                 return (
                   <Pressable
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.divider,
     alignItems: 'center',
-    backgroundColor: '#F8F9FB',
+    backgroundColor: colors.backgroundSoft,
   },
   chipText: {
     fontSize: 11,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   saveBtnText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
   },

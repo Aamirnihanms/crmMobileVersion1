@@ -14,7 +14,7 @@ import { colors, spacing } from '@/src/theme';
 
 function PaymentItem({ name, amount, date, status, isLast = false }: any) {
     const isReceived = status === 'Received';
-    const statusColor = isReceived ? '#10B981' : '#F59E0B';
+    const statusColor = isReceived ? colors.success : colors.warning;
 
     return (
         <View>
@@ -44,7 +44,7 @@ export default function PaymentsListScreen() {
             <View style={styles.container}>
                 <AppCard style={styles.summaryCard}>
                     <LinearGradient
-                        colors={['#8B5CF6', '#6366F1']}
+                        colors={[colors.gradientStart, colors.gradientEnd]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.summaryGradient}
@@ -53,20 +53,20 @@ export default function PaymentsListScreen() {
                         <View style={styles.summaryRow}>
                             <View>
                                 <AppText variant="caption" color="rgba(255,255,255,0.7)" style={{ fontWeight: '600' }}>Total Revenue</AppText>
-                                <AppText variant="h1" color="#fff" style={{ fontWeight: '800', fontSize: 28 }}>₹24.50L</AppText>
+                                <AppText variant="h1" color={colors.surface} style={{ fontWeight: '800', fontSize: 28 }}>₹24.50L</AppText>
                             </View>
                             <View style={styles.summaryIcon}>
-                                <Ionicons name="stats-chart" size={24} color="#fff" />
+                                <Ionicons name="stats-chart" size={24} color={colors.surface} />
                             </View>
                         </View>
                         <View style={styles.summaryFooter}>
                             <View style={styles.summaryStat}>
                                 <AppText variant="caption" color="rgba(255,255,255,0.6)">Collected</AppText>
-                                <AppText variant="subtitle" color="#fff" style={{ fontWeight: '700' }}>₹18.2L</AppText>
+                                <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '700' }}>₹18.2L</AppText>
                             </View>
                             <View style={styles.summaryStat}>
                                 <AppText variant="caption" color="rgba(255,255,255,0.6)">Pending</AppText>
-                                <AppText variant="subtitle" color="#fff" style={{ fontWeight: '700' }}>₹6.3L</AppText>
+                                <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '700' }}>₹6.3L</AppText>
                             </View>
                         </View>
                     </View>
@@ -94,7 +94,7 @@ export default function PaymentsListScreen() {
                         <AppText variant="caption" color={colors.textMuted}>Download monthly financial statements</AppText>
                     </View>
                     <Pressable style={styles.downloadBtn}>
-                        <Ionicons name="download-outline" size={20} color="#fff" />
+                        <Ionicons name="download-outline" size={20} color={colors.surface} />
                     </Pressable>
                 </AppCard>
 
@@ -107,7 +107,7 @@ export default function PaymentsListScreen() {
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
-        backgroundColor: '#F8F9FE',
+        backgroundColor: colors.background,
     },
     container: {
         padding: spacing.lg,
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         marginBottom: spacing.xl,
         overflow: 'hidden',
-        shadowColor: '#6366F1',
+        shadowColor: colors.gradientEnd,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.2,
         shadowRadius: 15,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
         marginBottom: spacing.xl,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: colors.surfaceSubtle,
     },
     paymentItem: {
         flexDirection: 'row',
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSubtle,
         marginHorizontal: spacing.lg,
     },
     actionCard: {

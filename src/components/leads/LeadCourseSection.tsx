@@ -1,7 +1,7 @@
 import { Course } from '@/src/types/course';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppCard from './../common/AppCard';
 import AppSelect from './../common/AppSelect';
 import AppText from './../common/AppText';

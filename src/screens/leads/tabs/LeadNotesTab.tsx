@@ -15,7 +15,7 @@ import AppText from '../../../components/common/AppText';
 import AddEditNoteModal from '../../../components/notes/AddEditNoteModal';
 import NoteCard from '../../../components/notes/NoteCard';
 import { useCreateNote, useInfiniteLeadNotes, useUpdateNote } from '../../../queries/notes.query';
-import { colors, spacing } from '../../../theme';
+import { colors, spacing } from '@/src/theme';
 
 export default function LeadNotesTab({ id }: { id: string }) {
   const {
@@ -77,7 +77,7 @@ export default function LeadNotesTab({ id }: { id: string }) {
                 colors={[colors.gradientStart, colors.gradientEnd]}
                 style={styles.addButton}
               >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
+                <Ionicons name="add" size={20} color={colors.surface} />
                 <AppText style={styles.addText}>New</AppText>
               </LinearGradient>
             </Pressable>
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   addText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 12,
   },

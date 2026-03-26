@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 

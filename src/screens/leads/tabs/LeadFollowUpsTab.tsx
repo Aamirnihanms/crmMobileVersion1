@@ -16,7 +16,7 @@ import AddFollowUpModal from '../../../components/followups/AddFollowUpModal';
 import FollowUpCard from '../../../components/followups/FollowUpCard';
 import UpdateFollowUpStatusModal from '../../../components/followups/UpdateFollowUpStatusModal';
 import { useAddFollowUp, useInfiniteLeadFollowUps, useUpdateFollowUpStatus } from '../../../queries/followups.query';
-import { colors, spacing } from '../../../theme';
+import { colors, spacing } from '@/src/theme';
 
 export default function LeadFollowUpsTab({ id }: { id: string }) {
   const {
@@ -74,7 +74,7 @@ export default function LeadFollowUpsTab({ id }: { id: string }) {
                 colors={[colors.gradientStart, colors.gradientEnd]}
                 style={styles.addButton}
               >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
+                <Ionicons name="add" size={20} color={colors.surface} />
                 <AppText style={styles.addText}>New</AppText>
               </LinearGradient>
             </Pressable>
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   addText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 12,
   },

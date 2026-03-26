@@ -1,4 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import EditStudentScreen from '../screens/students/EditStudentScreen';
 import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen';
 import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
 import StudentsListScreen from '../screens/students/StudentsListScreen';
@@ -10,6 +11,7 @@ export type StudentsStackParamList = {
   StudentsList: undefined;
   StudentDetails: { id: string };
   EnrollmentDetails: { id: string };
+  EditStudent: { id: string };
 };
 
 export default function StudentsStack() {
@@ -38,6 +40,12 @@ export default function StudentsStack() {
         component={EnrollmentDetailsScreen}
         options={{ title: 'Enrollment' }}
       />
+      <Stack.Screen
+        name="EditStudent"
+        component={EditStudentScreen}
+        options={{ title: 'Edit Student' }}
+      />
     </Stack.Navigator>
   );
 }
+

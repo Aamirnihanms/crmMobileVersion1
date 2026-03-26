@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 import AppText from './AppText';
 
 const { height } = Dimensions.get('window');
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.neutralSoft,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.lg,

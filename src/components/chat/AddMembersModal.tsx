@@ -136,7 +136,7 @@ export default function AddMembersModal({
                             <AppText variant="subtitle">Add Members</AppText>
                             {selectedItems.size > 0 && (
                                 <View style={styles.countBadge}>
-                                    <AppText variant="caption" color="#FFFFFF" style={{ fontSize: 10 }}>
+                                    <AppText variant="caption" color={colors.surface} style={{ fontSize: 10 }}>
                                         {selectedItems.size}
                                     </AppText>
                                 </View>
@@ -159,7 +159,7 @@ export default function AddMembersModal({
                             >
                                 <AppText
                                     variant="caption"
-                                    color={tab === t ? '#FFFFFF' : colors.textSecondary}
+                                    color={tab === t ? colors.surface : colors.textSecondary}
                                     style={tab === t ? { fontWeight: '600' } : {}}
                                 >
                                     {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -259,9 +259,9 @@ export default function AddMembersModal({
                             disabled={selectedItems.size === 0 || isAdding}
                         >
                             {isAdding ? (
-                                <ActivityIndicator color="#FFFFFF" size="small" />
+                                <ActivityIndicator color={colors.surface} size="small" />
                             ) : (
-                                <AppText color="#FFFFFF" style={{ fontWeight: '600' }}>
+                                <AppText color={colors.surface} style={{ fontWeight: '600' }}>
                                     Add selected ({selectedItems.size})
                                 </AppText>
                             )}
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     card: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         height: '80%',
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.border,
         padding: 16,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
     },
     addBtn: {
         backgroundColor: colors.primary,

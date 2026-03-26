@@ -13,7 +13,7 @@ import LeadCard from '../../components/cards/LeadCard';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
-import { colors, spacing } from '../../theme';
+import { colors, spacing } from '@/src/theme';
 
 import { useInfiniteLeads } from '../../queries/leads.query';
 
@@ -152,7 +152,7 @@ export default function LeadsListScreen() {
             />
             {activeCount > 0 && (
               <View style={styles.filterBadge}>
-                <AppText color="#fff" style={styles.filterBadgeText}>{activeCount}</AppText>
+                <AppText color={colors.surface} style={styles.filterBadgeText}>{activeCount}</AppText>
               </View>
             )}
           </Pressable>

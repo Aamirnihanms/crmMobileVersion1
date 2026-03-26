@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Platform } from 'react-native';
-import { colors, spacing } from '../theme';
+import { colors, spacing } from '@/src/theme';
 import DashboardStack from './DashboardStack';
 import LeadsStack from './LeadsStack';
 import MoreStack from './MoreStack';
@@ -13,15 +13,15 @@ const Tab = createBottomTabNavigator();
 const HIDE_TAB_ROUTES = ['MessagesList', 'ChatThread', 'GroupDetails'];
 
 const baseTabBarStyle = {
-  backgroundColor: '#FFFFFF',
+  backgroundColor: colors.surface,
   borderTopWidth: 1,
-  borderTopColor: '#F1F5F9',
+  borderTopColor: colors.surfaceSubtle,
   paddingBottom: Platform.OS === 'ios' ? spacing.lg : spacing.sm,
   paddingTop: spacing.sm,
   height: Platform.OS === 'ios' ? 88 : 68,
   ...Platform.select({
     ios: {
-      shadowColor: '#000',
+      shadowColor: colors.black,
       shadowOffset: { width: 0, height: -4 },
       shadowOpacity: 0.05,
       shadowRadius: 10,

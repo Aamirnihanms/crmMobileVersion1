@@ -44,7 +44,7 @@ const AttachmentAction = ({
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
-                <Ionicons name={icon} size={28} color="#FFFFFF" />
+                <Ionicons name={icon} size={28} color={colors.surface} />
             </LinearGradient>
         </View>
         <AppText variant="caption" style={styles.actionLabel}>
@@ -133,7 +133,7 @@ export default function AttachmentPopup({ visible, onClose, onSelect, options = 
                         <AttachmentAction
                             icon="document-text"
                             label="Document"
-                            color="#3B82F6"
+                            color={colors.info}
                             onPress={() => handleSelect('document')}
                         />
                     )}
@@ -142,7 +142,7 @@ export default function AttachmentPopup({ visible, onClose, onSelect, options = 
                 <Pressable
                     style={({ pressed }) => [
                         styles.cancelButton,
-                        pressed && { backgroundColor: '#F1F5F9' }
+                        pressed && { backgroundColor: colors.surfaceSubtle }
                     ]}
                     onPress={onClose}
                 >
@@ -165,13 +165,13 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         paddingHorizontal: spacing.xl,
         paddingTop: spacing.md,
         paddingBottom: spacing.xl,
-        shadowColor: '#000',
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: -10 },
         shadowOpacity: 0.1,
         shadowRadius: 20,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     handle: {
         width: 40,
         height: 4,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: colors.border,
         borderRadius: 2,
         alignSelf: 'center',
         marginBottom: spacing.md,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     cancelButton: {
         alignItems: 'center',
         paddingVertical: spacing.md,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.surfaceAlt,
         borderRadius: 16,
         marginTop: spacing.sm,
     },

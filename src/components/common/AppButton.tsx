@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing, typography } from '@/src/theme';
 import AppText from './AppText';
 
 type AppButtonProps = {
@@ -29,11 +29,11 @@ export default function AppButton({
 
   const renderContent = () => (
     loading ? (
-      <ActivityIndicator color={variant === 'outline' ? colors.primary : "#fff"} />
+      <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.surface} />
     ) : (
       <AppText
         style={styles.text}
-        color={variant === 'outline' ? colors.primary : "#fff"}
+        color={variant === 'outline' ? colors.primary : colors.surface}
       >
         {title}
       </AppText>

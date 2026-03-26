@@ -16,6 +16,11 @@ import {
   View,
 } from 'react-native';
 
+import {
+  COUNTRY_CODES,
+  CountryCode,
+  DEFAULT_COUNTRY,
+} from '@/src/components/common/PhoneInputWithCode';
 import { LeadsStackParamList } from '@/src/navigation/LeadsStack';
 import { buildLeadPayload } from '@/src/utils/buildLeadPayload';
 
@@ -53,14 +58,34 @@ type CreateLeadRoute = RouteProp<
   'CreateLead'
 >;
 
+// Helper: strip a known country code prefix from a stored number
+function extractCodeAndNumber(
+  fullNumber: string | null | undefined
+): { country: CountryCode; number: string } {
+  if (!fullNumber) return { country: DEFAULT_COUNTRY, number: '' };
+  const match = COUNTRY_CODES.find(
+    (c) => fullNumber.startsWith(c.code) && c.name !== 'Canada' // avoid +1 ambiguity
+  );
+  if (match) {
+    return {
+      country: match,
+      number: fullNumber.slice(match.code.length),
+    };
+  }
+  return { country: DEFAULT_COUNTRY, number: fullNumber };
+}
+
 const initialFormState = {
   name: '',
   phone_number: '',
+  phone_country_code: DEFAULT_COUNTRY,
   whatsapp_number: '',
+  whatsapp_country_code: DEFAULT_COUNTRY,
   email: '',
   address: '',
   city: '',
   parent_phone_number: '',
+  parent_phone_country_code: DEFAULT_COUNTRY,
   parent_name: '',
   notes: '',
   counselor: null,
@@ -127,14 +152,22 @@ export default function CreateLeadScreen() {
 
     const lead: any = editLead;
 
+    const phoneParsed = extractCodeAndNumber(lead.phone_number);
+    const whatsappParsed = extractCodeAndNumber(lead.whatsapp_number);
+
+    const parentPhoneParsed = extractCodeAndNumber(lead.parent_phone_number);
+
     setForm({
       name: lead.name ?? '',
-      phone_number: lead.phone_number ?? '',
-      whatsapp_number: lead.whatsapp_number ?? '',
+      phone_number: phoneParsed.number,
+      phone_country_code: phoneParsed.country,
+      whatsapp_number: whatsappParsed.number,
+      whatsapp_country_code: whatsappParsed.country,
       email: lead.email ?? '',
       address: lead.address ?? '',
       city: lead.city ?? '',
-      parent_phone_number: lead.parent_phone_number ?? '',
+      parent_phone_number: parentPhoneParsed.number,
+      parent_phone_country_code: parentPhoneParsed.country,
       parent_name: lead.parent_name ?? '',
       notes: lead.notes ?? '',
       counselor:
@@ -329,7 +362,7 @@ export default function CreateLeadScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8F9FE',
+    backgroundColor: colors.background,
   },
   container: {
     padding: spacing.lg,
@@ -337,10 +370,10 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: colors.border,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -353,7 +386,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtnText: {
-    color: '#fff',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 0.5,
@@ -362,6 +395,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FE',
+    backgroundColor: colors.background,
   },
 });

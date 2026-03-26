@@ -1,9 +1,16 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { fetchStudents, StudentsPageResponse } from '../api/students.api';
-import { useQuery } from '@tanstack/react-query';
-import { fetchStudentProfile } from '../api/students.api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { convertLeadToStudent } from '../api/students.api';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  convertLeadToStudent,
+  fetchStudentProfile,
+  fetchStudents,
+  updateStudent,
+  type StudentsPageResponse,
+} from '../api/students.api';
 
 export const useInfiniteStudents = (search: string) => {
   return useInfiniteQuery<
@@ -27,12 +34,40 @@ export const useInfiniteStudents = (search: string) => {
 };
 
 
-
-
 export const useStudentProfile = (id: string) => {
   return useQuery({
     queryKey: ['student', id],
     queryFn: () => fetchStudentProfile(id),
+  });
+};
+
+
+/* -------------------------------------------------- */
+/* ✏️ UPDATE STUDENT MUTATION */
+/* -------------------------------------------------- */
+
+export const useUpdateStudent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      updateStudent(id, payload),
+
+    onSuccess: (_data, variables) => {
+      console.log('🎉 Student updated:', variables.id);
+
+      queryClient.invalidateQueries({
+        queryKey: ['students'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['student', variables.id],
+      });
+    },
+
+    onError: (error: any) => {
+      console.log('🚨 Update student failed:', error?.response?.data || error);
+    },
   });
 };
 

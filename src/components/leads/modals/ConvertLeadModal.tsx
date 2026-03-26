@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   saveBtnText: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 0.5,

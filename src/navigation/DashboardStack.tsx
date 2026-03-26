@@ -11,7 +11,7 @@ import {
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import { colors, spacing } from '../theme';
+import { colors, spacing } from '@/src/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -73,7 +73,7 @@ export default function DashboardStack() {
           color: colors.textPrimary,
         },
         headerStyle: {
-          backgroundColor: '#F8F9FE',
+          backgroundColor: colors.background,
         },
       }}
     >

@@ -218,7 +218,7 @@ export default function GroupDetailsScreen() {
                         )}
                         {isAdmin && (
                             <View style={styles.editIconBadge}>
-                                <Ionicons name="camera" size={20} color="#FFFFFF" />
+                                <Ionicons name="camera" size={20} color={colors.surface} />
                             </View>
                         )}
                     </View>
@@ -381,9 +381,9 @@ export default function GroupDetailsScreen() {
                                 disabled={isUpdating}
                             >
                                 {isUpdating ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                    <ActivityIndicator size="small" color={colors.surface} />
                                 ) : (
-                                    <AppText color="#FFFFFF" style={{ fontWeight: '600' }}>Save</AppText>
+                                    <AppText color={colors.surface} style={{ fontWeight: '600' }}>Save</AppText>
                                 )}
                             </Pressable>
                         </View>
@@ -397,7 +397,7 @@ export default function GroupDetailsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F9FE',
+        backgroundColor: colors.background,
     },
     loaderContainer: {
         flex: 1,
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     headerSection: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         paddingVertical: 30,
         alignItems: 'center',
         borderBottomWidth: 1,
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
-        borderColor: '#FFFFFF',
+        borderColor: colors.surface,
     },
     infoContainer: {
         alignItems: 'center',
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 12,
         paddingHorizontal: 20,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 15,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: colors.danger + '30',
@@ -548,10 +548,10 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     modalCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderRadius: 20,
         padding: 25,
-        shadowColor: '#000',
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.1,
         shadowRadius: 20,
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     input: {
-        backgroundColor: '#F8F9FE',
+        backgroundColor: colors.background,
         borderRadius: 10,
         padding: 12,
         marginBottom: 20,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelModalBtn: {
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surfaceSubtle,
     },
     saveModalBtn: {
         backgroundColor: colors.primary,

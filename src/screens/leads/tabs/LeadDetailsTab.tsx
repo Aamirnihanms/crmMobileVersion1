@@ -5,7 +5,7 @@ import AppCard from '../../../components/common/AppCard';
 import AppLoader from '../../../components/common/AppLoader';
 import AppText from '../../../components/common/AppText';
 import { useLeadDetails } from '../../../queries/leadDetails.query';
-import { colors, spacing } from '../../../theme';
+import { colors, spacing } from '@/src/theme';
 
 export default function LeadDetailsTab({ id }: { id: string }) {
   const { data, isLoading } = useLeadDetails(id);
