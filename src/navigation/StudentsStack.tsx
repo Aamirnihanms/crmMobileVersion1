@@ -1,18 +1,21 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import EditStudentScreen from '../screens/students/EditStudentScreen';
 import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen';
+import SetPaymentModeScreen from '../screens/students/SetPaymentModeScreen';
 import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
 import StudentsListScreen from '../screens/students/StudentsListScreen';
 
-const Stack = createNativeStackNavigator();
 
+const Stack = createNativeStackNavigator();
 
 export type StudentsStackParamList = {
   StudentsList: undefined;
   StudentDetails: { id: string };
   EnrollmentDetails: { id: string };
   EditStudent: { id: string };
+  SetPaymentMode: { enrollmentId: string };
 };
+
 
 export default function StudentsStack() {
   return (
@@ -45,7 +48,13 @@ export default function StudentsStack() {
         component={EditStudentScreen}
         options={{ title: 'Edit Student' }}
       />
+      <Stack.Screen
+        name="SetPaymentMode"
+        component={SetPaymentModeScreen}
+        options={{ title: 'Set Payment Mode' }}
+      />
     </Stack.Navigator>
+
   );
 }
 
