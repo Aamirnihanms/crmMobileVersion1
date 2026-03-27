@@ -1,9 +1,9 @@
-import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors, spacing } from '@/src/theme';
+import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 type AppCardProps = {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
 export default function AppCard({ children, style }: AppCardProps) {

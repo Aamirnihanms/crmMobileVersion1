@@ -35,6 +35,7 @@ import {
   View,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -2531,7 +2532,10 @@ export default function ChatThreadScreen() {
   const isMicButton = input.trim() === '' && !pendingAttachment;
 
   return (
-    <View style={styles.safeArea}>
+    <KeyboardAvoidingView
+      behavior="padding"
+      style={styles.safeArea}
+    >
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -2879,7 +2883,7 @@ export default function ChatThreadScreen() {
           Alert.alert('Success', 'Message forwarded successfully');
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

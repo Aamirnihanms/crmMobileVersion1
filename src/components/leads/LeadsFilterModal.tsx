@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import AppSelect from '@/src/components/common/AppSelect';
+import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppText from '@/src/components/common/AppText';
 
 import { colors, spacing } from '@/src/theme';
@@ -18,15 +18,31 @@ export default function LeadsFilterModal({
   visible,
   onClose,
   filters,
-  updateFilter,
+  setAllFilters,
   masters,
 }: any) {
+  const [localFilters, setLocalFilters] = React.useState<any>(filters || {});
+
+  React.useEffect(() => {
+    if (visible) {
+      setLocalFilters(filters || {});
+    }
+  }, [visible, filters]);
+
+  const updateLocalFilter = (key: string, value: any) => {
+    setLocalFilters((prev: any) => ({
+      ...prev,
+      [key]: value || undefined,
+    }));
+  };
+
   const clearFilters = () => {
-    updateFilter('course', null);
-    updateFilter('counselor', null);
-    updateFilter('qualification', null);
-    updateFilter('lead_status', null);
-    updateFilter('lead_source', null);
+    setLocalFilters({});
+  };
+
+  const applyFilters = () => {
+    setAllFilters(localFilters);
+    onClose();
   };
 
   return (
@@ -52,58 +68,58 @@ export default function LeadsFilterModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            <AppSelect
+            <AppMultiSelect
               label="Course"
-              value={filters.course}
+              value={localFilters.course ? localFilters.course.split(',') : []}
               options={masters.courses.map((c: any) => ({
                 label: c.course_name,
                 value: c.id,
               }))}
-              onSelect={(v) => updateFilter('course', v)}
+              onSelect={(v) => updateLocalFilter('course', v.length > 0 ? v.join(',') : null)}
             />
 
-            <AppSelect
+            <AppMultiSelect
               label="Counselor"
-              value={filters.counselor}
+              value={localFilters.counselor ? localFilters.counselor.split(',') : []}
               options={masters.counselors.map((c: any) => ({
                 label: c.full_name,
                 value: c.id,
               }))}
-              onSelect={(v) => updateFilter('counselor', v)}
+              onSelect={(v) => updateLocalFilter('counselor', v.length > 0 ? v.join(',') : null)}
             />
 
-            <AppSelect
+            <AppMultiSelect
               label="Qualification"
-              value={filters.qualification}
+              value={localFilters.qualification ? localFilters.qualification.split(',') : []}
               options={masters.qualifications.map((q: any) => ({
                 label: q.name,
                 value: q.id,
               }))}
-              onSelect={(v) => updateFilter('qualification', v)}
+              onSelect={(v) => updateLocalFilter('qualification', v.length > 0 ? v.join(',') : null)}
             />
 
-            <AppSelect
+            <AppMultiSelect
               label="Lead Status"
-              value={filters.lead_status}
+              value={localFilters.lead_status ? localFilters.lead_status.split(',') : []}
               options={masters.statuses.map((s: any) => ({
                 label: s.name,
                 value: s.id,
               }))}
-              onSelect={(v) => updateFilter('lead_status', v)}
+              onSelect={(v) => updateLocalFilter('lead_status', v.length > 0 ? v.join(',') : null)}
             />
 
-            <AppSelect
+            <AppMultiSelect
               label="Lead Source"
-              value={filters.lead_source}
+              value={localFilters.lead_source ? localFilters.lead_source.split(',') : []}
               options={masters.sources.map((s: any) => ({
                 label: s.label,
                 value: s.id,
               }))}
-              onSelect={(v) => updateFilter('lead_source', v)}
+              onSelect={(v) => updateLocalFilter('lead_source', v.length > 0 ? v.join(',') : null)}
             />
 
             <View style={styles.footer}>
-              <Pressable onPress={onClose} style={{ flex: 1 }}>
+              <Pressable onPress={applyFilters} style={{ flex: 1 }}>
                 <LinearGradient
                   colors={[colors.gradientStart, colors.gradientEnd]}
                   style={styles.applyBtn}

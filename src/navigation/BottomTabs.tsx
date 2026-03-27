@@ -1,8 +1,8 @@
+import { colors, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Platform } from 'react-native';
-import { colors, spacing } from '@/src/theme';
 import DashboardStack from './DashboardStack';
 import LeadsStack from './LeadsStack';
 import MoreStack from './MoreStack';
@@ -10,7 +10,9 @@ import PaymentsStack from './PaymentsStack';
 import StudentsStack from './StudentsStack';
 
 const Tab = createBottomTabNavigator();
-const HIDE_TAB_ROUTES = ['MessagesList', 'ChatThread', 'GroupDetails'];
+
+// Define the initial routes for each stack. If the focused route is NOT one of these, we hide the tab bar.
+const INITIAL_ROUTES = ['DashboardHome', 'LeadsList', 'StudentsList', 'PaymentsList', 'MoreList'];
 
 const baseTabBarStyle = {
   backgroundColor: colors.surface,
@@ -32,14 +34,25 @@ const baseTabBarStyle = {
   }),
 };
 
+// Helper function to get tabBarStyle based on current route
+const getTabBarStyle = (route: any) => {
+  const routeName = getFocusedRouteNameFromRoute(route);
+
+  // If routeName is undefined, it means we're at the initial route of the stack.
+  // If it's defined, we check if it's one of our initial routes.
+  const isTabBarVisible = !routeName || INITIAL_ROUTES.includes(routeName);
+
+  return isTabBarVisible ? baseTabBarStyle : { display: 'none' as const };
+};
+
 export default function AppTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: baseTabBarStyle,
+        tabBarStyle: getTabBarStyle(route),
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
@@ -50,25 +63,16 @@ export default function AppTabs() {
         tabBarIconStyle: {
           marginTop: spacing.xs,
         },
-      }}
+      })}
     >
       <Tab.Screen
         name="Dashboard"
         component={DashboardStack}
-        options={({ route }) => {
-          const routeName =
-            getFocusedRouteNameFromRoute(route) ?? 'DashboardHome';
-          const hideTab = HIDE_TAB_ROUTES.includes(routeName);
-
-          return {
-            tabBarLabel: 'Home',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />
-            ),
-            tabBarStyle: hideTab
-              ? { display: 'none' }
-              : baseTabBarStyle,
-          };
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />
+          ),
         }}
       />
 
@@ -114,3 +118,4 @@ export default function AppTabs() {
     </Tab.Navigator>
   );
 }
+

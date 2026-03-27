@@ -1,5 +1,5 @@
-import { http } from './http';
 import type { CreateLeadPayload } from '../types/createLead';
+import { http } from './http';
 
 /* ------------------ LEAD TYPE ------------------ */
 export type LeadResponse = {
@@ -137,10 +137,10 @@ export type LeadDetailResponse = {
 };
 
 export type LeadsFilters = {
-  course?: number;
-  counselor?: number;
-  qualification?: number;
-  lead_status?: number;
+  course?: string;
+  counselor?: string;
+  qualification?: string;
+  lead_status?: string;
   lead_source?: string;
 };
 

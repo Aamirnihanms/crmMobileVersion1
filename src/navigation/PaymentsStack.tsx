@@ -1,8 +1,14 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import PaymentsListScreen from '../screens/payments/PaymentsListScreen';
 import { colors } from '@/src/theme';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import PaymentDetailsScreen from '../screens/payments/PaymentDetailsScreen';
+import PaymentsListScreen from '../screens/payments/PaymentsListScreen';
 
-const Stack = createNativeStackNavigator();
+export type PaymentsStackParamList = {
+  PaymentsList: undefined;
+  PaymentDetails: { uid: string };
+};
+
+const Stack = createNativeStackNavigator<PaymentsStackParamList>();
 
 export default function PaymentsStack() {
   return (
@@ -23,6 +29,11 @@ export default function PaymentsStack() {
         name="PaymentsList"
         component={PaymentsListScreen}
         options={{ title: 'Financials' }}
+      />
+      <Stack.Screen
+        name="PaymentDetails"
+        component={PaymentDetailsScreen}
+        options={{ title: 'Transaction Details' }}
       />
     </Stack.Navigator>
   );

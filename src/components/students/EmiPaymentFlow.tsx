@@ -17,18 +17,37 @@ type Props = {
 export default function EmiPaymentFlow({ enrollmentId, onConfirm, confirmLoading }: Props) {
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const { data: emiPlans, isLoading: plansLoading } = useEmiPlans();
     const previewMutation = useEmiPreview();
 
     const handlePlanSelect = (planId: string) => {
         setSelectedPlanId(planId);
+        setErrorMessage(null);
+        setShowPreview(false);
         previewMutation.mutate({
             enrollment_id: enrollmentId,
             emi_plan_id: planId,
         }, {
-            onSuccess: () => {
-                setShowPreview(true);
+            onSuccess: (data: any) => {
+                if (data?.status === 'error') {
+                    setErrorMessage(data?.message || 'Failed to generate preview.');
+                    setShowPreview(false);
+                } else if (data?.emi_preview) {
+                    setShowPreview(true);
+                } else {
+                    setErrorMessage('Invalid response from server.');
+                    setShowPreview(false);
+                }
+            },
+            onError: (error: any) => {
+                setErrorMessage(
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'An error occurred while fetching the EMI preview.'
+                );
+                setShowPreview(false);
             }
         });
     };
@@ -47,7 +66,13 @@ export default function EmiPaymentFlow({ enrollmentId, onConfirm, confirmLoading
 
             {previewMutation.isPending && <AppLoader />}
 
-            {showPreview && previewMutation.data && (
+            {errorMessage && !previewMutation.isPending && (
+                <View style={styles.errorContainer}>
+                    <AppText color={colors.danger} variant="body">{errorMessage}</AppText>
+                </View>
+            )}
+
+            {showPreview && !errorMessage && previewMutation.data && (
                 <View style={styles.previewSection}>
                     <View style={styles.previewHeader}>
                         <AppText variant="h3" style={styles.previewTitle}>EMI Preview</AppText>
@@ -100,6 +125,14 @@ export default function EmiPaymentFlow({ enrollmentId, onConfirm, confirmLoading
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    errorContainer: {
+        backgroundColor: colors.dangerBg,
+        padding: spacing.md,
+        borderRadius: 8,
+        marginTop: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.dangerSoft,
     },
     previewSection: {
         marginTop: spacing.xl,

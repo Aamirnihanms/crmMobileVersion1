@@ -1,106 +1,206 @@
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Pressable,
-    ScrollView,
+    RefreshControl,
     StyleSheet,
-    View,
+    View
 } from 'react-native';
 
+import type { PaymentTransaction } from '@/src/api/payments.api';
 import AppCard from '@/src/components/common/AppCard';
+import AppInput from '@/src/components/common/AppInput';
+import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
+import { useInfinitePaymentTransactions } from '@/src/queries/payments.query';
 import { colors, spacing } from '@/src/theme';
 
-function PaymentItem({ name, amount, date, status, isLast = false }: any) {
-    const isReceived = status === 'Received';
-    const statusColor = isReceived ? colors.success : colors.warning;
+import { PaymentsStackParamList } from '@/src/navigation/PaymentsStack';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+function PaymentItem({
+    transaction,
+    isLast = false,
+    onPress
+}: {
+    transaction: PaymentTransaction;
+    isLast?: boolean;
+    onPress: () => void;
+}) {
+    const isCompleted = transaction.status === 'completed';
+    const isFailed = transaction.status === 'failed';
+    const isReversal = transaction.payment_method === 'reversal';
+
+    // Status color logic
+    let statusColor = colors.warning;
+    if (isCompleted) statusColor = colors.success;
+    if (isFailed || isReversal) statusColor = colors.danger;
+
+    const formattedDate = new Date(transaction.payment_date).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
 
     return (
-        <View>
+        <Pressable onPress={onPress}>
             <View style={styles.paymentItem}>
                 <View style={[styles.paymentIcon, { backgroundColor: statusColor + '15' }]}>
-                    <Ionicons name={isReceived ? "arrow-down-outline" : "time-outline"} size={20} color={statusColor} />
+                    <Ionicons
+                        name={isReversal ? "refresh-circle-outline" : (isCompleted ? "checkmark-circle-outline" : isFailed ? "close-circle-outline" : "time-outline")}
+                        size={20}
+                        color={statusColor}
+                    />
                 </View>
                 <View style={styles.paymentContent}>
-                    <AppText variant="subtitle" style={{ fontWeight: '700' }}>{name}</AppText>
-                    <AppText variant="caption" color={colors.textMuted}>{date}</AppText>
+                    <AppText variant="subtitle" style={{ fontWeight: '700' }} numberOfLines={1}>
+                        {transaction.student_name || 'N/A'}
+                    </AppText>
+                    <AppText variant="caption" color={colors.textMuted}>{formattedDate}</AppText>
+                    <AppText variant="caption" color={colors.textMuted} numberOfLines={1}>{transaction.course_name}</AppText>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                    <AppText variant="subtitle" style={{ fontWeight: '800', color: colors.textPrimary }}>₹{amount}</AppText>
+                    <AppText variant="subtitle" style={{ fontWeight: '800', color: statusColor }}>
+                        {parseFloat(transaction.amount) > 0 ? '₹' : ''}{parseFloat(transaction.amount).toLocaleString('en-IN')}
+                    </AppText>
                     <View style={[styles.statusBadge, { backgroundColor: statusColor + '10' }]}>
-                        <AppText variant="caption" style={{ color: statusColor, fontSize: 10, fontWeight: '700' }}>{status}</AppText>
+                        <AppText variant="caption" style={{ color: statusColor, fontSize: 10, fontWeight: '700' }}>
+                            {transaction.status_display}
+                        </AppText>
                     </View>
                 </View>
             </View>
             {!isLast && <View style={styles.divider} />}
-        </View>
+        </Pressable>
     );
 }
 
 export default function PaymentsListScreen() {
+    const navigation = useNavigation<NativeStackNavigationProp<PaymentsStackParamList>>();
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const {
+        data,
+        isLoading,
+        isError,
+        error,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        refetch,
+        isRefetching,
+    } = useInfinitePaymentTransactions(debouncedSearch);
+
+    const transactions = data?.pages.flatMap((page) => page.results) ?? [];
+    const totalCount = data?.pages[0]?.access_control?.total_accessible_transactions ?? 0;
+
+    const renderItem = useCallback(({ item, index }: { item: PaymentTransaction; index: number }) => (
+        <PaymentItem
+            transaction={item}
+            isLast={index === transactions.length - 1}
+            onPress={() => navigation.navigate('PaymentDetails', { uid: item.uid })}
+        />
+    ), [transactions.length, navigation]);
+
+    if (isLoading && !isRefetching) {
+        return <AppLoader />;
+    }
+
     return (
-        <ScrollView style={styles.screen} showsVerticalScrollIndicator={false}>
-            <View style={styles.container}>
-                <AppCard style={styles.summaryCard}>
-                    <LinearGradient
-                        colors={[colors.gradientStart, colors.gradientEnd]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.summaryGradient}
-                    />
-                    <View style={styles.summaryContent}>
-                        <View style={styles.summaryRow}>
-                            <View>
-                                <AppText variant="caption" color="rgba(255,255,255,0.7)" style={{ fontWeight: '600' }}>Total Revenue</AppText>
-                                <AppText variant="h1" color={colors.surface} style={{ fontWeight: '800', fontSize: 28 }}>₹24.50L</AppText>
-                            </View>
-                            <View style={styles.summaryIcon}>
-                                <Ionicons name="stats-chart" size={24} color={colors.surface} />
-                            </View>
-                        </View>
-                        <View style={styles.summaryFooter}>
-                            <View style={styles.summaryStat}>
-                                <AppText variant="caption" color="rgba(255,255,255,0.6)">Collected</AppText>
-                                <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '700' }}>₹18.2L</AppText>
-                            </View>
-                            <View style={styles.summaryStat}>
-                                <AppText variant="caption" color="rgba(255,255,255,0.6)">Pending</AppText>
-                                <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '700' }}>₹6.3L</AppText>
-                            </View>
-                        </View>
+        <View style={styles.screen}>
+            <View style={styles.header}>
+                <View style={styles.searchRow}>
+                    <View style={styles.searchWrapper}>
+                        <Ionicons name="search-outline" size={20} color={colors.textMuted} style={styles.searchIcon} />
+                        <AppInput
+                            placeholder="Search transactions..."
+                            value={search}
+                            onChangeText={setSearch}
+                            style={styles.searchInput}
+                            containerStyle={styles.searchContainer}
+                        />
                     </View>
-                </AppCard>
-
-                <View style={styles.sectionHeader}>
-                    <AppText variant="h3" style={styles.sectionTitle}>Recent Transactions</AppText>
-                    <Pressable>
-                        <Ionicons name="filter" size={20} color={colors.primary} />
-                    </Pressable>
                 </View>
-
-                <AppCard style={styles.transactionsCard}>
-                    <PaymentItem name="Sanjay Kumar" amount="15,000" date="23 Mar, 2024" status="Received" />
-                    <PaymentItem name="Priya Singh" amount="12,500" date="22 Mar, 2024" status="Pending" />
-                    <PaymentItem name="Rahul Verma" amount="25,000" date="21 Mar, 2024" status="Received" />
-                    <PaymentItem name="Anjali Devi" amount="8,000" date="20 Mar, 2024" status="Received" />
-                    <PaymentItem name="Vikram Rathore" amount="30,000" date="19 Mar, 2024" status="Pending" isLast />
-                </AppCard>
-
-                <AppCard style={styles.actionCard}>
-                    <Ionicons name="receipt-outline" size={32} color={colors.primary} />
-                    <View style={{ flex: 1, marginLeft: spacing.md }}>
-                        <AppText variant="subtitle" style={{ fontWeight: '700' }}>Generate Reports</AppText>
-                        <AppText variant="caption" color={colors.textMuted}>Download monthly financial statements</AppText>
-                    </View>
-                    <Pressable style={styles.downloadBtn}>
-                        <Ionicons name="download-outline" size={20} color={colors.surface} />
-                    </Pressable>
-                </AppCard>
-
-                <View style={{ height: 40 }} />
             </View>
-        </ScrollView>
+
+            <FlashList
+                data={transactions}
+                keyExtractor={(item) => item.uid}
+                renderItem={renderItem}
+                onEndReached={() => {
+                    if (hasNextPage && !isFetchingNextPage) {
+                        fetchNextPage();
+                    }
+                }}
+                onEndReachedThreshold={0.5}
+                ListHeaderComponent={
+                    <View style={styles.listHeader}>
+                        <AppCard style={styles.summaryCard}>
+                            <LinearGradient
+                                colors={[colors.gradientStart, colors.gradientEnd]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.summaryGradient}
+                            />
+                            <View style={styles.summaryContent}>
+                                <View style={styles.summaryRow}>
+                                    <View>
+                                        <AppText variant="caption" color="rgba(255,255,255,0.7)" style={{ fontWeight: '600' }}>
+                                            Total Transactions
+                                        </AppText>
+                                        <AppText variant="h1" color={colors.surface} style={{ fontWeight: '800', fontSize: 28 }}>
+                                            {totalCount}
+                                        </AppText>
+                                    </View>
+                                    <View style={styles.summaryIcon}>
+                                        <Ionicons name="receipt" size={24} color={colors.surface} />
+                                    </View>
+                                </View>
+                            </View>
+                        </AppCard>
+
+                        <View style={styles.sectionHeader}>
+                            <AppText variant="h3" style={styles.sectionTitle}>Transactions</AppText>
+                        </View>
+                    </View>
+                }
+                ListFooterComponent={
+                    isFetchingNextPage ? (
+                        <View style={{ paddingVertical: spacing.md }}>
+                            <AppLoader />
+                        </View>
+                    ) : <View style={{ height: spacing.xl }} />
+                }
+                ListEmptyComponent={
+                    !isLoading ? (
+                        <View style={styles.center}>
+                            <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
+                            <AppText color={colors.textMuted} style={{ marginTop: spacing.md }}>No transactions found</AppText>
+                        </View>
+                    ) : null
+                }
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefetching}
+                        onRefresh={refetch}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                    />
+                }
+                contentContainerStyle={styles.listContent}
+            />
+        </View>
     );
 }
 
@@ -109,8 +209,51 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    container: {
+    listContent: {
         padding: spacing.lg,
+    },
+    listHeader: {
+        marginBottom: spacing.md,
+    },
+    header: {
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.md,
+        backgroundColor: colors.background,
+    },
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        marginBottom: spacing.sm,
+    },
+    searchWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primaryLight + '10',
+        borderRadius: 16,
+        paddingHorizontal: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.primaryLight + '20',
+    },
+    searchIcon: {
+        marginRight: spacing.xs,
+    },
+    searchContainer: {
+        flex: 1,
+        marginBottom: 0,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+    },
+    searchInput: {
+        height: 48,
+        fontSize: 15,
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: spacing.xl * 2,
     },
     summaryCard: {
         padding: 0,

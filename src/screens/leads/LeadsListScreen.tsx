@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import type { LeadsPageResponse } from '../../api/leads.api';
 
+import { colors, spacing } from '@/src/theme';
 import LeadCard from '../../components/cards/LeadCard';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
-import { colors, spacing } from '@/src/theme';
 
 import { useInfiniteLeads } from '../../queries/leads.query';
 
@@ -47,7 +47,7 @@ export default function LeadsListScreen() {
   }, [search]);
 
   /* ---------------- FILTERS ---------------- */
-  const { filters, updateFilter } = useLeadsFilters();
+  const { filters, updateFilter, setAllFilters } = useLeadsFilters();
   const [openFilter, setOpenFilter] = useState(false);
   const activeCount = Object.values(filters).filter(Boolean).length;
 
@@ -206,7 +206,7 @@ export default function LeadsListScreen() {
         visible={openFilter}
         onClose={() => setOpenFilter(false)}
         filters={filters}
-        updateFilter={updateFilter}
+        setAllFilters={setAllFilters}
         masters={{
           courses,
           counselors,

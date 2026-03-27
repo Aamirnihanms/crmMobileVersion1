@@ -15,9 +15,14 @@ export const useLeadsFilters = () => {
     setFilters({});
   };
 
+  const setAllFilters = (newFilters: LeadsFilters) => {
+    setFilters(newFilters);
+  };
+
   return {
     filters,
     updateFilter,
     resetFilters,
+    setAllFilters,
   };
 };
