@@ -1,3 +1,4 @@
+import { colors, spacing, typography } from '@/src/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ActivityIndicator,
@@ -5,7 +6,6 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, typography } from '@/src/theme';
 import AppText from './AppText';
 
 type AppButtonProps = {
@@ -88,19 +88,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   base: {
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 52,
+    height: 48,
   },
   gradient: {
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 52,
+    height: 48,
   },
   primary: {
     backgroundColor: colors.primary,

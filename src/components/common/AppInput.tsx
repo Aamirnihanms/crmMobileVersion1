@@ -1,5 +1,5 @@
-import { StyleSheet, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { colors, spacing } from '@/src/theme';
+import { StyleSheet, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import AppText from './AppText';
 
 type AppInputProps = TextInputProps & {
@@ -64,11 +64,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    fontSize: 16,
+    paddingVertical: spacing.sm,
+    fontSize: 14,
     color: colors.textPrimary,
     backgroundColor: colors.surface,
-    height: 52,
+    height: 46,
   },
   errorBorder: {
     borderColor: colors.danger,

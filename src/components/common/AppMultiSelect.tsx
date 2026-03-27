@@ -199,7 +199,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: spacing.md,
+        padding: spacing.sm,
+        paddingHorizontal: spacing.md,
         borderRadius: 12,
         backgroundColor: colors.primaryLight + '10',
         borderWidth: 1,
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
     },
     selectorText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '500',
     },
     overlay: {
@@ -264,8 +265,8 @@ const styles = StyleSheet.create({
     },
     search: {
         flex: 1,
-        height: 44,
-        fontSize: 15,
+        height: 40,
+        fontSize: 14,
         color: colors.textPrimary,
     },
     listContent: {
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.xl,
     },
     doneBtn: {
-        height: 48,
+        height: 44,
         backgroundColor: colors.primary,
         borderRadius: 12,
         justifyContent: 'center',

@@ -3,9 +3,9 @@ import CreateLeadScreen from '../screens/leads/CreateLeadScreen';
 import LeadDetailsScreen from '../screens/leads/LeadDetailsScreen';
 import LeadsListScreen from '../screens/leads/LeadsListScreen';
 
+import { colors } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
-import { colors } from '@/src/theme';
 
 export type LeadsStackParamList = {
   LeadsList: undefined;
@@ -23,7 +23,7 @@ export default function LeadsStack() {
         headerShadowVisible: false,
         headerTitleStyle: {
           fontWeight: '700',
-          fontSize: 18,
+          fontSize: 17,
         },
       }}
     >

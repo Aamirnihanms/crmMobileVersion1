@@ -24,7 +24,7 @@ export default function StudentsStack() {
         headerShadowVisible: false,
         headerTitleStyle: {
           fontWeight: '700',
-          fontSize: 18,
+          fontSize: 17,
         },
       }}
     >

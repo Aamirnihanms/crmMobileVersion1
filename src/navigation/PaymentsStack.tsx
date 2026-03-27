@@ -17,7 +17,7 @@ export default function PaymentsStack() {
         headerShadowVisible: false,
         headerTitleStyle: {
           fontWeight: '800',
-          fontSize: 20,
+          fontSize: 18,
           color: colors.textPrimary,
         },
         headerStyle: {

@@ -8,10 +8,10 @@ import {
   View,
 } from 'react-native';
 
+import { colors, spacing } from '@/src/theme';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import { colors, spacing } from '@/src/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -69,7 +69,7 @@ export default function DashboardStack() {
         headerShadowVisible: false,
         headerTitleStyle: {
           fontWeight: '800',
-          fontSize: 20,
+          fontSize: 18,
           color: colors.textPrimary,
         },
         headerStyle: {
