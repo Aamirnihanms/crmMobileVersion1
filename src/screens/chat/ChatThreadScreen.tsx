@@ -24,6 +24,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Keyboard,
   Linking,
   Modal,
   Platform,
@@ -947,8 +948,8 @@ export default function ChatThreadScreen() {
     Platform.OS === 'android'
       ? StatusBar.currentHeight ?? 0
       : insets.top;
-
-  const composerBottomPadding = Math.max(insets.bottom, 8);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const composerBottomPadding = isKeyboardVisible ? spacing.sm : Math.max(insets.bottom, spacing.sm);
 
   const [token, setToken] = useState('');
   const [currentUserId, setCurrentUserId] =
@@ -974,6 +975,16 @@ export default function ChatThreadScreen() {
   const downloadDirectoryUriRef = useRef<string | null>(null);
   const activeDownloadTasksRef = useRef<Record<string, FileSystem.DownloadResumable | undefined>>({});
   const canceledDownloadIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
