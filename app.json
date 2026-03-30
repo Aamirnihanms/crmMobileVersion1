@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "crmmobile",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
@@ -14,7 +14,7 @@
     "androidStatusBar": {
       "barStyle": "dark-content",
       "backgroundColor": "#ffffff",
-      "translucent": false
+      "translucent": true
     },
     "android": {
       "adaptiveIcon": {
