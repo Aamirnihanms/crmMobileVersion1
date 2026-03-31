@@ -7,14 +7,16 @@
     "icon": "./assets/images/icon.png",
     "scheme": "crmmobile",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "androidStatusBar": {
       "barStyle": "dark-content",
-      "backgroundColor": "#ffffff",
+      "backgroundColor": "#00000000",
       "translucent": true
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#00000000"
     },
     "android": {
       "adaptiveIcon": {

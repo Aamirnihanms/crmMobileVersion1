@@ -4,6 +4,9 @@ import {
 } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from './src/lib/queryClient';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -22,10 +25,6 @@ const appTheme = {
   },
 };
 
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-
 export default function App() {
   return (
     <KeyboardProvider>
@@ -33,7 +32,7 @@ export default function App() {
         <SafeAreaProvider>
           <StatusBar
             style="dark"
-            backgroundColor={colors.background}
+            backgroundColor="transparent"
             translucent
           />
           <QueryClientProvider client={queryClient}>

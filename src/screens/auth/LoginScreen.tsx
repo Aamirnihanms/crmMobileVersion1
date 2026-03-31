@@ -1,16 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
 import AppText from '../../components/common/AppText';
 import { useLogin } from '../../queries/auth.query';
 import { useAuthStore } from '../../store/auth.store';
 import { colors, spacing } from '@/src/theme';
+import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
 import { saveToken } from '../../utils/token';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
+  useSystemBarsStyle();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -44,13 +48,19 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: insets.top + spacing.lg,
+              paddingBottom: insets.bottom + spacing.lg,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
@@ -117,7 +127,7 @@ export default function LoginScreen() {
 
           <View style={styles.footer}>
             <AppText variant="body" color={colors.textSecondary}>
-              Don't have an account?{' '}
+              {"Don't have an account? "}
             </AppText>
             <TouchableOpacity>
               <AppText variant="body" color={colors.primary} style={styles.signUpText}>
@@ -133,12 +143,12 @@ export default function LoginScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: colors.background,
   },
@@ -147,7 +157,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: spacing.xl,
+    paddingHorizontal: spacing.xl,
     justifyContent: 'center',
   },
   header: {

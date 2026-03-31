@@ -30,7 +30,6 @@ import {
   Platform,
   Pressable,
   RefreshControl,
-  StatusBar,
   StyleSheet,
   TextInput,
   View,
@@ -61,6 +60,7 @@ import { useInfiniteChatMessages } from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
 import { getToken } from '@/src/utils/token';
+import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
 
 type ChatThreadRouteProp = RouteProp<
   DashboardStackParamList,
@@ -931,6 +931,10 @@ export default function ChatThreadScreen() {
 
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
+  useSystemBarsStyle({
+    statusBarStyle: 'light',
+  });
+
   const flatListRef = useRef<React.ComponentRef<typeof FlashList<ThreadMessage>> | null>(null);
   const hasInitiallyPositionedRef = useRef(false);
   const isAtBottomRef = useRef(true);
@@ -944,10 +948,7 @@ export default function ChatThreadScreen() {
     isAtBottomRef.current = isAtBottom;
   }, []);
 
-  const topInset =
-    Platform.OS === 'android'
-      ? StatusBar.currentHeight ?? 0
-      : insets.top;
+  const topInset = insets.top;
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const composerBottomPadding = isKeyboardVisible ? spacing.sm : Math.max(insets.bottom, spacing.sm);
 
