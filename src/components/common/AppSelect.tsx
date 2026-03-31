@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import React from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
@@ -22,12 +24,28 @@ type Option = {
   value: string | number;
 };
 
+export type SelectPageParams = {
+  page: number;
+  pageSize: number;
+  search?: string;
+};
+
+export type SelectPageResponse = {
+  options: Option[];
+  hasNextPage: boolean;
+};
+
 type Props = {
   label: string;
   value?: string | number;
   options: Option[];
-  onSelect: (value: any) => void;
+  onSelect: (value: string | number) => void;
   placeholder?: string;
+  fetchOptions?: (
+    params: SelectPageParams
+  ) => Promise<SelectPageResponse>;
+  queryKey?: (string | number)[];
+  pageSize?: number;
 };
 
 export default function AppSelect({
@@ -36,23 +54,86 @@ export default function AppSelect({
   options,
   onSelect,
   placeholder = 'Select',
+  fetchOptions,
+  queryKey,
+  pageSize = 30,
 }: Props) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
+  const [debouncedSearch, setDebouncedSearch] =
+    React.useState('');
 
   const translateY = React.useRef(
     new Animated.Value(height)
   ).current;
 
-  const selected = options.find(o => o.value === value);
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const remoteMode = Boolean(fetchOptions);
+
+  const {
+    data: remoteData,
+    isLoading: isRemoteLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: [
+      'app-select',
+      ...(queryKey || [label]),
+      debouncedSearch,
+      pageSize,
+    ],
+    initialPageParam: 1,
+    enabled: open && remoteMode,
+    queryFn: ({ pageParam }) =>
+      fetchOptions!({
+        page: Number(pageParam),
+        pageSize,
+        search: debouncedSearch || undefined,
+      }),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.hasNextPage
+        ? allPages.length + 1
+        : undefined,
+  });
+
+  const remoteOptions = React.useMemo(() => {
+    const list =
+      remoteData?.pages.flatMap((page) => page.options) ?? [];
+
+    const seen = new Set<string>();
+    return list.filter((item) => {
+      const key = String(item.value);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [remoteData]);
+
+  const displayOptions = remoteMode ? remoteOptions : options;
+
+  const selected =
+    displayOptions.find(
+      o => String(o.value) === String(value)
+    ) ||
+    options.find(o => String(o.value) === String(value));
 
   const filteredOptions = React.useMemo(() => {
+    if (remoteMode) return displayOptions;
     if (!search) return options;
+
     const s = search.toLowerCase();
     return options.filter(o =>
       o.label.toLowerCase().includes(s)
     );
-  }, [search, options]);
+  }, [displayOptions, options, remoteMode, search]);
 
   const openSheet = () => {
     setOpen(true);
@@ -75,6 +156,7 @@ export default function AppSelect({
     }).start(() => {
       setOpen(false);
       setSearch('');
+      setDebouncedSearch('');
     });
   };
 
@@ -130,8 +212,18 @@ export default function AppSelect({
             keyExtractor={i => String(i.value)}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.listContent}
+            onEndReached={() => {
+              if (
+                remoteMode &&
+                hasNextPage &&
+                !isFetchingNextPage
+              ) {
+                void fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.4}
             renderItem={({ item }) => {
-              const active = item.value === value;
+              const active = String(item.value) === String(value);
 
               return (
                 <Pressable
@@ -156,6 +248,24 @@ export default function AppSelect({
                 </Pressable>
               );
             }}
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                {remoteMode && isRemoteLoading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <AppText color={colors.textMuted}>
+                    No results found
+                  </AppText>
+                )}
+              </View>
+            }
+            ListFooterComponent={
+              remoteMode && isFetchingNextPage ? (
+                <View style={styles.loadingMoreWrap}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : null
+            }
           />
         </Animated.View>
       </Modal>
@@ -249,6 +359,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: spacing.xl,
+    flexGrow: 1,
   },
   option: {
     paddingVertical: spacing.md,
@@ -269,5 +380,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
+  emptyWrap: {
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingMoreWrap: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

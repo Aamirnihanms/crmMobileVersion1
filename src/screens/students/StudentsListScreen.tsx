@@ -16,6 +16,12 @@ import StudentCard from '@/src/components/cards/StudentCard';
 import AppInput from '@/src/components/common/AppInput';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
+import StudentsFilterModal from '@/src/components/students/StudentsFilterModal';
+import { useStudentsFilters } from '@/src/hooks/useStudentsFilters';
+import { useBatches } from '@/src/queries/masters/batches.query';
+import { useCounselors } from '@/src/queries/masters/counselors.query';
+import { useCourses } from '@/src/queries/masters/courses.query';
+import { useLocations } from '@/src/queries/masters/locations.query';
 
 import { colors, spacing } from '@/src/theme';
 
@@ -28,6 +34,7 @@ import { useNavigation } from '@react-navigation/native';
 export default function StudentsListScreen() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [openFilter, setOpenFilter] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -37,10 +44,18 @@ export default function StudentsListScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const { filters, setAllFilters } = useStudentsFilters();
+  const activeCount = Object.values(filters).filter(Boolean).length;
+
   const navigation =
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
     >();
+
+  const { data: courses = [] } = useCourses();
+  const { data: counselors = [] } = useCounselors();
+  const { data: batches = [] } = useBatches();
+  const { data: locations = [] } = useLocations();
 
   const {
     data,
@@ -52,7 +67,7 @@ export default function StudentsListScreen() {
     isFetchingNextPage,
     refetch,
     isRefetching,
-  } = useInfiniteStudents(debouncedSearch) as {
+  } = useInfiniteStudents(debouncedSearch, filters) as {
     data: InfiniteData<StudentsPageResponse> | undefined;
     isLoading: boolean;
     isError: boolean;
@@ -97,15 +112,33 @@ export default function StudentsListScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.searchWrapper}>
-          <Ionicons name="search-outline" size={20} color={colors.textMuted} style={styles.searchIcon} />
-          <AppInput
-            placeholder="Search by name or student ID..."
-            value={search}
-            onChangeText={setSearch}
-            style={styles.searchInput}
-            containerStyle={styles.searchContainer}
-          />
+        <View style={styles.searchRow}>
+          <View style={styles.searchWrapper}>
+            <Ionicons name="search-outline" size={20} color={colors.textMuted} style={styles.searchIcon} />
+            <AppInput
+              placeholder="Search by name or student ID..."
+              value={search}
+              onChangeText={setSearch}
+              style={styles.searchInput}
+              containerStyle={styles.searchContainer}
+            />
+          </View>
+
+          <Pressable
+            style={[styles.filterButton, activeCount > 0 && styles.filterButtonActive]}
+            onPress={() => setOpenFilter(true)}
+          >
+            <Ionicons
+              name={activeCount > 0 ? 'options' : 'options-outline'}
+              size={22}
+              color={activeCount > 0 ? colors.primary : colors.textPrimary}
+            />
+            {activeCount > 0 && (
+              <View style={styles.filterBadge}>
+                <AppText color={colors.surface} style={styles.filterBadgeText}>{activeCount}</AppText>
+              </View>
+            )}
+          </Pressable>
         </View>
       </View>
 
@@ -118,7 +151,7 @@ export default function StudentsListScreen() {
             No Students Found
           </AppText>
           <AppText color={colors.textMuted} style={styles.emptySubtext}>
-            We couldn't find any students matching your search.
+            We could not find any students matching your search.
           </AppText>
         </View>
       ) : (
@@ -146,6 +179,19 @@ export default function StudentsListScreen() {
           }
         />
       )}
+
+      <StudentsFilterModal
+        visible={openFilter}
+        onClose={() => setOpenFilter(false)}
+        filters={filters}
+        setAllFilters={setAllFilters}
+        masters={{
+          courses,
+          counselors,
+          batches,
+          locations,
+        }}
+      />
     </View>
   );
 }
@@ -160,7 +206,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     backgroundColor: colors.background,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   searchWrapper: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primaryLight + '10',
@@ -168,10 +221,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.primaryLight + '20',
-    marginBottom: spacing.md,
   },
   searchIcon: {
     marginRight: spacing.xs,
+  },
+  filterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight + '10',
+    borderWidth: 1,
+    borderColor: colors.primaryLight + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: colors.primaryLight + '20',
+    borderColor: colors.primaryLight + '40',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 14,
   },
   searchContainer: {
     flex: 1,

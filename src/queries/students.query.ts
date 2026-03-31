@@ -8,23 +8,27 @@ import {
   convertLeadToStudent,
   fetchStudentProfile,
   fetchStudents,
+  type StudentFilters,
   updateStudent,
   type StudentsPageResponse,
 } from '../api/students.api';
 
-export const useInfiniteStudents = (search: string) => {
+export const useInfiniteStudents = (
+  search: string,
+  filters: StudentFilters
+) => {
   return useInfiniteQuery<
     StudentsPageResponse,
     Error,
     StudentsPageResponse,
-    ['students', string],
+    ['students', string, StudentFilters],
     number
   >({
-    queryKey: ['students', search],
+    queryKey: ['students', search, filters],
     initialPageParam: 1,
 
     queryFn: ({ pageParam }) =>
-      fetchStudents(pageParam, 5, search),
+      fetchStudents(pageParam, 50, search, filters),
 
     getNextPageParam: (lastPage) => {
       if (!lastPage.pagination.has_next) return undefined;

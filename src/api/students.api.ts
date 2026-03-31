@@ -53,19 +53,32 @@ export type StudentsPageResponse = {
   };
 };
 
+export type StudentFilters = {
+  course_id?: string;
+  counselor?: string;
+  trainer?: string;
+  academic_counselor?: string;
+  batch?: string;
+  location?: string;
+};
+
 /* ---------- API ---------- */
 
 export const fetchStudents = async (
   page: number,
-  pageSize = 5,
-  search = ''
+  pageSize = 50,
+  search = '',
+  filters?: StudentFilters
 ): Promise<StudentsPageResponse> => {
+  const params = {
+    page,
+    page_size: pageSize,
+    search: search || undefined,
+    ...filters,
+  };
+
   const res = await http.get('/students/', {
-    params: {
-      page,
-      page_size: pageSize,
-      search: search || undefined,
-    },
+    params,
   });
 
   // 🔥 IMPORTANT — unwrap API response

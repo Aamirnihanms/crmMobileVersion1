@@ -2,6 +2,7 @@ import { http } from '../http';
 
 export type Counselor = {
   id: number;
+  uid?: string;
   full_name: string;
   email: string;
   phone: string;
@@ -18,7 +19,7 @@ export type Counselor = {
 export const fetchCounselors = async (): Promise<Counselor[]> => {
   const res = await http.get('/users', {
     params: {
-      page_size: 100, // fetch enough for dropdown
+      page_size: 200, // fetch enough for dropdown
     },
   });
 
