@@ -9,13 +9,15 @@ import {
   View,
 } from 'react-native';
 
+import {
+  fetchBatchesPage,
+  fetchCounselorsPage,
+  fetchCoursesPage,
+  fetchLocationsPage,
+} from '@/src/api/masters/paginatedMasters.api';
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppText from '@/src/components/common/AppText';
 import type { StudentFilters } from '@/src/api/students.api';
-import type { MasterLocation } from '@/src/api/masters/locations.api';
-import type { Batch } from '@/src/api/batches.api';
-import type { Counselor } from '@/src/api/masters/counselors.api';
-import type { Course } from '@/src/types/course';
 import { colors, spacing } from '@/src/theme';
 
 type Props = {
@@ -23,12 +25,6 @@ type Props = {
   onClose: () => void;
   filters: StudentFilters;
   setAllFilters: (filters: StudentFilters) => void;
-  masters: {
-    courses: Course[];
-    counselors: Counselor[];
-    batches: Batch[];
-    locations: MasterLocation[];
-  };
 };
 
 export default function StudentsFilterModal({
@@ -36,7 +32,6 @@ export default function StudentsFilterModal({
   onClose,
   filters,
   setAllFilters,
-  masters,
 }: Props) {
   const [localFilters, setLocalFilters] =
     React.useState<StudentFilters>(filters || {});
@@ -60,6 +55,62 @@ export default function StudentsFilterModal({
   const clearFilters = () => {
     setLocalFilters({});
   };
+
+  const fetchCourseOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCoursesPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.course_name,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchCounselorOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCounselorsPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.full_name,
+          value: item.uid ?? item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchBatchOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchBatchesPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.batch_name,
+          value: item.uid,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchLocationOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchLocationsPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.name,
+          value: item.value,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
 
   const applyFilters = () => {
     setAllFilters(localFilters);
@@ -114,10 +165,9 @@ export default function StudentsFilterModal({
                   ? localFilters.course_id.split(',')
                   : []
               }
-              options={masters.courses.map((c) => ({
-                label: c.course_name,
-                value: c.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchCourseOptions}
+              queryKey={['filters', 'students', 'courses']}
               onSelect={(v) =>
                 updateLocalFilter(
                   'course_id',
@@ -133,10 +183,9 @@ export default function StudentsFilterModal({
                   ? localFilters.counselor.split(',')
                   : []
               }
-              options={masters.counselors.map((c) => ({
-                label: c.full_name,
-                value: c.uid ?? c.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchCounselorOptions}
+              queryKey={['filters', 'students', 'counselors']}
               onSelect={(v) =>
                 updateLocalFilter(
                   'counselor',
@@ -152,10 +201,9 @@ export default function StudentsFilterModal({
                   ? localFilters.trainer.split(',')
                   : []
               }
-              options={masters.counselors.map((c) => ({
-                label: c.full_name,
-                value: c.uid ?? c.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchCounselorOptions}
+              queryKey={['filters', 'students', 'trainers']}
               onSelect={(v) =>
                 updateLocalFilter(
                   'trainer',
@@ -171,10 +219,9 @@ export default function StudentsFilterModal({
                   ? localFilters.academic_counselor.split(',')
                   : []
               }
-              options={masters.counselors.map((c) => ({
-                label: c.full_name,
-                value: c.uid ?? c.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchCounselorOptions}
+              queryKey={['filters', 'students', 'academic-counselors']}
               onSelect={(v) =>
                 updateLocalFilter(
                   'academic_counselor',
@@ -190,10 +237,9 @@ export default function StudentsFilterModal({
                   ? localFilters.batch.split(',')
                   : []
               }
-              options={masters.batches.map((b) => ({
-                label: b.batch_name,
-                value: b.uid,
-              }))}
+              options={[]}
+              fetchOptions={fetchBatchOptions}
+              queryKey={['filters', 'students', 'batches']}
               onSelect={(v) =>
                 updateLocalFilter(
                   'batch',
@@ -209,10 +255,9 @@ export default function StudentsFilterModal({
                   ? localFilters.location.split(',')
                   : []
               }
-              options={masters.locations.map((l) => ({
-                label: l.name,
-                value: l.value,
-              }))}
+              options={[]}
+              fetchOptions={fetchLocationOptions}
+              queryKey={['filters', 'students', 'locations']}
               onSelect={(v) =>
                 updateLocalFilter(
                   'location',

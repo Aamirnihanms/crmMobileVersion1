@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-    Alert,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -11,6 +12,8 @@ import {
 
 import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
+import { MoreStackParamList } from '@/src/navigation/MoreStack';
+import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
 
 function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colors.primary }: any) {
@@ -38,16 +41,9 @@ function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colo
 }
 
 export default function MoreListScreen() {
-    const handleLogout = () => {
-        Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Logout', style: 'destructive', onPress: () => console.log('Logout') },
-            ]
-        );
-    };
+    const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList, 'MoreList'>>();
+    const user = useAuthStore((state) => state.user);
+
 
     return (
         <ScrollView style={styles.screen} showsVerticalScrollIndicator={false}>
@@ -64,10 +60,17 @@ export default function MoreListScreen() {
                             <Ionicons name="person" size={40} color={colors.primary} />
                         </View>
                         <View style={styles.profileInfo}>
-                            <AppText variant="h2" color={colors.surface} style={{ fontWeight: '800' }}>Aamir Nihan</AppText>
-                            <AppText variant="caption" color="rgba(255,255,255,0.8)">Administrator</AppText>
+                            <AppText variant="h2" color={colors.surface} style={{ fontWeight: '800' }}>
+                                {user?.full_name || 'My Account'}
+                            </AppText>
+                            <AppText variant="caption" color="rgba(255,255,255,0.8)">
+                                {user?.role || 'User'}
+                            </AppText>
                         </View>
-                        <Pressable style={styles.editBtn}>
+                        <Pressable
+                            style={styles.editBtn}
+                            onPress={() => navigation.navigate('Profile')}
+                        >
                             <Ionicons name="pencil" size={16} color={colors.surface} />
                         </Pressable>
                     </View>
@@ -75,13 +78,7 @@ export default function MoreListScreen() {
 
                 <AppText variant="h3" style={styles.sectionTitle}>General Settings</AppText>
                 <AppCard style={styles.menuCard}>
-                    <MenuItem
-                        icon="person-outline"
-                        label="Personal Profile"
-                        sublabel="Manage your personal details"
-                        onPress={() => { }}
-                        color={colors.gradientEnd}
-                    />
+
                     <MenuItem
                         icon="notifications-outline"
                         label="Notifications"
@@ -114,12 +111,6 @@ export default function MoreListScreen() {
                         sublabel="v3.1.0 - Elite Edition"
                         onPress={() => { }}
                         color={colors.slate}
-                    />
-                    <MenuItem
-                        icon="log-out-outline"
-                        label="Logout"
-                        onPress={handleLogout}
-                        color={colors.danger}
                         isLast
                     />
                 </AppCard>

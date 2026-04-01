@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import React from 'react';
 import {
+    ActivityIndicator,
     Animated,
     Dimensions,
     FlatList,
@@ -22,12 +24,28 @@ type Option = {
     value: string | number;
 };
 
+export type MultiSelectPageParams = {
+    page: number;
+    pageSize: number;
+    search?: string;
+};
+
+export type MultiSelectPageResponse = {
+    options: Option[];
+    hasNextPage: boolean;
+};
+
 type Props = {
     label: string;
     value?: (string | number)[];
     options: Option[];
     onSelect: (values: (string | number)[]) => void;
     placeholder?: string;
+    fetchOptions?: (
+        params: MultiSelectPageParams
+    ) => Promise<MultiSelectPageResponse>;
+    queryKey?: (string | number)[];
+    pageSize?: number;
 };
 
 export default function AppMultiSelect({
@@ -36,22 +54,82 @@ export default function AppMultiSelect({
     options,
     onSelect,
     placeholder = 'Select',
+    fetchOptions,
+    queryKey,
+    pageSize = 30,
 }: Props) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
+    const [debouncedSearch, setDebouncedSearch] = React.useState('');
 
     const translateY = React.useRef(
         new Animated.Value(height)
     ).current;
 
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search.trim());
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const remoteMode = Boolean(fetchOptions);
+
+    const {
+        data: remoteData,
+        isLoading: isRemoteLoading,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
+    } = useInfiniteQuery({
+        queryKey: [
+            'app-multi-select',
+            ...(queryKey || [label]),
+            debouncedSearch,
+            pageSize,
+        ],
+        initialPageParam: 1,
+        enabled: open && remoteMode,
+        queryFn: ({ pageParam }) =>
+            fetchOptions!({
+                page: Number(pageParam),
+                pageSize,
+                search: debouncedSearch || undefined,
+            }),
+        getNextPageParam: (lastPage, allPages) =>
+            lastPage.hasNextPage
+                ? allPages.length + 1
+                : undefined,
+    });
+
+    const remoteOptions = React.useMemo(() => {
+        const list =
+            remoteData?.pages.flatMap((page) => page.options) ??
+            [];
+
+        // Prevent duplicate rows when backend returns overlapping pages.
+        const seen = new Set<string>();
+        return list.filter((item) => {
+            const key = String(item.value);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [remoteData]);
+
     const selectedText = React.useMemo(() => {
         if (!value || value.length === 0) return placeholder;
         if (value.length === 1) {
-            const opt = options.find(o => String(o.value) === String(value[0]));
-            return opt ? opt.label : placeholder;
+            const selectedValue = String(value[0]);
+            const knownOptions = [...options, ...remoteOptions];
+            const opt = knownOptions.find(
+                o => String(o.value) === selectedValue
+            );
+            return opt ? opt.label : '1 selected';
         }
         return `${value.length} selected`;
-    }, [value, options, placeholder]);
+    }, [value, options, remoteOptions, placeholder]);
 
     const filteredOptions = React.useMemo(() => {
         if (!search) return options;
@@ -60,6 +138,10 @@ export default function AppMultiSelect({
             o.label.toLowerCase().includes(s)
         );
     }, [search, options]);
+
+    const displayOptions = remoteMode
+        ? remoteOptions
+        : filteredOptions;
 
     const openSheet = () => {
         setOpen(true);
@@ -82,6 +164,7 @@ export default function AppMultiSelect({
         }).start(() => {
             setOpen(false);
             setSearch('');
+            setDebouncedSearch('');
         });
     };
 
@@ -144,10 +227,20 @@ export default function AppMultiSelect({
                     </View>
 
                     <FlatList
-                        data={filteredOptions}
+                        data={displayOptions}
                         keyExtractor={i => String(i.value)}
                         keyboardShouldPersistTaps="handled"
                         contentContainerStyle={styles.listContent}
+                        onEndReached={() => {
+                            if (
+                                remoteMode &&
+                                hasNextPage &&
+                                !isFetchingNextPage
+                            ) {
+                                void fetchNextPage();
+                            }
+                        }}
+                        onEndReachedThreshold={0.4}
                         renderItem={({ item }) => {
                             const active = (value || []).some(v => String(v) === String(item.value));
 
@@ -173,6 +266,24 @@ export default function AppMultiSelect({
                                 </Pressable>
                             );
                         }}
+                        ListEmptyComponent={
+                            <View style={styles.emptyWrap}>
+                                {remoteMode && isRemoteLoading ? (
+                                    <ActivityIndicator color={colors.primary} />
+                                ) : (
+                                    <AppText color={colors.textMuted}>
+                                        No results found
+                                    </AppText>
+                                )}
+                            </View>
+                        }
+                        ListFooterComponent={
+                            remoteMode && isFetchingNextPage ? (
+                                <View style={styles.loadingMoreWrap}>
+                                    <ActivityIndicator color={colors.primary} />
+                                </View>
+                            ) : null
+                        }
                     />
                     <View style={styles.footer}>
                         <Pressable onPress={closeSheet} style={styles.doneBtn}>
@@ -271,6 +382,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingBottom: spacing.xl,
+        flexGrow: 1,
     },
     option: {
         paddingVertical: spacing.md,
@@ -317,5 +429,15 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: '700',
         fontSize: 16,
+    },
+    emptyWrap: {
+        paddingVertical: spacing.xl,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loadingMoreWrap: {
+        paddingVertical: spacing.md,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

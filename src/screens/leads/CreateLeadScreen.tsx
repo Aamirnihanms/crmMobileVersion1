@@ -5,7 +5,7 @@ import {
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -39,12 +39,6 @@ import {
   useCreateLead,
   useUpdateLead,
 } from '@/src/queries/leads.query';
-
-import { useCounselors } from '@/src/queries/masters/counselors.query';
-import { useCourses } from '@/src/queries/masters/courses.query';
-import { useLeadSources } from '@/src/queries/masters/leadSources.query';
-import { useLeadStatuses } from '@/src/queries/masters/leadStatuses.query';
-import { useQualifications } from '@/src/queries/masters/qualifications.query';
 
 import { colors, spacing } from '@/src/theme';
 
@@ -116,29 +110,8 @@ export default function CreateLeadScreen() {
     isError: isEditLeadError,
   } = useLeadDetails(editLeadId, isEditMode);
 
-  const { data: courses = [], isLoading: coursesLoading } = useCourses();
-  const { data: counselors = [], isLoading: counselorsLoading } =
-    useCounselors();
-  const { data: sources = [], isLoading: sourcesLoading } =
-    useLeadSources();
-  const { data: statuses = [], isLoading: statusesLoading } =
-    useLeadStatuses();
-  const { data: qualifications = [], isLoading: qualificationsLoading } =
-    useQualifications();
-
-  const mastersLoading =
-    coursesLoading ||
-    counselorsLoading ||
-    sourcesLoading ||
-    statusesLoading ||
-    qualificationsLoading;
-
   const createLeadMutation = useCreateLead();
   const updateLeadMutation = useUpdateLead();
-
-  const selectedCourse = useMemo(() => {
-    return courses.find((c: any) => c.id === form.course);
-  }, [form.course, courses]);
 
   useEffect(() => {
     hydratedRef.current = false;
@@ -285,6 +258,40 @@ export default function CreateLeadScreen() {
   const mutationPending =
     createLeadMutation.isPending || updateLeadMutation.isPending;
 
+  const editLeadAny = editLead as any;
+  const initialCourseDetails = editLeadAny?.course_details ?? null;
+  const initialEducationOption =
+    editLeadAny?.education_level_details?.id
+      ? {
+        label: editLeadAny.education_level_details.name,
+        value: editLeadAny.education_level_details.id,
+      }
+      : null;
+
+  const initialCounselorOption =
+    editLeadAny?.counselor_details?.id
+      ? {
+        label: editLeadAny.counselor_details.full_name,
+        value: editLeadAny.counselor_details.id,
+      }
+      : null;
+
+  const initialSourceOption =
+    editLeadAny?.lead_source_details?.id
+      ? {
+        label: editLeadAny.lead_source_details.label,
+        value: editLeadAny.lead_source_details.id,
+      }
+      : null;
+
+  const initialStatusOption =
+    editLeadAny?.lead_status_details?.id
+      ? {
+        label: editLeadAny.lead_status_details.name,
+        value: editLeadAny.lead_status_details.id,
+      }
+      : null;
+
   return (
     <View style={styles.root}>
       <KeyboardAvoidingView
@@ -312,19 +319,16 @@ export default function CreateLeadScreen() {
           <LeadCourseSection
             form={form}
             setForm={setForm}
-            courses={courses}
-            selectedCourse={selectedCourse}
-            qualifications={qualifications}
+            initialCourseDetails={initialCourseDetails}
+            initialEducationOption={initialEducationOption}
           />
 
           <LeadAdditionalSection
             form={form}
             setForm={setForm}
-            counselors={counselors}
-            sources={sources}
-            statuses={statuses}
-            qualifications={qualifications}
-            passOutYears={[]}
+            initialCounselorOption={initialCounselorOption}
+            initialSourceOption={initialSourceOption}
+            initialStatusOption={initialStatusOption}
           />
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -333,23 +337,21 @@ export default function CreateLeadScreen() {
       <View style={styles.footer}>
         <Pressable
           onPress={handleSubmit}
-          disabled={mutationPending || mastersLoading}
+          disabled={mutationPending}
           style={{ width: '100%' }}
         >
           <LinearGradient
             colors={[colors.gradientStart, colors.gradientEnd]}
-            style={[styles.saveBtn, (mutationPending || mastersLoading) && { opacity: 0.7 }]}
+            style={[styles.saveBtn, mutationPending && { opacity: 0.7 }]}
           >
             <AppText style={styles.saveBtnText}>
               {mutationPending
                 ? isEditMode
                   ? 'Updating...'
                   : 'Creating...'
-                : mastersLoading
-                  ? 'Loading...'
-                  : isEditMode
-                    ? 'Update Lead'
-                    : 'Create Lead'
+                : isEditMode
+                  ? 'Update Lead'
+                  : 'Create Lead'
               }
             </AppText>
           </LinearGradient>

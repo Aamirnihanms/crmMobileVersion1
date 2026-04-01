@@ -9,19 +9,33 @@ import {
   View,
 } from 'react-native';
 
+import {
+  fetchCounselorsPage,
+  fetchCoursesPage,
+  fetchLeadSourcesPage,
+  fetchLeadStatusesPage,
+  fetchQualificationsPage,
+} from '@/src/api/masters/paginatedMasters.api';
+import type { LeadsFilters } from '@/src/api/leads.api';
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppText from '@/src/components/common/AppText';
 
 import { colors, spacing } from '@/src/theme';
+
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  filters: LeadsFilters;
+  setAllFilters: (filters: LeadsFilters) => void;
+};
 
 export default function LeadsFilterModal({
   visible,
   onClose,
   filters,
   setAllFilters,
-  masters,
-}: any) {
-  const [localFilters, setLocalFilters] = React.useState<any>(filters || {});
+}: Props) {
+  const [localFilters, setLocalFilters] = React.useState<LeadsFilters>(filters || {});
 
   React.useEffect(() => {
     if (visible) {
@@ -35,6 +49,76 @@ export default function LeadsFilterModal({
       [key]: value || undefined,
     }));
   };
+
+  const fetchCourseOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCoursesPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.course_name,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchCounselorOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCounselorsPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.full_name,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchQualificationOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchQualificationsPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchLeadStatusOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchLeadStatusesPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchLeadSourceOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchLeadSourcesPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.label,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
 
   const clearFilters = () => {
     setLocalFilters({});
@@ -71,50 +155,45 @@ export default function LeadsFilterModal({
             <AppMultiSelect
               label="Course"
               value={localFilters.course ? localFilters.course.split(',') : []}
-              options={masters.courses.map((c: any) => ({
-                label: c.course_name,
-                value: c.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchCourseOptions}
+              queryKey={['filters', 'leads', 'courses']}
               onSelect={(v) => updateLocalFilter('course', v.length > 0 ? v.join(',') : null)}
             />
 
             <AppMultiSelect
               label="Counselor"
               value={localFilters.counselor ? localFilters.counselor.split(',') : []}
-              options={masters.counselors.map((c: any) => ({
-                label: c.full_name,
-                value: c.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchCounselorOptions}
+              queryKey={['filters', 'leads', 'counselors']}
               onSelect={(v) => updateLocalFilter('counselor', v.length > 0 ? v.join(',') : null)}
             />
 
             <AppMultiSelect
               label="Qualification"
               value={localFilters.qualification ? localFilters.qualification.split(',') : []}
-              options={masters.qualifications.map((q: any) => ({
-                label: q.name,
-                value: q.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchQualificationOptions}
+              queryKey={['filters', 'leads', 'qualifications']}
               onSelect={(v) => updateLocalFilter('qualification', v.length > 0 ? v.join(',') : null)}
             />
 
             <AppMultiSelect
               label="Lead Status"
               value={localFilters.lead_status ? localFilters.lead_status.split(',') : []}
-              options={masters.statuses.map((s: any) => ({
-                label: s.name,
-                value: s.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchLeadStatusOptions}
+              queryKey={['filters', 'leads', 'statuses']}
               onSelect={(v) => updateLocalFilter('lead_status', v.length > 0 ? v.join(',') : null)}
             />
 
             <AppMultiSelect
               label="Lead Source"
               value={localFilters.lead_source ? localFilters.lead_source.split(',') : []}
-              options={masters.sources.map((s: any) => ({
-                label: s.label,
-                value: s.id,
-              }))}
+              options={[]}
+              fetchOptions={fetchLeadSourceOptions}
+              queryKey={['filters', 'leads', 'sources']}
               onSelect={(v) => updateLocalFilter('lead_source', v.length > 0 ? v.join(',') : null)}
             />
 

@@ -81,7 +81,7 @@ export default function DashboardStack() {
         name="DashboardHome"
         component={DashboardScreen}
         options={({ navigation }) => ({
-          title: 'TrekData',
+          headerTitle: () => null,
           headerLeft: () => (
             <View style={styles.leftActions}>
               <HeaderIconButton
@@ -100,7 +100,10 @@ export default function DashboardStack() {
           headerRight: () => (
             <Pressable
               style={styles.profileButton}
-              onPress={() => Alert.alert('Profile', 'Coming soon')}
+              onPress={() => {
+                const parentNav = navigation.getParent() as any;
+                parentNav?.navigate('More');
+              }}
             >
               <View style={styles.avatar}>
                 <Ionicons

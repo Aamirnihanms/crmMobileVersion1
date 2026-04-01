@@ -18,10 +18,6 @@ import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import StudentsFilterModal from '@/src/components/students/StudentsFilterModal';
 import { useStudentsFilters } from '@/src/hooks/useStudentsFilters';
-import { useBatches } from '@/src/queries/masters/batches.query';
-import { useCounselors } from '@/src/queries/masters/counselors.query';
-import { useCourses } from '@/src/queries/masters/courses.query';
-import { useLocations } from '@/src/queries/masters/locations.query';
 
 import { colors, spacing } from '@/src/theme';
 
@@ -51,11 +47,6 @@ export default function StudentsListScreen() {
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
     >();
-
-  const { data: courses = [] } = useCourses();
-  const { data: counselors = [] } = useCounselors();
-  const { data: batches = [] } = useBatches();
-  const { data: locations = [] } = useLocations();
 
   const {
     data,
@@ -185,12 +176,6 @@ export default function StudentsListScreen() {
         onClose={() => setOpenFilter(false)}
         filters={filters}
         setAllFilters={setAllFilters}
-        masters={{
-          courses,
-          counselors,
-          batches,
-          locations,
-        }}
       />
     </View>
   );

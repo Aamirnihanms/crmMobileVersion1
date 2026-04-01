@@ -25,13 +25,7 @@ import type { LeadsStackParamList } from '../../navigation/LeadsStack';
 import LeadsFilterModal from '../../components/leads/LeadsFilterModal';
 import { useLeadsFilters } from '../../hooks/useLeadsFilters';
 
-/* 🔥 MASTER DATA */
 import { Ionicons } from '@expo/vector-icons';
-import { useCounselors } from '../../queries/masters/counselors.query';
-import { useCourses } from '../../queries/masters/courses.query';
-import { useLeadSources } from '../../queries/masters/leadSources.query';
-import { useLeadStatuses } from '../../queries/masters/leadStatuses.query';
-import { useQualifications } from '../../queries/masters/qualifications.query';
 
 export default function LeadsListScreen() {
   /* ---------------- SEARCH STATE ---------------- */
@@ -47,7 +41,7 @@ export default function LeadsListScreen() {
   }, [search]);
 
   /* ---------------- FILTERS ---------------- */
-  const { filters, updateFilter, setAllFilters } = useLeadsFilters();
+  const { filters, setAllFilters } = useLeadsFilters();
   const [openFilter, setOpenFilter] = useState(false);
   const activeCount = Object.values(filters).filter(Boolean).length;
 
@@ -56,14 +50,6 @@ export default function LeadsListScreen() {
     useNavigation<
       NativeStackNavigationProp<LeadsStackParamList>
     >();
-
-  /* ---------------- MASTER DATA ---------------- */
-  const { data: courses = [] } = useCourses();
-  const { data: counselors = [] } = useCounselors();
-  const { data: sources = [] } = useLeadSources();
-  const { data: statuses = [] } = useLeadStatuses();
-  const { data: qualifications = [] } =
-    useQualifications();
 
   /* ---------------- QUERY ---------------- */
   const {
@@ -207,13 +193,6 @@ export default function LeadsListScreen() {
         onClose={() => setOpenFilter(false)}
         filters={filters}
         setAllFilters={setAllFilters}
-        masters={{
-          courses,
-          counselors,
-          qualifications,
-          statuses,
-          sources,
-        }}
       />
     </View>
   );

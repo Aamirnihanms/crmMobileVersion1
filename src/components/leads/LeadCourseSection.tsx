@@ -1,3 +1,7 @@
+import {
+  fetchCoursesPage,
+  fetchQualificationsPage,
+} from '@/src/api/masters/paginatedMasters.api';
 import { Course } from '@/src/types/course';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -9,20 +13,69 @@ import AppText from './../common/AppText';
 type Props = {
   form: any;
   setForm: (data: any) => void;
-  courses: any[];
-  qualifications: any[];
-  selectedCourse?: Course;
+  initialCourseDetails?: Course | null;
+  initialEducationOption?: {
+    label: string;
+    value: number;
+  } | null;
 };
 
 export default function LeadCourseSection({
   form,
   setForm,
-  courses,
-  qualifications,
+  initialCourseDetails,
+  initialEducationOption,
 }: Props) {
-  const selectedCourse = courses?.find(
-    (c) => c.id === form.course
+  const [courseMap, setCourseMap] = React.useState<Record<number, Course>>({});
+
+  React.useEffect(() => {
+    if (!initialCourseDetails?.id) return;
+    setCourseMap((prev) => ({
+      ...prev,
+      [initialCourseDetails.id]: initialCourseDetails,
+    }));
+  }, [initialCourseDetails]);
+
+  const fetchCourseOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCoursesPage({ page, pageSize, search });
+
+      setCourseMap((prev) => {
+        const next = { ...prev };
+        result.items.forEach((item) => {
+          next[item.id] = item;
+        });
+        return next;
+      });
+
+      return {
+        options: result.items.map((item) => ({
+          label: item.course_name,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
   );
+
+  const fetchQualificationOptions = React.useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchQualificationsPage({ page, pageSize, search });
+      return {
+        options: result.items.map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const selectedCourse = form.course
+    ? courseMap[Number(form.course)]
+    : undefined;
 
   const courseModes =
     selectedCourse?.course_mode_details.map((m: any) => ({
@@ -44,6 +97,16 @@ export default function LeadCourseSection({
     }
   );
 
+  const selectedCourseOption = selectedCourse
+    ? [{ label: selectedCourse.course_name, value: selectedCourse.id }]
+    : [];
+
+  const selectedEducationOption =
+    initialEducationOption &&
+      String(initialEducationOption.value) === String(form.education_level)
+      ? [initialEducationOption]
+      : [];
+
   return (
     <View style={styles.container}>
       <AppText variant="h3" style={styles.title}>Academic & Course</AppText>
@@ -52,10 +115,9 @@ export default function LeadCourseSection({
         <AppSelect
           label="Education Level"
           value={form.education_level}
-          options={qualifications.map((q) => ({
-            label: q.name,
-            value: q.id,
-          }))}
+          options={selectedEducationOption}
+          fetchOptions={fetchQualificationOptions}
+          queryKey={['lead-form', 'qualifications']}
           onSelect={(v) =>
             setForm({ ...form, education_level: v })
           }
@@ -73,10 +135,9 @@ export default function LeadCourseSection({
         <AppSelect
           label="Course"
           value={form.course}
-          options={courses.map((c) => ({
-            label: c.course_name,
-            value: c.id,
-          }))}
+          options={selectedCourseOption}
+          fetchOptions={fetchCourseOptions}
+          queryKey={['lead-form', 'courses']}
           onSelect={(v) =>
             setForm({
               ...form,

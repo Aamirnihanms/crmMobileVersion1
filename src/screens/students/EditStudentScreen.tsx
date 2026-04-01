@@ -6,7 +6,7 @@ import {
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Alert,
     KeyboardAvoidingView,
@@ -28,9 +28,11 @@ import PhoneInputWithCode, {
     CountryCode,
     DEFAULT_COUNTRY,
 } from '@/src/components/common/PhoneInputWithCode';
+import {
+    fetchQualificationsPage,
+    fetchSpecializationsPage,
+} from '@/src/api/masters/paginatedMasters.api';
 import { StudentsStackParamList } from '@/src/navigation/StudentsStack';
-import { useQualifications } from '@/src/queries/masters/qualifications.query';
-import { useSpecializations } from '@/src/queries/masters/specializations.query';
 import {
     useStudentProfile,
     useUpdateStudent,
@@ -95,13 +97,39 @@ export default function EditStudentScreen() {
 
     const { data: student, isLoading, isError } = useStudentProfile(studentId);
     const updateMutation = useUpdateStudent();
-    const { data: qualifications = [] } = useQualifications();
-    const { data: specializations = [] } = useSpecializations();
 
     const passOutYearOptions = generatePassOutYears().reverse().map((y) => ({
         label: String(y),
         value: String(y),
     }));
+
+    const fetchQualificationOptions = useCallback(
+        async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+            const result = await fetchQualificationsPage({ page, pageSize, search });
+            return {
+                options: result.items.map((item) => ({
+                    label: item.name,
+                    value: item.id,
+                })),
+                hasNextPage: result.hasNextPage,
+            };
+        },
+        []
+    );
+
+    const fetchSpecializationOptions = useCallback(
+        async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+            const result = await fetchSpecializationsPage({ page, pageSize, search });
+            return {
+                options: result.items.map((item) => ({
+                    label: item.name,
+                    value: item.value,
+                })),
+                hasNextPage: result.hasNextPage,
+            };
+        },
+        []
+    );
 
     const [form, setForm] = useState<any>({
         full_name: '',
@@ -310,6 +338,19 @@ export default function EditStudentScreen() {
         );
     }
 
+    const qualificationFallback =
+        student?.dashboard_data?.academic_info?.qualification &&
+            form.education_level
+            ? [{
+                label: student.dashboard_data.academic_info.qualification,
+                value: form.education_level,
+            }]
+            : [];
+
+    const specializationFallback = form.specialization
+        ? [{ label: form.specialization, value: form.specialization }]
+        : [];
+
     /* ---------------------------------------------------------------- */
     /* Render                                                            */
     /* ---------------------------------------------------------------- */
@@ -483,12 +524,11 @@ export default function EditStudentScreen() {
                         <AppSelect
                             label="Qualification"
                             value={form.education_level}
-                            options={qualifications.map((q: any) => ({
-                                label: q.name,
-                                value: q.id,
-                            }))}
-                            onSelect={(v: number) =>
-                                setForm({ ...form, education_level: v })
+                            options={qualificationFallback}
+                            fetchOptions={fetchQualificationOptions}
+                            queryKey={['student-edit', 'qualifications']}
+                            onSelect={(v: any) =>
+                                setForm({ ...form, education_level: Number(v) })
                             }
                             placeholder="Select qualification"
                         />
@@ -502,10 +542,9 @@ export default function EditStudentScreen() {
                         <AppSelect
                             label="Specialization"
                             value={form.specialization}
-                            options={specializations.map((s: any) => ({
-                                label: s.name,
-                                value: s.value,
-                            }))}
+                            options={specializationFallback}
+                            fetchOptions={fetchSpecializationOptions}
+                            queryKey={['student-edit', 'specializations']}
                             onSelect={(v: string) =>
                                 setForm({ ...form, specialization: v })
                             }

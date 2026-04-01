@@ -39,7 +39,7 @@ type Props = {
   label: string;
   value?: string | number;
   options: Option[];
-  onSelect: (value: string | number) => void;
+  onSelect: (value: any) => void;
   placeholder?: string;
   fetchOptions?: (
     params: SelectPageParams
