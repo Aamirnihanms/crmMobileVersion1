@@ -55,6 +55,10 @@ import ForwardMessageModal from '@/src/components/chat/ForwardMessageModal';
 import MessageReadInfoModal from '@/src/components/chat/MessageReadInfoModal';
 import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
+import {
+  NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+  decrementUnreadCountInCache,
+} from '@/src/lib/unreadCount';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
 import { useInfiniteChatMessages } from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
@@ -1247,10 +1251,17 @@ export default function ChatThreadScreen() {
     if (!unreadUids.length) return;
 
     unreadUids.forEach((uid) => markedReadRef.current.add(uid));
-    void markMessagesRead(chatId, unreadUids).catch(() => {
-      unreadUids.forEach((uid) => markedReadRef.current.delete(uid));
-    });
-  }, [chatId, isMineMessage, isReadByMe, latestMessagePage]);
+    void markMessagesRead(chatId, unreadUids)
+      .then(() => {
+        decrementUnreadCountInCache(queryClient, unreadUids.length);
+        void queryClient.invalidateQueries({
+          queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+        });
+      })
+      .catch(() => {
+        unreadUids.forEach((uid) => markedReadRef.current.delete(uid));
+      });
+  }, [chatId, isMineMessage, isReadByMe, latestMessagePage, queryClient]);
 
   const upsertServerMessage = useCallback(
     (msg: ApiMessage, options?: { tempId?: string }) => {
@@ -1325,6 +1336,9 @@ export default function ChatThreadScreen() {
         if (!isMineMessage(rawMessage)) {
           try {
             await markMessagesRead(chatId, [rawMessage.uid]);
+            void queryClient.invalidateQueries({
+              queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+            });
           } catch {
             // ignore
           }
@@ -1442,7 +1456,7 @@ export default function ChatThreadScreen() {
         );
       }
     },
-    [chatId, isMineMessage, upsertServerMessage]
+    [chatId, isMineMessage, queryClient, upsertServerMessage]
   );
 
   const {

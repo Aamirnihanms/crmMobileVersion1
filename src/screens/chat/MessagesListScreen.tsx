@@ -7,7 +7,7 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,9 @@ import {
   View,
 } from 'react-native';
 
+import {
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   archiveChat,
   createBatchChat,
@@ -39,6 +42,10 @@ import {
 } from '@/src/api/chat.api';
 import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
+import {
+  NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+  incrementUnreadCountInCache,
+} from '@/src/lib/unreadCount';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
 import {
   useInfiniteChatBatches,
@@ -360,7 +367,9 @@ const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress }: ChatRow
 export default function MessagesListScreen() {
   const navigation = useNavigation<Nav>();
   const isFocused = useIsFocused();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const seenIncomingMessageUidsRef = useRef<Set<string>>(new Set());
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -534,13 +543,16 @@ export default function MessagesListScreen() {
           .map((chat) => mapApiChatToPreview(chat, currentUserId))
       ) || []
     );
-  }, [chatsData]);
+  }, [chatsData, currentUserId]);
 
   useEffect(() => {
     if (isFocused) {
       void refetchChats();
+      void queryClient.invalidateQueries({
+        queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+      });
     }
-  }, [isFocused, refetchChats]);
+  }, [isFocused, queryClient, refetchChats]);
 
   useEffect(() => {
     setChats((prev) => {
@@ -876,6 +888,20 @@ export default function MessagesListScreen() {
 
       const summary = getMessageSummary(rawMessage);
       const nextTime = formatChatTime(rawMessage.created_at);
+      const messageUid = typeof rawMessage.uid === 'string' ? rawMessage.uid : '';
+      const alreadyProcessed =
+        !fromMe &&
+        Boolean(messageUid) &&
+        seenIncomingMessageUidsRef.current.has(messageUid);
+      const shouldIncrementUnread = !fromMe && !alreadyProcessed;
+
+      if (shouldIncrementUnread && messageUid) {
+        seenIncomingMessageUidsRef.current.add(messageUid);
+        if (seenIncomingMessageUidsRef.current.size > 600) {
+          seenIncomingMessageUidsRef.current.clear();
+          seenIncomingMessageUidsRef.current.add(messageUid);
+        }
+      }
 
       setChats((prev) => {
         const index = prev.findIndex((chat) => chat.id === chatUid);
@@ -886,7 +912,7 @@ export default function MessagesListScreen() {
               sender.full_name || sender.name || 'New chat',
             lastMessage: summary,
             time: nextTime,
-            unread: fromMe ? 0 : 1,
+            unread: shouldIncrementUnread ? 1 : 0,
             avatarColor: getAvatarColor('individual'),
             participantId: sender.id,
             chatType: 'individual',
@@ -901,13 +927,20 @@ export default function MessagesListScreen() {
           ...current,
           lastMessage: summary,
           time: nextTime || current.time,
-          unread: fromMe ? current.unread : current.unread + 1,
+          unread: shouldIncrementUnread ? current.unread + 1 : current.unread,
         };
 
         return [updated, ...prev.slice(0, index), ...prev.slice(index + 1)];
       });
+
+      if (shouldIncrementUnread) {
+        incrementUnreadCountInCache(queryClient, 1);
+        void queryClient.invalidateQueries({
+          queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+        });
+      }
     },
-    [currentUserId, user?.uid]
+    [currentUserId, queryClient, user?.uid]
   );
 
   useChatWebSocket({

@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
@@ -9,7 +8,18 @@ import { useLogin } from '../../queries/auth.query';
 import { useAuthStore } from '../../store/auth.store';
 import { colors, spacing } from '@/src/theme';
 import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
-import { saveToken } from '../../utils/token';
+import { saveAuthUser, saveToken } from '../../utils/token';
+import { getFCMToken } from '../../lib/firebaseHelper';
+import { LoginPlatform } from '../../api/auth.api';
+
+const getLoginPlatform = (): LoginPlatform => {
+  if (Platform.OS === 'android') return 'android';
+  if (Platform.OS === 'ios') return 'ios';
+  if (Platform.OS === 'web') return 'web';
+  return 'unknown';
+};
+
+const logo = require('../../../assets/images/logo.png');
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -22,17 +32,21 @@ export default function LoginScreen() {
   const setUser = useAuthStore((s) => s.setUser);
   const { mutate, isPending, isError, error } = useLogin();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Validation error', 'Email and password are required');
       return;
     }
 
+    const fcmToken = await getFCMToken();
+    const platform = getLoginPlatform();
+
     mutate(
-      { email, password },
+      { email, password, fcmToken, platform },
       {
         onSuccess: async (data) => {
           await saveToken(data.access);
+          await saveAuthUser(data.user ?? null);
           setUser(data.user ?? null);
           setLoggedIn(true);
         },
@@ -49,6 +63,9 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.backgroundOrbTop} />
+      <View style={styles.backgroundOrbBottom} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -57,71 +74,62 @@ export default function LoginScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingTop: insets.top + spacing.lg,
+              paddingTop: insets.top + spacing.xl,
               paddingBottom: insets.bottom + spacing.lg,
             },
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="sparkles" size={40} color={colors.primary} />
-            </View>
-            <AppText variant="h1" style={styles.title}>Welcome Back</AppText>
-            <AppText variant="subtitle" color={colors.textSecondary} style={styles.subtitle}>
-              Sign in to continue your journey
-            </AppText>
-          </View>
+          <View style={styles.authCard}>
+            <View style={styles.header}>
+              <View style={styles.logoContainer}>
+                <Image source={logo} style={styles.logo} resizeMode="contain" />
+              </View>
 
-          <View style={styles.form}>
-            <AppInput
-              label="Email Address"
-              placeholder="name@example.com"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-
-            <AppInput
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-
-            <TouchableOpacity style={styles.forgotPassword}>
-              <AppText variant="caption" color={colors.primary} style={styles.forgotText}>
-                Forgot Password?
+              <AppText variant="h1" style={styles.title}>
+                Welcome Back
               </AppText>
-            </TouchableOpacity>
-
-            <AppButton
-              title={isPending ? 'Signing in...' : 'Sign In'}
-              onPress={handleLogin}
-              style={styles.button}
-              loading={isPending}
-            />
-
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <AppText variant="caption" color={colors.textMuted} style={styles.dividerText}>
-                OR CONTINUE WITH
+              <AppText variant="subtitle" color={colors.textSecondary} style={styles.subtitle}>
+                Sign in to access your CRM dashboard
               </AppText>
-              <View style={styles.dividerLine} />
             </View>
 
-            <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-google" size={24} color={colors.textPrimary} />
+            <View style={styles.form}>
+              <AppInput
+                label="Email Address"
+                placeholder="name@example.com"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+
+              <AppInput
+                label="Password"
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+
+              <TouchableOpacity style={styles.forgotPassword}>
+                <AppText variant="caption" color={colors.primary} style={styles.forgotText}>
+                  Forgot Password?
+                </AppText>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-apple" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-facebook" size={24} color={colors.primaryDark} />
-              </TouchableOpacity>
+
+              <AppButton
+                title={isPending ? 'Signing in...' : 'Sign In'}
+                onPress={handleLogin}
+                style={styles.button}
+                loading={isPending}
+              />
+
+              {isError && (
+                <AppText variant="caption" color={colors.danger} style={styles.errorText}>
+                  {(error as Error)?.message}
+                </AppText>
+              )}
             </View>
           </View>
 
@@ -135,12 +143,6 @@ export default function LoginScreen() {
               </AppText>
             </TouchableOpacity>
           </View>
-
-          {isError && (
-            <AppText variant="caption" color={colors.danger} style={styles.errorText}>
-              {(error as Error)?.message}
-            </AppText>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -151,6 +153,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  backgroundOrbTop: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: colors.primaryLight,
+    top: -110,
+    right: -70,
+    opacity: 0.25,
+  },
+  backgroundOrbBottom: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: colors.indigoSoft,
+    bottom: -90,
+    left: -60,
   },
   keyboardView: {
     flex: 1,
@@ -160,32 +183,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     justifyContent: 'center',
   },
+  authCard: {
+    width: '100%',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xl,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 7,
+  },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: colors.surface,
+    width: 110,
+    height: 110,
+    borderRadius: 30,
+    backgroundColor: colors.backgroundSoft,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
-    // Shadow
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  logo: {
+    width: 82,
+    height: 82,
   },
   title: {
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
     textAlign: 'center',
-    marginBottom: spacing.md,
+    maxWidth: 260,
   },
   form: {
     width: '100%',
@@ -198,49 +241,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   button: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
     elevation: 8,
   },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.xl,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.divider,
-  },
-  dividerText: {
-    paddingHorizontal: spacing.md,
-    fontWeight: '700',
-    fontSize: 10,
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xxl,
-  },
-  socialButton: {
-    flex: 1,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: spacing.xs,
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: spacing.xl,
     paddingVertical: spacing.lg,
   },
   signUpText: {
@@ -248,6 +260,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     textAlign: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
 });

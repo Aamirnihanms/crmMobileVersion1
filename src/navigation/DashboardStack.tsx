@@ -1,14 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   Alert,
   Dimensions,
   Pressable,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
+import { useCallback } from 'react';
 
 import { colors, spacing } from '@/src/theme';
+import { useNotificationsUnreadCount } from '@/src/queries/notifications.query';
+import { useAuthStore } from '@/src/store/auth.store';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
@@ -39,11 +44,18 @@ function HeaderIconButton({
   icon,
   onPress,
   showDot = false,
+  badgeCount = 0,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   showDot?: boolean;
+  badgeCount?: number;
 }) {
+  const safeBadgeCount = Number.isFinite(badgeCount)
+    ? Math.max(0, Math.floor(badgeCount))
+    : 0;
+  const badgeText = safeBadgeCount > 99 ? '99+' : String(safeBadgeCount);
+
   return (
     <Pressable
       style={({ pressed }) => [
@@ -57,12 +69,29 @@ function HeaderIconButton({
         size={22}
         color={colors.primary}
       />
-      {showDot ? <View style={styles.dot} /> : null}
+      {safeBadgeCount > 0 ? (
+        <View style={styles.countBadge}>
+          <Text style={styles.countBadgeText}>{badgeText}</Text>
+        </View>
+      ) : showDot ? (
+        <View style={styles.dot} />
+      ) : null}
     </Pressable>
   );
 }
 
 export default function DashboardStack() {
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const { data, refetch } = useNotificationsUnreadCount(isLoggedIn);
+  const unreadCount = data?.unread_count ?? 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isLoggedIn) return;
+      void refetch();
+    }, [isLoggedIn, refetch])
+  );
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -93,6 +122,7 @@ export default function DashboardStack() {
               />
               <HeaderIconButton
                 icon="chatbubble-ellipses-outline"
+                badgeCount={unreadCount}
                 onPress={() => navigation.navigate('MessagesList')}
               />
             </View>
@@ -182,6 +212,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
     borderWidth: 1.5,
     borderColor: colors.surface,
+  },
+  countBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.danger,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
+  },
+  countBadgeText: {
+    color: colors.surface,
+    fontSize: 9,
+    fontWeight: '800',
   },
   profileButton: {
     paddingRight: spacing.sm,

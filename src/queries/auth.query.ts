@@ -1,14 +1,15 @@
 import { useMutation } from '@tanstack/react-query';
-import { login } from '../api/auth.api';
+import { login, LoginPlatform } from '../api/auth.api';
 
 type LoginInput = {
   email: string;
   password: string;
+  fcmToken?: string | null;
+  platform: LoginPlatform;
 };
 
 export const useLogin = () => {
   return useMutation({
-    mutationFn: ({ email, password }: LoginInput) =>
-      login(email, password),
+    mutationFn: (input: LoginInput) => login(input),
   });
 };
