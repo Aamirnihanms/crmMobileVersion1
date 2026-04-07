@@ -11,6 +11,7 @@ import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
 import { saveAuthUser, saveToken } from '../../utils/token';
 import { getFCMToken } from '../../lib/firebaseHelper';
 import { LoginPlatform } from '../../api/auth.api';
+import { mapLoginUserToStoredUser } from '../../utils/authUser';
 
 const getLoginPlatform = (): LoginPlatform => {
   if (Platform.OS === 'android') return 'android';
@@ -45,9 +46,10 @@ export default function LoginScreen() {
       { email, password, fcmToken, platform },
       {
         onSuccess: async (data) => {
+          const normalizedUser = mapLoginUserToStoredUser(data.user);
           await saveToken(data.access);
-          await saveAuthUser(data.user ?? null);
-          setUser(data.user ?? null);
+          await saveAuthUser(normalizedUser);
+          setUser(normalizedUser);
           setLoggedIn(true);
         },
         onError: (err: any) => {

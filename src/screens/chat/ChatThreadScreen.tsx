@@ -41,6 +41,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   createMessage,
   deleteChatMessage,
+  editMessage,
   generatePresignedUploadUrl,
   getUploadedFileUrl,
   markMessagesRead,
@@ -285,6 +286,14 @@ const shouldShowMessageText = (message: ThreadMessage) => {
   }
 
   return true;
+};
+
+const isEditableMessage = (message?: ThreadMessage | null) => {
+  if (!message?.mine) return false;
+  if (message.status === 'sending' || message.status === 'failed') return false;
+  if (isMessageDeleted(message.raw)) return false;
+  if (message.id.startsWith('temp-')) return false;
+  return message.messageType === 'text';
 };
 
 const areReplyPreviewsEqual = (
@@ -877,6 +886,15 @@ const MessageRow = memo(function MessageRow({
             <AppText color={item.mine ? colors.surface : colors.textPrimary}>{item.text}</AppText>
           ) : null}
           <View style={styles.metaRow}>
+            {item.raw?.is_edited && !isMessageDeleted(item.raw) ? (
+              <AppText
+                variant="caption"
+                color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
+                style={styles.editedLabel}
+              >
+                edited
+              </AppText>
+            ) : null}
             <AppText
               variant="caption"
               color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
@@ -967,6 +985,7 @@ export default function ChatThreadScreen() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [replyingTo, setReplyingTo] = useState<ThreadMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ThreadMessage | null>(null);
   const [messageMenuVisible, setMessageMenuVisible] = useState(false);
   const [forwardModalVisible, setForwardModalVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ThreadMessage | null>(null);
@@ -1146,6 +1165,10 @@ export default function ChatThreadScreen() {
     isAtBottomRef.current = true;
     hasInitiallyPositionedRef.current = false;
     setMessages([]);
+    setInput('');
+    setReplyingTo(null);
+    setPendingAttachment(null);
+    setEditingMessage(null);
   }, [chatId]);
 
   useEffect(() => {
@@ -2032,14 +2055,6 @@ export default function ChatThreadScreen() {
     }
   }, [stopRecording, sendAudioMessage]);
 
-  const handleSend = useCallback(() => {
-    if (pendingAttachment) {
-      void sendAttachmentMessage();
-      return;
-    }
-    void sendTextMessage();
-  }, [pendingAttachment, sendAttachmentMessage, sendTextMessage]);
-
   const openAttachmentUrl = useCallback(async (url?: string | null) => {
     if (!url) {
       Alert.alert('Attachment', 'No file URL found for this attachment.');
@@ -2446,7 +2461,18 @@ export default function ChatThreadScreen() {
   const handleMenuReply = useCallback(() => {
     if (selectedMessage) {
       setReplyingTo(selectedMessage);
+      setEditingMessage(null);
     }
+    setMessageMenuVisible(false);
+    setSelectedMessage(null);
+  }, [selectedMessage]);
+
+  const handleMenuEdit = useCallback(() => {
+    if (!selectedMessage || !isEditableMessage(selectedMessage)) return;
+    setEditingMessage(selectedMessage);
+    setInput(selectedMessage.text || '');
+    setReplyingTo(null);
+    setPendingAttachment(null);
     setMessageMenuVisible(false);
     setSelectedMessage(null);
   }, [selectedMessage]);
@@ -2460,6 +2486,102 @@ export default function ChatThreadScreen() {
     setMessageMenuVisible(false);
     setReadInfoVisible(true);
   }, []);
+
+  const handleSaveEditedMessage = useCallback(async () => {
+    if (!editingMessage || !chatId || sending) return;
+
+    const nextText = input.trim();
+    if (!nextText) {
+      Alert.alert('Edit message', 'Message cannot be empty.');
+      return;
+    }
+
+    const previousText = editingMessage.text;
+    const previousRawContent =
+      typeof editingMessage.raw?.content === 'string'
+        ? editingMessage.raw.content
+        : previousText;
+    const previousIsEdited = Boolean(editingMessage.raw?.is_edited);
+    const messageUid = editingMessage.id;
+
+    if (nextText === previousText.trim()) {
+      setEditingMessage(null);
+      setInput('');
+      return;
+    }
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageUid
+          ? {
+            ...msg,
+            text: nextText,
+            raw: {
+              ...msg.raw,
+              content: nextText,
+              is_edited: true,
+            },
+          }
+          : msg
+      )
+    );
+    setEditingMessage(null);
+    setInput('');
+
+    try {
+      setSending(true);
+      const response = await editMessage(chatId, messageUid, nextText);
+      const confirmed = response?.message as ApiMessage | undefined;
+
+      if (confirmed?.uid) {
+        syncMessageToCache(confirmed);
+        upsertServerMessage(confirmed);
+      }
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.detail ??
+        err?.response?.data?.message ??
+        err?.message ??
+        'Failed to edit message';
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageUid
+            ? {
+              ...msg,
+              text: previousText,
+              raw: {
+                ...msg.raw,
+                content: previousRawContent,
+                is_edited: previousIsEdited,
+              },
+            }
+            : msg
+        )
+      );
+      Alert.alert('Edit failed', message);
+    } finally {
+      setSending(false);
+    }
+  }, [chatId, editingMessage, input, sending, syncMessageToCache, upsertServerMessage]);
+
+  const handleSend = useCallback(() => {
+    if (editingMessage) {
+      void handleSaveEditedMessage();
+      return;
+    }
+    if (pendingAttachment) {
+      void sendAttachmentMessage();
+      return;
+    }
+    void sendTextMessage();
+  }, [
+    editingMessage,
+    handleSaveEditedMessage,
+    pendingAttachment,
+    sendAttachmentMessage,
+    sendTextMessage,
+  ]);
 
   const handleDeleteMessage = useCallback(async () => {
     if (!selectedMessage || !chatId) return;
@@ -2555,7 +2677,8 @@ export default function ChatThreadScreen() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const isMicButton = input.trim() === '' && !pendingAttachment;
+  const isMicButton = !editingMessage && input.trim() === '' && !pendingAttachment;
+  const canEditSelectedMessage = isEditableMessage(selectedMessage);
 
   return (
     <KeyboardAvoidingView
@@ -2635,6 +2758,15 @@ export default function ChatThreadScreen() {
             </Pressable>
             {selectedMessage?.mine && (
               <>
+                {canEditSelectedMessage ? (
+                  <>
+                    <View style={styles.menuDivider} />
+                    <Pressable style={styles.menuItem} onPress={handleMenuEdit}>
+                      <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
+                      <AppText style={styles.menuItemText}>Edit</AppText>
+                    </Pressable>
+                  </>
+                ) : null}
                 <View style={styles.menuDivider} />
                 <Pressable style={styles.menuItem} onPress={handleShowReadInfo}>
                   <Ionicons name="information-circle-outline" size={20} color={colors.textPrimary} />
@@ -2780,7 +2912,7 @@ export default function ChatThreadScreen() {
           { paddingBottom: composerBottomPadding },
         ]}
       >
-        {!isRecording && (
+        {!isRecording && !editingMessage && (
           <Pressable style={styles.attachButton} onPress={() => setAttachmentPopupVisible(true)}>
             <Ionicons
               name="add-circle-outline"
@@ -2807,7 +2939,34 @@ export default function ChatThreadScreen() {
           </View>
         ) : (
           <View style={styles.composerInputWrap}>
-            {replyingTo ? (
+            {editingMessage ? (
+              <View style={styles.editingComposerBar}>
+                <View style={styles.replyingTextWrap}>
+                  <AppText variant="caption" color={colors.successDeep} numberOfLines={1}>
+                    Editing message
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color={colors.textSecondary}
+                    numberOfLines={1}
+                  >
+                    {editingMessage.text || 'Message'}
+                  </AppText>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    setEditingMessage(null);
+                    setInput('');
+                  }}
+                >
+                  <Ionicons
+                    name="close"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+            ) : replyingTo ? (
               <View style={styles.replyingComposerBar}>
                 <View style={styles.replyingTextWrap}>
                   <AppText variant="caption" color={colors.successDeep} numberOfLines={1}>
@@ -2865,7 +3024,9 @@ export default function ChatThreadScreen() {
                 value={input}
                 onChangeText={setInput}
                 placeholder={
-                  pendingAttachment
+                  editingMessage
+                    ? 'Edit message'
+                    : pendingAttachment
                     ? 'Add a caption (optional)'
                     : 'Type a message'
                 }
@@ -2873,13 +3034,15 @@ export default function ChatThreadScreen() {
                 style={styles.composerInput}
                 multiline
               />
-              <Pressable style={styles.smallAction} onPress={handlePickCamera}>
-                <Ionicons
-                  name="camera-outline"
-                  size={18}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
+              {!editingMessage ? (
+                <Pressable style={styles.smallAction} onPress={handlePickCamera}>
+                  <Ionicons
+                    name="camera-outline"
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              ) : null}
             </View>
           </View>
         )}
@@ -3128,6 +3291,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 4,
   },
+  editedLabel: {
+    fontSize: 10,
+    fontStyle: 'italic',
+  },
   composerWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -3195,6 +3362,18 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
     backgroundColor: colors.primaryLight + '15',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xs,
+    borderRadius: 8,
+    gap: spacing.sm,
+  },
+  editingComposerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+    backgroundColor: colors.successBg,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     marginBottom: spacing.xs,

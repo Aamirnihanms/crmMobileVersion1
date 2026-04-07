@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import {
   Dimensions,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -78,6 +79,7 @@ const NUMBER_KEYS = ['value', 'count', 'amount', 'total', 'percentage'];
 const LABEL_KEYS = ['name', 'label', 'stage', 'title', 'status', 'date', 'hour'];
 const CHART_COLORS = ['#5B8FF9', '#36CFC9', '#F6BD16', '#F759AB', '#9254DE', '#13C2C2'];
 const screenWidth = Dimensions.get('window').width;
+const heroLogo = require('../../../assets/images/logo.png');
 const TIMEFRAME_OPTIONS: { label: string; value: DashboardTimeframeParam }[] = [
   { label: 'Today', value: 'today' },
   { label: 'Yesterday', value: 'yesterday' },
@@ -855,7 +857,7 @@ export default function DashboardScreen() {
               </AppText>
             </View>
             <View style={styles.heroIconBubble}>
-              <Ionicons name="sparkles-outline" size={24} color={colors.surface} />
+              <Image source={heroLogo} style={styles.heroLogoImage} resizeMode="contain" />
             </View>
           </View>
 
@@ -1036,6 +1038,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.28)',
+  },
+  heroLogoImage: {
+    width: 28,
+    height: 28,
   },
   heroMetaRow: {
     flexDirection: 'row',

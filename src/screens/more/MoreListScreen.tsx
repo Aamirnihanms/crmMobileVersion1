@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    Image,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -43,6 +44,15 @@ function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colo
 export default function MoreListScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList, 'MoreList'>>();
     const user = useAuthStore((state) => state.user);
+    const avatarUri =
+        typeof user?.profile_picture === 'string' && user.profile_picture.trim().length > 0
+            ? user.profile_picture.trim()
+            : null;
+    const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+
+    useEffect(() => {
+        setAvatarLoadFailed(false);
+    }, [avatarUri]);
 
 
     return (
@@ -57,7 +67,15 @@ export default function MoreListScreen() {
                     />
                     <View style={styles.profileContent}>
                         <View style={styles.avatar}>
-                            <Ionicons name="person" size={40} color={colors.primary} />
+                            {avatarUri && !avatarLoadFailed ? (
+                                <Image
+                                    source={{ uri: avatarUri }}
+                                    style={styles.avatarImage}
+                                    onError={() => setAvatarLoadFailed(true)}
+                                />
+                            ) : (
+                                <Ionicons name="person" size={40} color={colors.primary} />
+                            )}
                         </View>
                         <View style={styles.profileInfo}>
                             <AppText variant="h2" color={colors.surface} style={{ fontWeight: '800' }}>
@@ -164,10 +182,15 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surface,
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
         shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     profileInfo: {
         flex: 1,

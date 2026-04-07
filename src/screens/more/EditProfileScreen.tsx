@@ -60,21 +60,41 @@ export default function EditProfileScreen() {
   const updateProfileMutation = useUpdateProfile();
 
   const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Permission required',
+          'Please allow photo library access to choose a profile picture.'
+        );
+        return;
+      }
 
-    if (!result.canceled) {
-      const asset = result.assets[0];
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets?.[0];
+      if (!asset?.uri) {
+        Alert.alert('Image selection failed', 'Could not read the selected image.');
+        return;
+      }
+
       setPreviewUri(asset.uri);
       setProfilePic({
         uri: asset.uri,
-        name: asset.fileName || 'profile_pic.jpg',
+        name: asset.fileName || `profile_pic_${Date.now()}.jpg`,
         type: asset.mimeType || 'image/jpeg',
       });
+    } catch (error: any) {
+      const message =
+        error?.message || 'Unable to open image picker. Please try again.';
+      Alert.alert('Image selection failed', message);
     }
   };
 

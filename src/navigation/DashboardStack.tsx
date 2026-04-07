@@ -4,12 +4,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   Alert,
   Dimensions,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { colors, spacing } from '@/src/theme';
 import { useNotificationsUnreadCount } from '@/src/queries/notifications.query';
@@ -82,8 +83,19 @@ function HeaderIconButton({
 
 export default function DashboardStack() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const authUser = useAuthStore((s) => s.user);
   const { data, refetch } = useNotificationsUnreadCount(isLoggedIn);
   const unreadCount = data?.unread_count ?? 0;
+  const avatarUri =
+    typeof authUser?.profile_picture === 'string' &&
+    authUser.profile_picture.trim().length > 0
+      ? authUser.profile_picture.trim()
+      : null;
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [avatarUri]);
 
   useFocusEffect(
     useCallback(() => {
@@ -136,11 +148,19 @@ export default function DashboardStack() {
               }}
             >
               <View style={styles.avatar}>
-                <Ionicons
-                  name="person"
-                  size={18}
-                  color={colors.primary}
-                />
+                {avatarUri && !avatarLoadFailed ? (
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.avatarImage}
+                    onError={() => setAvatarLoadFailed(true)}
+                  />
+                ) : (
+                  <Ionicons
+                    name="person"
+                    size={18}
+                    color={colors.primary}
+                  />
+                )}
               </View>
             </Pressable>
           ),
@@ -249,6 +269,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   pressed: {
     opacity: 0.7,

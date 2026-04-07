@@ -1,39 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { fetchProfile, type ProfileUser } from '../api/profile.api';
+import { fetchProfile } from '../api/profile.api';
 import { useAuthStore } from '../store/auth.store';
 import {
   deleteAuthUser,
   getAuthUser,
   getToken,
   saveAuthUser,
-  type StoredAuthUser,
 } from '../utils/token';
+import { mapProfileToStoredUser } from '../utils/authUser';
 import AuthStack from './AuthStack';
 import AppTabs from './BottomTabs';
 
 // Keep the native splash visible until auth bootstrap is complete.
 void SplashScreen.preventAutoHideAsync();
-
-const mapProfileToStoredUser = (profile: ProfileUser): StoredAuthUser => ({
-  uid: profile.uid,
-  email: profile.email,
-  full_name: profile.full_name,
-  phone: profile.phone,
-  whatsapp_number: profile.whatsapp_number,
-  profile_picture: profile.profile_pic,
-  role:
-    profile.role_details?.value ||
-    profile.role_details?.label ||
-    String(profile.role || ''),
-  role_id:
-    typeof profile.role_details?.id === 'number'
-      ? String(profile.role_details.id)
-      : undefined,
-  is_superuser: profile.is_superuser,
-  groups_details: profile.groups_details,
-  owned_groups: profile.owned_groups,
-});
 
 export default function RootNavigator() {
   const { isLoggedIn, setLoggedIn, setUser } = useAuthStore();
