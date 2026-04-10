@@ -135,7 +135,7 @@ export default function MoreListScreen() {
 
                 <View style={styles.footer}>
                     <AppText variant="caption" color={colors.textMuted} style={{ textAlign: 'center' }}>
-                        Powered by TrekData CRM • 🇮🇳
+                        Powered by Anvitha Infotech
                     </AppText>
                 </View>
                 <View style={{ height: 40 }} />

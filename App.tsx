@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useRef } from 'react';
 import {
   getInitialNotification,
   getMessaging,
@@ -11,20 +10,25 @@ import {
   createNavigationContainerRef,
 } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
+import * as NavigationBar from 'expo-navigation-bar';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { getChatList, type ApiChat, type ChatType } from './src/api/chat.api';
+import NoNetworkScreen from './src/components/global/NoNetworkScreen';
+import { useNetworkStatus } from './src/hooks/useNetworkStatus';
+import { getFCMToken, requestUserPermission } from './src/lib/firebaseHelper';
+import { configureNotificationChannel, showForegroundNotification } from './src/lib/notificationHelper';
 import { queryClient } from './src/lib/queryClient';
 import {
   NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
   setUnreadCountInCache,
 } from './src/lib/unreadCount';
-import { getChatList, type ApiChat, type ChatType } from './src/api/chat.api';
-import { requestUserPermission, getFCMToken } from './src/lib/firebaseHelper';
-import { configureNotificationChannel, showForegroundNotification } from './src/lib/notificationHelper';
 import type { DashboardStackParamList } from './src/navigation/DashboardStack';
 import RootNavigator from './src/navigation/RootNavigator';
 import { useAuthStore } from './src/store/auth.store';
@@ -199,8 +203,15 @@ const appTheme = {
 
 export default function App() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const { isOffline } = useNetworkStatus();
   const pendingChatRef = useRef<ChatThreadParams | null>(null);
   const lastHandledKeyRef = useRef<{ key: string; at: number } | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      void NavigationBar.setButtonStyleAsync('dark');
+    }
+  }, []);
 
   const navigateToChatThread = useCallback((params: ChatThreadParams) => {
     if (!navigationRef.isReady()) {
@@ -283,13 +294,21 @@ export default function App() {
     [isLoggedIn, navigateToChatThread, resolveChatParamsWithLookup],
   );
 
+  const setupDoneRef = useRef(false);
+
   useEffect(() => {
     // Request permission and get token
     const setupFCM = async () => {
+      if (setupDoneRef.current) return;
+      setupDoneRef.current = true;
+
+      console.log('--- Initializing FCM Setup ---');
       await configureNotificationChannel();
       const hasPermission = await requestUserPermission();
       if (hasPermission) {
         await getFCMToken();
+      } else {
+        console.log('Skipping FCM Token retrieval: Permission not granted');
       }
     };
     setupFCM();
@@ -369,6 +388,7 @@ export default function App() {
               <RootNavigator />
             </NavigationContainer>
           </QueryClientProvider>
+          {isOffline && <NoNetworkScreen />}
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </KeyboardProvider>

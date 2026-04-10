@@ -54,7 +54,7 @@ export default function AddEditNoteModal({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.overlay}
       >
         <Pressable style={styles.dismissArea} onPress={onClose} />

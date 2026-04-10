@@ -22,9 +22,9 @@ const StudentCard = memo(({ student, onPress }: any) => {
               <AppText variant="subtitle" style={styles.name}>
                 {student.full_name}
               </AppText>
-              <AppText variant="caption" color={colors.textMuted}>
+              {/* <AppText variant="caption" color={colors.textMuted}>
                 {student.student_id}
-              </AppText>
+              </AppText> */}
             </View>
             {batch?.course && (
               <AppText variant="caption" color={colors.primary} style={styles.course}>

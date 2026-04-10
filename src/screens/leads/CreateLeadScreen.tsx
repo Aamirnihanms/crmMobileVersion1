@@ -39,6 +39,12 @@ import {
   useCreateLead,
   useUpdateLead,
 } from '@/src/queries/leads.query';
+import { useCreateNote } from '@/src/queries/notes.query';
+import { useAddFollowUp } from '@/src/queries/followups.query';
+import { useLeadStatuses } from '@/src/queries/masters/leadStatuses.query';
+
+import AddEditNoteModal from '@/src/components/notes/AddEditNoteModal';
+import AddFollowUpModal from '@/src/components/followups/AddFollowUpModal';
 
 import { colors, spacing } from '@/src/theme';
 
@@ -101,6 +107,7 @@ export default function CreateLeadScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
   const hydratedRef = useRef(false);
+  const initialStatusIdRef = useRef<number | null>(null);
 
   const [form, setForm] = useState<any>(initialFormState);
 
@@ -112,9 +119,18 @@ export default function CreateLeadScreen() {
 
   const createLeadMutation = useCreateLead();
   const updateLeadMutation = useUpdateLead();
+  const createNoteMutation = useCreateNote(editLeadId || '');
+  const addFollowUpMutation = useAddFollowUp(editLeadId || '');
+
+  const { data: statuses } = useLeadStatuses();
+
+  const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
+  const [isFollowUpModalVisible, setIsFollowUpModalVisible] = useState(false);
+  const [tempFollowUpData, setTempFollowUpData] = useState<any>(null);
 
   useEffect(() => {
     hydratedRef.current = false;
+    initialStatusIdRef.current = null;
     if (!isEditMode) {
       setForm(initialFormState);
     }
@@ -127,8 +143,10 @@ export default function CreateLeadScreen() {
 
     const phoneParsed = extractCodeAndNumber(lead.phone_number);
     const whatsappParsed = extractCodeAndNumber(lead.whatsapp_number);
-
     const parentPhoneParsed = extractCodeAndNumber(lead.parent_phone_number);
+
+    const statusId = lead.lead_status ?? lead.lead_status_details?.id ?? null;
+    initialStatusIdRef.current = statusId;
 
     setForm({
       name: lead.name ?? '',
@@ -161,8 +179,7 @@ export default function CreateLeadScreen() {
       pass_out_year: lead.pass_out_year ?? null,
       lead_source:
         lead.lead_source ?? lead.lead_source_details?.id ?? null,
-      lead_status:
-        lead.lead_status ?? lead.lead_status_details?.id ?? null,
+      lead_status: statusId,
       reminder_date: lead.reminder_date
         ? String(lead.reminder_date).split('T')[0]
         : '',
@@ -173,7 +190,10 @@ export default function CreateLeadScreen() {
 
   const handleSubmit = () => {
     const mutationPending =
-      createLeadMutation.isPending || updateLeadMutation.isPending;
+      createLeadMutation.isPending || 
+      updateLeadMutation.isPending || 
+      createNoteMutation.isPending ||
+      addFollowUpMutation.isPending;
 
     if (mutationPending) return;
 
@@ -190,6 +210,19 @@ export default function CreateLeadScreen() {
       return;
     }
 
+    if (isEditMode && editLeadId) {
+      const followUpStatus = statuses?.find(s => s.value === 'follow_up');
+      const isNowFollowUp = followUpStatus && Number(form.lead_status) === Number(followUpStatus.id);
+      const wasFollowUp = followUpStatus && Number(initialStatusIdRef.current) === Number(followUpStatus.id);
+
+      if (isNowFollowUp && !wasFollowUp) {
+        setIsFollowUpModalVisible(true);
+      } else {
+        setIsNoteModalVisible(true);
+      }
+      return;
+    }
+
     const payload = buildLeadPayload(form);
 
     const onSuccess = (data: any) => {
@@ -198,18 +231,9 @@ export default function CreateLeadScreen() {
       if (!leadId) {
         Alert.alert(
           'Incomplete Operation',
-          isEditMode
-            ? 'Lead updated, but id missing in response'
-            : 'Lead created, but id missing in response'
+          'Lead created, but id missing in response'
         );
         return;
-      }
-
-      if (isEditMode) {
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-          return;
-        }
       }
 
       navigation.replace('LeadDetails', {
@@ -218,28 +242,102 @@ export default function CreateLeadScreen() {
     };
 
     const onError = (err: any) => {
-      const action = isEditMode ? 'Update' : 'Create';
-      console.log(`❌ ${action} Lead Error:`, err?.response?.data);
-      Alert.alert('Error', `Failed to ${action.toLowerCase()} lead. Please try again.`);
+      const action = 'Create';
+      
+      const errorData = err?.response?.data;
+      console.log(`❌ ${action} Lead Error:`, errorData);
+      
+      const errorDetail = errorData?.detail;
+      const errorMessage = errorData?.error;
+      const fallbackMessage = `Failed to ${action.toLowerCase()} lead. Please try again.`;
+      
+      const displayMessage = errorDetail || errorMessage || fallbackMessage;
+      
+      Alert.alert('Error', displayMessage);
     };
-
-    if (isEditMode && editLeadId) {
-      updateLeadMutation.mutate(
-        {
-          id: editLeadId,
-          payload,
-        },
-        {
-          onSuccess,
-          onError,
-        }
-      );
-      return;
-    }
 
     createLeadMutation.mutate(payload, {
       onSuccess,
       onError,
+    });
+  };
+
+  const handleFollowUpSubmit = (data: any) => {
+    setTempFollowUpData(data);
+    setIsFollowUpModalVisible(false);
+    setIsNoteModalVisible(true);
+  };
+
+  const handleUpdateLeadWithNote = (notePayload: { content: string; importance: any }) => {
+    setIsNoteModalVisible(false);
+    const payload = buildLeadPayload(form);
+
+    const onFinish = (data: any) => {
+      const leadId = data?.lead?.id || data?.id || editLeadId;
+
+      if (!leadId) {
+        Alert.alert(
+          'Incomplete Operation',
+          'Lead updated, but id missing in response'
+        );
+        return;
+      }
+
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+
+      navigation.replace('LeadDetails', {
+        id: leadId,
+      });
+    };
+
+    const onError = (err: any) => {
+      const errorData = err?.response?.data;
+      console.log(`❌ Update Process Error:`, errorData);
+      
+      const errorDetail = errorData?.detail;
+      const errorMessage = errorData?.error;
+      const fallbackMessage = `Failed to complete update. Please try again.`;
+      
+      const displayMessage = errorDetail || errorMessage || fallbackMessage;
+      
+      Alert.alert('Error', displayMessage);
+    };
+
+    // SEQUENCE: Note -> FollowUp (if any) -> Lead Update
+    createNoteMutation.mutate(notePayload, {
+      onSuccess: () => {
+        if (tempFollowUpData) {
+          addFollowUpMutation.mutate(tempFollowUpData, {
+            onSuccess: () => {
+              updateLeadMutation.mutate(
+                { id: editLeadId!, payload },
+                { onSuccess: onFinish, onError }
+              );
+            },
+            onError: (err: any) => {
+              console.log('❌ Follow-up creation failed:', err?.response?.data);
+              Alert.alert('Partial Success', 'Note saved, but follow-up failed. Updating lead anyway...');
+              updateLeadMutation.mutate(
+                { id: editLeadId!, payload },
+                { onSuccess: onFinish, onError }
+              );
+            }
+          });
+        } else {
+          updateLeadMutation.mutate(
+            { id: editLeadId!, payload },
+            { onSuccess: onFinish, onError }
+          );
+        }
+      },
+      onError: (err: any) => {
+        const errorData = err?.response?.data;
+        console.log(`❌ Create Note Error:`, errorData);
+        Alert.alert('Error', 'Failed to save note. Edit cancelled.');
+      }
     });
   };
 
@@ -256,7 +354,10 @@ export default function CreateLeadScreen() {
   }
 
   const mutationPending =
-    createLeadMutation.isPending || updateLeadMutation.isPending;
+    createLeadMutation.isPending || 
+    updateLeadMutation.isPending || 
+    createNoteMutation.isPending ||
+    addFollowUpMutation.isPending;
 
   const editLeadAny = editLead as any;
   const initialCourseDetails = editLeadAny?.course_details ?? null;
@@ -294,6 +395,20 @@ export default function CreateLeadScreen() {
 
   return (
     <View style={styles.root}>
+      {isNoteModalVisible && (
+        <AddEditNoteModal
+          visible={isNoteModalVisible}
+          onClose={() => setIsNoteModalVisible(false)}
+          onSubmit={handleUpdateLeadWithNote}
+        />
+      )}
+      {isFollowUpModalVisible && (
+        <AddFollowUpModal
+          visible={isFollowUpModalVisible}
+          onClose={() => setIsFollowUpModalVisible(false)}
+          onSubmit={handleFollowUpSubmit}
+        />
+      )}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

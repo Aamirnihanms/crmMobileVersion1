@@ -41,8 +41,14 @@ export default function ConvertLeadModalPro({
     payment_method: null,
   });
 
-  const { data: courses = [] } = useCourses();
-  const { data: batches = [] } = useBatches(form.course_id);
+  const { data: courses = [], error: coursesError } = useCourses();
+  const { data: batches = [], error: batchesError } = useBatches(form.course_id);
+
+  const getErrorMessage = (err: any) => {
+    if (!err) return undefined;
+    const data = err?.response?.data;
+    return data?.detail || data?.error || err?.message || 'Failed to load';
+  };
 
   useEffect(() => {
     if (!lead) return;
@@ -124,6 +130,7 @@ export default function ConvertLeadModalPro({
                 value: c.id,
               }))}
               onSelect={(v) => setForm({ ...form, course_id: v })}
+              error={getErrorMessage(coursesError)}
             />
 
             <AppSelect
@@ -134,6 +141,7 @@ export default function ConvertLeadModalPro({
                 value: b.uid,
               }))}
               onSelect={(v) => setForm({ ...form, batch_uid: v })}
+              error={getErrorMessage(batchesError)}
             />
 
             <AppSelect

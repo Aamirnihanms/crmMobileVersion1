@@ -13,6 +13,7 @@ import {
     TouchableWithoutFeedback,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/src/theme';
 import AppText from './AppText';
@@ -46,6 +47,7 @@ type Props = {
     ) => Promise<MultiSelectPageResponse>;
     queryKey?: (string | number)[];
     pageSize?: number;
+    error?: string;
 };
 
 export default function AppMultiSelect({
@@ -57,7 +59,9 @@ export default function AppMultiSelect({
     fetchOptions,
     queryKey,
     pageSize = 30,
+    error: externalError,
 }: Props) {
+    const insets = useSafeAreaInsets();
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
     const [debouncedSearch, setDebouncedSearch] = React.useState('');
@@ -82,6 +86,8 @@ export default function AppMultiSelect({
         isFetchingNextPage,
         hasNextPage,
         fetchNextPage,
+        isError,
+        error,
     } = useInfiniteQuery({
         queryKey: [
             'app-multi-select',
@@ -270,6 +276,17 @@ export default function AppMultiSelect({
                             <View style={styles.emptyWrap}>
                                 {remoteMode && isRemoteLoading ? (
                                     <ActivityIndicator color={colors.primary} />
+                                ) : (remoteMode && isError) || externalError ? (
+                                    <View style={styles.errorWrap}>
+                                        <Ionicons name="alert-circle-outline" size={32} color={colors.danger} />
+                                        <AppText style={styles.errorText}>
+                                            {externalError ||
+                                                (error as any)?.response?.data?.detail ||
+                                                (error as any)?.response?.data?.error ||
+                                                error?.message ||
+                                                'Failed to load options'}
+                                        </AppText>
+                                    </View>
                                 ) : (
                                     <AppText color={colors.textMuted}>
                                         No results found
@@ -285,7 +302,10 @@ export default function AppMultiSelect({
                             ) : null
                         }
                     />
-                    <View style={styles.footer}>
+                    <View style={[
+                        styles.footer,
+                        { paddingBottom: Math.max(insets.bottom, spacing.md) }
+                    ]}>
                         <Pressable onPress={closeSheet} style={styles.doneBtn}>
                             <AppText style={styles.doneBtnText}>Done</AppText>
                         </Pressable>
@@ -439,5 +459,15 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.md,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    errorWrap: {
+        alignItems: 'center',
+        paddingHorizontal: spacing.xl,
+    },
+    errorText: {
+        color: colors.danger,
+        textAlign: 'center',
+        marginTop: spacing.sm,
+        fontWeight: '500',
     },
 });

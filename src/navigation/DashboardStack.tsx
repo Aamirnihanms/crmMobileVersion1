@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -10,11 +11,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useCallback, useEffect, useState } from 'react';
 
-import { colors, spacing } from '@/src/theme';
 import { useNotificationsUnreadCount } from '@/src/queries/notifications.query';
 import { useAuthStore } from '@/src/store/auth.store';
+import { colors, spacing } from '@/src/theme';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
@@ -88,7 +88,7 @@ export default function DashboardStack() {
   const unreadCount = data?.unread_count ?? 0;
   const avatarUri =
     typeof authUser?.profile_picture === 'string' &&
-    authUser.profile_picture.trim().length > 0
+      authUser.profile_picture.trim().length > 0
       ? authUser.profile_picture.trim()
       : null;
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);

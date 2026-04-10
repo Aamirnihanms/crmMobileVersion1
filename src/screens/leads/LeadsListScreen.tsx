@@ -95,11 +95,18 @@ export default function LeadsListScreen() {
   }
 
   if (isError) {
+    const errorDetail = (error as any)?.response?.data?.detail;
+    const errorMessage = (error as any)?.response?.data?.error;
+    const fallbackMessage = (error as Error)?.message || 'Failed to load leads';
+    
+    // Display detail if available, otherwise specific error, otherwise generic message
+    const displayMessage = errorDetail || errorMessage || fallbackMessage;
+
     return (
       <View style={styles.center}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
         <AppText color={colors.danger} style={styles.errorText}>
-          {(error as Error)?.message || 'Failed to load leads'}
+          {displayMessage}
         </AppText>
         <Pressable onPress={refetch} style={styles.retryBtn}>
           <AppText color={colors.primary}>Try Again</AppText>

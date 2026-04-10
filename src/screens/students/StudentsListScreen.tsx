@@ -23,6 +23,8 @@ import { colors, spacing } from '@/src/theme';
 
 import type { StudentsPageResponse } from '@/src/api/students.api';
 import { useInfiniteStudents } from '@/src/queries/students.query';
+import { getUserIdFromToken } from '@/src/utils/token';
+import ShareLinkModal from '@/src/components/students/ShareLinkModal';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -31,6 +33,16 @@ export default function StudentsListScreen() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [openFilter, setOpenFilter] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await getUserIdFromToken();
+      setCurrentUserId(id);
+    };
+    void fetchUserId();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -40,6 +52,7 @@ export default function StudentsListScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
+
   const { filters, setAllFilters } = useStudentsFilters();
   const activeCount = Object.values(filters).filter(Boolean).length;
 
@@ -47,6 +60,19 @@ export default function StudentsListScreen() {
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
     >();
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => setShowShareModal(true)}
+          style={{ padding: 4 }}
+        >
+          <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   const {
     data,
@@ -84,11 +110,18 @@ export default function StudentsListScreen() {
   if (isLoading) return <AppLoader />;
 
   if (isError) {
+    const errorDetail = (error as any)?.response?.data?.detail;
+    const errorMessage = (error as any)?.response?.data?.error;
+    const fallbackMessage = (error as Error)?.message || 'Failed to load students';
+    
+    // Display detail if available, otherwise specific error, otherwise generic message
+    const displayMessage = errorDetail || errorMessage || fallbackMessage;
+
     return (
       <View style={styles.center}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
         <AppText color={colors.danger} style={styles.errorText}>
-          {(error as Error)?.message || 'Failed to load students'}
+          {displayMessage}
         </AppText>
         <Pressable onPress={refetch} style={styles.retryBtn}>
           <AppText color={colors.primary}>Try Again</AppText>
@@ -177,6 +210,14 @@ export default function StudentsListScreen() {
         filters={filters}
         setAllFilters={setAllFilters}
       />
+
+      {currentUserId !== null && (
+        <ShareLinkModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          userId={currentUserId}
+        />
+      )}
     </View>
   );
 }

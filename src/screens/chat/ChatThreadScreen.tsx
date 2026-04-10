@@ -14,10 +14,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import * as IntentLauncher from 'expo-intent-launcher';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as MediaLibrary from 'expo-media-library';
-import * as SecureStore from 'expo-secure-store';
 import * as Sharing from 'expo-sharing';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -54,8 +52,10 @@ import AttachmentPopup, { AttachmentActionType } from '@/src/components/chat/Att
 import AudioPlayer from '@/src/components/chat/AudioPlayer';
 import ForwardMessageModal from '@/src/components/chat/ForwardMessageModal';
 import MessageReadInfoModal from '@/src/components/chat/MessageReadInfoModal';
+import ParsedMessageText from '@/src/components/chat/ParsedMessageText';
 import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
+import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
 import {
   NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
   decrementUnreadCountInCache,
@@ -65,7 +65,6 @@ import { useInfiniteChatMessages } from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
 import { getToken } from '@/src/utils/token';
-import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
 
 type ChatThreadRouteProp = RouteProp<
   DashboardStackParamList,
@@ -107,6 +106,7 @@ type PendingAttachment = {
   mimeType: string;
   size?: number;
   isImage: boolean;
+  isVideo?: boolean;
 };
 
 const getThreadMessageSortValue = (message: ThreadMessage) => {
@@ -125,8 +125,6 @@ const getThreadMessageSortValue = (message: ThreadMessage) => {
 };
 
 const DELETED_MESSAGE_TEXT = 'This message was deleted';
-const DOWNLOAD_DIR_URI_KEY = 'chat_download_directory_uri_v1';
-const APP_DOWNLOADS_FOLDER_NAME = 'CRM Mobile Downloads';
 const MAX_FILE_NAME_LENGTH = 30;
 
 const formatTime = (rawValue?: string | null) => {
@@ -429,29 +427,6 @@ const getSafDirectoryName = (uri?: string | null) => {
   const segments = pathPart.split('/').filter(Boolean);
   return segments[segments.length - 1] || '';
 };
-
-const promptSelectDownloadFolder = () =>
-  new Promise<boolean>((resolve) => {
-    let settled = false;
-    const finish = (value: boolean) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
-
-    Alert.alert(
-      'Select Download Folder',
-      'Please select a folder to save downloaded files (recommended: Downloads).',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => finish(false) },
-        { text: 'Continue', onPress: () => finish(true) },
-      ],
-      {
-        cancelable: true,
-        onDismiss: () => finish(false),
-      }
-    );
-  });
 
 const buildReplyPreviewFromApi = (msg: ApiMessage): ReplyPreview | null => {
   const replyToContent = msg.reply_to_content;
@@ -883,7 +858,7 @@ const MessageRow = memo(function MessageRow({
           ) : null}
 
           {shouldShowMessageText(item) ? (
-            <AppText color={item.mine ? colors.surface : colors.textPrimary}>{item.text}</AppText>
+            <ParsedMessageText mine={item.mine}>{item.text}</ParsedMessageText>
           ) : null}
           <View style={styles.metaRow}>
             {item.raw?.is_edited && !isMessageDeleted(item.raw) ? (
@@ -995,6 +970,7 @@ export default function ChatThreadScreen() {
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
   const [attachmentPopupVisible, setAttachmentPopupVisible] = useState(false);
+  const [cameraPopupVisible, setCameraPopupVisible] = useState(false);
   const markedReadRef = useRef<Set<string>>(new Set());
   const downloadDirectoryUriRef = useRef<string | null>(null);
   const activeDownloadTasksRef = useRef<Record<string, FileSystem.DownloadResumable | undefined>>({});
@@ -1630,7 +1606,7 @@ export default function ChatThreadScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ['images', 'videos'],
         allowsEditing: false,
         quality: 0.8,
       });
@@ -1638,12 +1614,15 @@ export default function ChatThreadScreen() {
       if (result.canceled || !result.assets?.length) return;
 
       const asset = result.assets[0];
+      const isVideo = asset.type === 'video' || Boolean(asset.mimeType && asset.mimeType.startsWith('video/'));
+
       setPendingAttachment({
         uri: asset.uri,
-        name: asset.fileName || `image-${Date.now()}.jpg`,
-        mimeType: asset.mimeType || 'image/jpeg',
+        name: asset.fileName || `${isVideo ? 'video' : 'image'}-${Date.now()}${isVideo ? '.mp4' : '.jpg'}`,
+        mimeType: asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg'),
         size: asset.fileSize,
-        isImage: true,
+        isImage: !isVideo,
+        isVideo,
       });
     } catch {
       Alert.alert('Attachment', 'Unable to pick image from gallery.');
@@ -1673,9 +1652,72 @@ export default function ChatThreadScreen() {
         mimeType: asset.mimeType || 'image/jpeg',
         size: asset.fileSize,
         isImage: true,
+        isVideo: false,
       });
     } catch {
       Alert.alert('Attachment', 'Unable to use camera.');
+    }
+  }, []);
+
+  const handlePickVideo = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera access is required to record video.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      setPendingAttachment({
+        uri: asset.uri,
+        name: asset.fileName || `video-${Date.now()}.mp4`,
+        mimeType: asset.mimeType || 'video/mp4',
+        size: asset.fileSize,
+        isImage: false,
+        isVideo: true,
+      });
+    } catch {
+      Alert.alert('Attachment', 'Unable to use camera for video.');
+    }
+  }, []);
+
+
+
+  const handlePickVideoLibrary = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Gallery access is required to pick videos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      setPendingAttachment({
+        uri: asset.uri,
+        name: asset.fileName || `video-${Date.now()}.mp4`,
+        mimeType: asset.mimeType || 'video/mp4',
+        size: asset.fileSize,
+        isImage: false,
+        isVideo: true,
+      });
+    } catch {
+      Alert.alert('Attachment', 'Unable to pick video from gallery.');
     }
   }, []);
 
@@ -1684,10 +1726,14 @@ export default function ChatThreadScreen() {
       void handlePickGallery();
     } else if (type === 'camera') {
       void handlePickCamera();
+    } else if (type === 'video') {
+      void handlePickVideo();
+    } else if (type === 'video_library') {
+      void handlePickVideoLibrary();
     } else if (type === 'document') {
       void handlePickDocument();
     }
-  }, [handlePickGallery, handlePickCamera, handlePickDocument]);
+  }, [handlePickGallery, handlePickCamera, handlePickVideo, handlePickVideoLibrary, handlePickDocument]);
 
   const sendAttachmentMessage = useCallback(async () => {
     if (!pendingAttachment || sending) return;
@@ -2121,170 +2167,6 @@ export default function ChatThreadScreen() {
     }
   }, []);
 
-  const resolveAndroidDownloadDirectoryUri = useCallback(async () => {
-    const saf = FileSystem.StorageAccessFramework;
-
-    const tryExistingDirectory = async (uri?: string | null) => {
-      if (!uri) return null;
-      try {
-        await saf.readDirectoryAsync(uri);
-        return uri;
-      } catch {
-        return null;
-      }
-    };
-
-    const cachedUri = await tryExistingDirectory(downloadDirectoryUriRef.current);
-    if (cachedUri) return cachedUri;
-
-    const persistedUri = await SecureStore.getItemAsync(DOWNLOAD_DIR_URI_KEY);
-    const persistedDirectory = await tryExistingDirectory(persistedUri);
-    if (persistedDirectory) {
-      downloadDirectoryUriRef.current = persistedDirectory;
-      return persistedDirectory;
-    }
-
-    const defaultDownloadUri = saf.getUriForDirectoryInRoot('Download');
-    const existingDownloadUri = await tryExistingDirectory(defaultDownloadUri);
-    if (existingDownloadUri) {
-      downloadDirectoryUriRef.current = existingDownloadUri;
-      const existingChildren = await saf.readDirectoryAsync(existingDownloadUri);
-      const existingAppFolder = existingChildren.find(
-        (childUri) => getSafDirectoryName(childUri) === APP_DOWNLOADS_FOLDER_NAME
-      );
-
-      const resolvedUri = existingAppFolder || await saf.makeDirectoryAsync(
-        existingDownloadUri,
-        APP_DOWNLOADS_FOLDER_NAME
-      ).catch(() => existingDownloadUri);
-
-      downloadDirectoryUriRef.current = resolvedUri;
-      await SecureStore.setItemAsync(DOWNLOAD_DIR_URI_KEY, resolvedUri);
-      return resolvedUri;
-    }
-
-    // Do not force-select root Download folder; some OEMs (Realme/Oppo) can reject it.
-    // Let user pick any allowed folder once, then persist that grant.
-    const shouldContinue = await promptSelectDownloadFolder();
-    if (!shouldContinue) {
-      throw new Error('Folder selection cancelled');
-    }
-
-    const permission = await saf.requestDirectoryPermissionsAsync();
-    if (!permission.granted || !permission.directoryUri) {
-      throw new Error('Storage permission not granted');
-    }
-
-    const grantedUri = permission.directoryUri;
-    const grantedName = getSafDirectoryName(grantedUri);
-
-    let finalDirectoryUri = grantedUri;
-    if (grantedName !== APP_DOWNLOADS_FOLDER_NAME) {
-      try {
-        const children = await saf.readDirectoryAsync(grantedUri);
-        const existingAppFolder = children.find(
-          (childUri) => getSafDirectoryName(childUri) === APP_DOWNLOADS_FOLDER_NAME
-        );
-        if (existingAppFolder) {
-          finalDirectoryUri = existingAppFolder;
-        } else {
-          finalDirectoryUri = await saf.makeDirectoryAsync(
-            grantedUri,
-            APP_DOWNLOADS_FOLDER_NAME
-          );
-        }
-      } catch {
-        finalDirectoryUri = grantedUri;
-      }
-    }
-
-    downloadDirectoryUriRef.current = finalDirectoryUri;
-    await SecureStore.setItemAsync(DOWNLOAD_DIR_URI_KEY, finalDirectoryUri);
-    return finalDirectoryUri;
-  }, []);
-
-  const saveFileToAndroidStorage = useCallback(async (
-    localUri: string,
-    fileName: string,
-    mimeType: string
-  ) => {
-    const saf = FileSystem.StorageAccessFramework;
-    const directoryUri = await resolveAndroidDownloadDirectoryUri();
-
-    const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const dotIndex = safeFileName.lastIndexOf('.');
-    const baseName = dotIndex > 0 ? safeFileName.slice(0, dotIndex) : safeFileName;
-    const extension = dotIndex > 0 ? safeFileName.slice(dotIndex) : '';
-
-    let destinationUri: string;
-    try {
-      destinationUri = await saf.createFileAsync(
-        directoryUri,
-        safeFileName,
-        mimeType
-      );
-    } catch {
-      destinationUri = await saf.createFileAsync(
-        directoryUri,
-        `${baseName}-${Date.now()}${extension}`,
-        mimeType
-      );
-    }
-
-    try {
-      await saf.copyAsync({
-        from: localUri,
-        to: destinationUri,
-      });
-    } catch {
-      // Fallback for devices where SAF copy can be flaky.
-      const base64 = await FileSystem.readAsStringAsync(localUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      await saf.writeAsStringAsync(destinationUri, base64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-    }
-  }, [resolveAndroidDownloadDirectoryUri]);
-
-  const handleOpenWith = useCallback(async (message: ThreadMessage) => {
-    const { fileUrl, fileName } = message;
-    if (!fileUrl) return;
-
-    try {
-      const name = (fileName || fileUrl.split('/').pop() || 'attachment').replace(/[^a-zA-Z0-9.]/g, '_');
-      const fileUri = FileSystem.cacheDirectory + name;
-
-      // Check if file exists in cache first to be fast
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      let localUri = fileUri;
-
-      if (!fileInfo.exists) {
-        // Download if not in cache
-        const downloadResult = await FileSystem.downloadAsync(fileUrl, fileUri);
-        if (downloadResult.status !== 200) {
-          throw new Error('Failed to download file for opening');
-        }
-        localUri = downloadResult.uri;
-      }
-
-      if (Platform.OS === 'android') {
-        const contentUri = await FileSystem.getContentUriAsync(localUri);
-        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-          data: contentUri,
-          flags: 1,
-          type: getMimeType(fileName),
-        });
-      } else {
-        // On iOS, Sharing.shareAsync provides the "Open in..." options
-        await Sharing.shareAsync(localUri);
-      }
-    } catch (err) {
-      // console.error('Open with error:', err);
-      Alert.alert('Error', 'Unable to open file. Please try downloading it first.');
-    }
-  }, [getMimeType]);
-
   const clearDownloadState = useCallback((messageId: string) => {
     delete activeDownloadTasksRef.current[messageId];
     canceledDownloadIdsRef.current.delete(messageId);
@@ -2385,32 +2267,12 @@ export default function ChatThreadScreen() {
             }
           }
         } else {
-          if (Platform.OS === 'android') {
-            await saveFileToAndroidStorage(
-              downloadResult.uri,
-              name,
-              getMimeType(fileName)
-            );
-            await handleOpenWith({
-              ...message,
-              fileUrl: downloadResult.uri,
-              fileName: name,
-            });
-            Alert.alert(
-              'Download Complete',
-              `Saved to:\n${APP_DOWNLOADS_FOLDER_NAME} folder\n\nFile: ${name}`
-            );
-          } else {
-            // iOS fallback uses system "Save to Files" sheet.
-            const isSharingAvailable = await Sharing.isAvailableAsync();
-            if (!isSharingAvailable) {
-              Alert.alert('Sharing', 'Sharing is not available on this device.');
-              return;
-            }
-            await Sharing.shareAsync(downloadResult.uri, {
-              dialogTitle: `Download ${fileName || 'file'}`,
-            });
-          }
+          // For non-image files, use Sharing.shareAsync which provides "Save to File" option
+          // fulfilling the user request for a system-native download popup.
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: getMimeType(fileName),
+            dialogTitle: `Save ${name}`,
+          });
         }
       }
     } catch (err) {
@@ -2418,16 +2280,10 @@ export default function ChatThreadScreen() {
       clearDownloadState(id);
       if (wasCancelled) return;
 
-      const errorMessage =
-        err instanceof Error ? err.message : '';
-      if (errorMessage === 'Folder selection cancelled') {
-        Alert.alert('Download Cancelled', 'Folder selection was cancelled.');
-      } else {
-        console.error('Download error:', err);
-        Alert.alert('Error', 'Failed to download file');
-      }
+      console.error('Download error:', err);
+      Alert.alert('Error', 'Failed to download file');
     }
-  }, [clearDownloadState, downloadProgress, getMimeType, handleOpenWith, isImageFile, saveFileToAndroidStorage]);
+  }, [clearDownloadState, downloadProgress, getMimeType, isImageFile]);
 
   const handleAttachmentPress = useCallback(
     (message: ThreadMessage) => {
@@ -2445,10 +2301,10 @@ export default function ChatThreadScreen() {
         return;
       }
 
-      // For documents/files, use "Open with" logic
-      void handleOpenWith(message);
+      // For documents/files, open the URL
+      void openAttachmentUrl(message.fileUrl);
     },
-    [isImageFile, handleOpenWith]
+    [isImageFile, openAttachmentUrl]
   );
 
   const keyExtractor = useCallback((item: ThreadMessage) => item.clientId || item.id, []);
@@ -2862,6 +2718,14 @@ export default function ChatThreadScreen() {
         visible={attachmentPopupVisible}
         onClose={() => setAttachmentPopupVisible(false)}
         onSelect={handleSelectAttachmentAction}
+        options={['gallery', 'video_library', 'document']}
+      />
+
+      <AttachmentPopup
+        visible={cameraPopupVisible}
+        onClose={() => setCameraPopupVisible(false)}
+        onSelect={handleSelectAttachmentAction}
+        options={['camera', 'video']}
       />
 
       <MessageReadInfoModal
@@ -2996,7 +2860,9 @@ export default function ChatThreadScreen() {
                   name={
                     pendingAttachment.isImage
                       ? 'image-outline'
-                      : 'document-outline'
+                      : pendingAttachment.isVideo
+                        ? 'videocam-outline'
+                        : 'document-outline'
                   }
                   size={15}
                   color={colors.textSecondary}
@@ -3027,15 +2893,15 @@ export default function ChatThreadScreen() {
                   editingMessage
                     ? 'Edit message'
                     : pendingAttachment
-                    ? 'Add a caption (optional)'
-                    : 'Type a message'
+                      ? 'Add a caption (optional)'
+                      : 'Type a message'
                 }
                 placeholderTextColor={colors.textMuted}
                 style={styles.composerInput}
                 multiline
               />
               {!editingMessage ? (
-                <Pressable style={styles.smallAction} onPress={handlePickCamera}>
+                <Pressable style={styles.smallAction} onPress={() => setCameraPopupVisible(true)}>
                   <Ionicons
                     name="camera-outline"
                     size={18}

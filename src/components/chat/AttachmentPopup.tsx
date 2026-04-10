@@ -16,7 +16,7 @@ import AppText from '../common/AppText';
 
 const { height } = Dimensions.get('window');
 
-export type AttachmentActionType = 'camera' | 'gallery' | 'document';
+export type AttachmentActionType = 'camera' | 'video' | 'video_library' | 'gallery' | 'document';
 
 interface Props {
     visible: boolean;
@@ -53,7 +53,7 @@ const AttachmentAction = ({
     </Pressable>
 );
 
-export default function AttachmentPopup({ visible, onClose, onSelect, options = ['camera', 'gallery', 'document'] }: Props) {
+export default function AttachmentPopup({ visible, onClose, onSelect, options = ['camera', 'video', 'gallery', 'document'] }: Props) {
     const translateY = useRef(new Animated.Value(height)).current;
     const opacity = useRef(new Animated.Value(0)).current;
 
@@ -119,6 +119,22 @@ export default function AttachmentPopup({ visible, onClose, onSelect, options = 
                             label="Camera"
                             color={colors.primary}
                             onPress={() => handleSelect('camera')}
+                        />
+                    )}
+                    {options.includes('video') && (
+                        <AttachmentAction
+                            icon="videocam"
+                            label="Video"
+                            color={colors.danger}
+                            onPress={() => handleSelect('video')}
+                        />
+                    )}
+                    {options.includes('video_library') && (
+                        <AttachmentAction
+                            icon="videocam"
+                            label="Video"
+                            color={colors.danger}
+                            onPress={() => handleSelect('video_library')}
                         />
                     )}
                     {options.includes('gallery') && (

@@ -21,9 +21,6 @@ import {
 } from 'react-native';
 
 import {
-  useQueryClient,
-} from '@tanstack/react-query';
-import {
   archiveChat,
   createBatchChat,
   createChat,
@@ -56,6 +53,9 @@ import {
 import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
 import { getToken } from '@/src/utils/token';
+import {
+  useQueryClient,
+} from '@tanstack/react-query';
 
 type Nav = NativeStackNavigationProp<
   DashboardStackParamList,
@@ -684,8 +684,17 @@ export default function MessagesListScreen() {
         if (response?.status === 'success' && response.chat) {
           openExistingOrCreatedChat(response.chat as ApiChat);
         }
-      } catch {
-        // silent fail for now
+      } catch (error: any) {
+        const errorData = error?.response?.data;
+        console.log('❌ Create Chat Error:', errorData);
+
+        const errorDetail = errorData?.detail;
+        const errorMessage = errorData?.error || errorData?.message;
+        const fallbackMessage = 'Failed to create chat. Please try again.';
+
+        const displayMessage = errorDetail || errorMessage || fallbackMessage;
+
+        Alert.alert('Error', displayMessage);
       } finally {
         setIsCreatingChat(false);
       }
@@ -1160,10 +1169,10 @@ export default function MessagesListScreen() {
           </AppText>
           {chatLoadError ? (
             <Pressable
-              style={styles.retryButton}
+              style={styles.retryBtn}
               onPress={() => void refetchChats()}
             >
-              <AppText variant="caption" color={colors.primary}>
+              <AppText color={colors.primary}>
                 Retry
               </AppText>
             </Pressable>
@@ -1774,12 +1783,12 @@ const styles = StyleSheet.create({
     paddingTop: 100,
     gap: spacing.sm,
   },
-  retryButton: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.primary,
+  retryBtn: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     borderRadius: 12,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.primaryLight + '15',
   },
   modalOverlay: {
     flex: 1,

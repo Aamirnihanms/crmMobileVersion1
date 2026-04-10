@@ -314,11 +314,16 @@ export default function EditStudentScreen() {
                     }
                 },
                 onError: (err: any) => {
-                    console.log('❌ Update student error:', err?.response?.data);
-                    Alert.alert(
-                        'Error',
-                        'Failed to update student profile. Please try again.'
-                    );
+                    const errorData = err?.response?.data;
+                    console.log('❌ Update student error:', errorData);
+
+                    const errorDetail = errorData?.detail;
+                    const errorMessage = errorData?.error;
+                    const fallbackMessage = 'Failed to update student profile. Please try again.';
+
+                    const displayMessage = errorDetail || errorMessage || fallbackMessage;
+
+                    Alert.alert('Error', displayMessage);
                 },
             }
         );
