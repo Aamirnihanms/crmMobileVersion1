@@ -16,7 +16,7 @@ import {
 import { colors, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
 
-type Importance = 'NORMAL' | 'IMPORTANT' | 'URGENT';
+type Importance = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 
 export default function AddFollowUpModal({
   visible,
@@ -135,9 +135,16 @@ export default function AddFollowUpModal({
 
             <AppText style={styles.label}>Priority Level</AppText>
             <View style={styles.importanceRow}>
-              {(['NORMAL', 'IMPORTANT', 'URGENT'] as Importance[]).map((level) => {
+              {(['LOW', 'NORMAL', 'HIGH', 'URGENT'] as Importance[]).map((level) => {
                 const isActive = importance === level;
-                const activeColor = level === 'URGENT' ? colors.danger : level === 'IMPORTANT' ? colors.warning : colors.primary;
+                const activeColor =
+                  level === 'URGENT'
+                    ? colors.danger
+                    : level === 'HIGH'
+                      ? colors.warning
+                      : level === 'LOW'
+                        ? colors.info
+                        : colors.primary;
 
                 return (
                   <Pressable

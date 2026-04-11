@@ -26,7 +26,7 @@ import { getFCMToken, requestUserPermission } from './src/lib/firebaseHelper';
 import { configureNotificationChannel, showForegroundNotification } from './src/lib/notificationHelper';
 import { queryClient } from './src/lib/queryClient';
 import {
-  NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+  scheduleUnreadCountRefresh,
   setUnreadCountInCache,
 } from './src/lib/unreadCount';
 import type { DashboardStackParamList } from './src/navigation/DashboardStack';
@@ -317,9 +317,7 @@ export default function App() {
     const unsubscribe = onMessage(getMessaging(), async remoteMessage => {
       console.log('A new FCM message arrived in foreground!', JSON.stringify(remoteMessage));
       await showForegroundNotification(remoteMessage);
-      void queryClient.invalidateQueries({
-        queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
-      });
+      scheduleUnreadCountRefresh(queryClient, { minIntervalMs: 5_000, debounceMs: 300 });
     });
 
     const messaging = getMessaging();

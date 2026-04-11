@@ -93,6 +93,8 @@ const StudentCard = memo(({ student, onPress }: any) => {
   );
 });
 
+StudentCard.displayName = 'StudentCard';
+
 export default StudentCard;
 
 const styles = StyleSheet.create({

@@ -9,10 +9,13 @@ import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -40,8 +43,8 @@ import {
 import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
 import {
-  NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
   incrementUnreadCountInCache,
+  scheduleUnreadCountRefresh,
 } from '@/src/lib/unreadCount';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
 import {
@@ -548,9 +551,7 @@ export default function MessagesListScreen() {
   useEffect(() => {
     if (isFocused) {
       void refetchChats();
-      void queryClient.invalidateQueries({
-        queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
-      });
+      scheduleUnreadCountRefresh(queryClient);
     }
   }, [isFocused, queryClient, refetchChats]);
 
@@ -774,6 +775,27 @@ export default function MessagesListScreen() {
     }
   }, []);
 
+  const openGroupIconPicker = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            void handleIconPickerSelect('camera');
+          } else if (buttonIndex === 2) {
+            void handleIconPickerSelect('gallery');
+          }
+        }
+      );
+      return;
+    }
+
+    setShowIconPicker(true);
+  }, [handleIconPickerSelect]);
+
   const resetGroupModal = useCallback(() => {
     setGroupName('');
     setGroupDescription('');
@@ -944,9 +966,7 @@ export default function MessagesListScreen() {
 
       if (shouldIncrementUnread) {
         incrementUnreadCountInCache(queryClient, 1);
-        void queryClient.invalidateQueries({
-          queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
-        });
+        scheduleUnreadCountRefresh(queryClient);
       }
     },
     [currentUserId, queryClient, user?.uid]
@@ -1320,119 +1340,127 @@ export default function MessagesListScreen() {
         transparent
         onRequestClose={() => setShowNewChatModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            {isCreatingChat && (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 10, borderRadius: 16 }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <AppText style={{ marginTop: 8, color: colors.primary, fontWeight: '600' }}>Creating chat...</AppText>
-              </View>
-            )}
-            <View style={styles.modalHeaderRow}>
-              <AppText variant="subtitle">Start Conversation</AppText>
-              <Pressable onPress={() => setShowNewChatModal(false)}>
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            <View style={styles.tabsRow}>
-              {(['users', 'students', 'batches'] as RecipientTab[]).map((tab) => (
-                <Pressable
-                  key={tab}
-                  style={[
-                    styles.tabBtn,
-                    recipientTab === tab && styles.tabBtnActive,
-                  ]}
-                  onPress={() => {
-                    setRecipientTab(tab);
-                    setRecipientSearch('');
-                  }}
-                >
-                  <AppText
-                    variant="caption"
-                    color={recipientTab === tab ? colors.surface : colors.textSecondary}
-                  >
-                    {tab === 'users'
-                      ? 'Users'
-                      : tab === 'students'
-                        ? 'Students'
-                        : 'Batches'}
-                  </AppText>
+        <KeyboardAvoidingView
+          style={styles.modalKeyboard}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              {isCreatingChat && (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 10, borderRadius: 16 }]}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <AppText style={{ marginTop: 8, color: colors.primary, fontWeight: '600' }}>Creating chat...</AppText>
+                </View>
+              )}
+              <View style={styles.modalHeaderRow}>
+                <AppText variant="subtitle">Start Conversation</AppText>
+                <Pressable onPress={() => setShowNewChatModal(false)}>
+                  <Ionicons name="close" size={20} color={colors.textSecondary} />
                 </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.modalSearchRow}>
-              <Ionicons name="search" size={16} color={colors.textSecondary} />
-              <TextInput
-                value={recipientSearch}
-                onChangeText={setRecipientSearch}
-                placeholder={`Search ${recipientTab === 'users'
-                  ? 'users'
-                  : recipientTab === 'students'
-                    ? 'students'
-                    : 'batches'
-                  }`}
-                placeholderTextColor={colors.textMuted}
-                style={styles.modalSearchInput}
-              />
-            </View>
-
-            {recipientLoading ? (
-              <View style={styles.modalLoaderWrap}>
-                <ActivityIndicator color={colors.primary} />
               </View>
-            ) : (
-              <FlatList
-                data={activeRecipients}
-                keyExtractor={(item: RecipientItem, idx: number) =>
-                  String(item.uid || item.user_id || item.id || idx)
-                }
-                contentContainerStyle={styles.modalList}
-                onEndReached={loadMoreRecipients}
-                onEndReachedThreshold={0.35}
-                renderItem={({ item }: { item: RecipientItem }) => (
+
+              <View style={styles.tabsRow}>
+                {(['users', 'students', 'batches'] as RecipientTab[]).map((tab) => (
                   <Pressable
-                    style={styles.modalListRow}
-                    onPress={() =>
-                      void handleOpenRecipientChat(item, recipientTab)
-                    }
+                    key={tab}
+                    style={[
+                      styles.tabBtn,
+                      recipientTab === tab && styles.tabBtnActive,
+                    ]}
+                    onPress={() => {
+                      setRecipientTab(tab);
+                      setRecipientSearch('');
+                    }}
                   >
-                    <View style={styles.modalListAvatar}>
-                      <AppText variant="caption" color={colors.textPrimary}>
-                        {getRecipientName(item).charAt(0).toUpperCase()}
-                      </AppText>
-                    </View>
-                    <View style={styles.modalListTextWrap}>
-                      <AppText variant="subtitle" numberOfLines={1}>
-                        {getRecipientName(item)}
-                      </AppText>
-                      <AppText
-                        variant="caption"
-                        color={colors.textSecondary}
-                        numberOfLines={1}
-                      >
-                        {getRecipientSubtitle(item, recipientTab)}
-                      </AppText>
-                    </View>
+                    <AppText
+                      variant="caption"
+                      color={recipientTab === tab ? colors.surface : colors.textSecondary}
+                    >
+                      {tab === 'users'
+                        ? 'Users'
+                        : tab === 'students'
+                          ? 'Students'
+                          : 'Batches'}
+                    </AppText>
                   </Pressable>
-                )}
-                ListEmptyComponent={
-                  <View style={styles.modalEmptyWrap}>
-                    <AppText color={colors.textSecondary}>No results</AppText>
-                  </View>
-                }
-                ListFooterComponent={
-                  recipientFetchingNextPage ? (
-                    <View style={styles.modalLoaderWrap}>
-                      <ActivityIndicator color={colors.primary} />
+                ))}
+              </View>
+
+              <View style={styles.modalSearchRow}>
+                <Ionicons name="search" size={16} color={colors.textSecondary} />
+                <TextInput
+                  value={recipientSearch}
+                  onChangeText={setRecipientSearch}
+                  placeholder={`Search ${recipientTab === 'users'
+                    ? 'users'
+                    : recipientTab === 'students'
+                      ? 'students'
+                      : 'batches'
+                    }`}
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.modalSearchInput}
+                />
+              </View>
+
+              {recipientLoading ? (
+                <View style={styles.modalLoaderWrap}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : (
+                <FlatList
+                  data={activeRecipients}
+                  keyExtractor={(item: RecipientItem, idx: number) =>
+                    String(item.uid || item.user_id || item.id || idx)
+                  }
+                  style={styles.modalListView}
+                  contentContainerStyle={styles.modalList}
+                  keyboardShouldPersistTaps="handled"
+                  onEndReached={loadMoreRecipients}
+                  onEndReachedThreshold={0.35}
+                  renderItem={({ item }: { item: RecipientItem }) => (
+                    <Pressable
+                      style={styles.modalListRow}
+                      onPress={() =>
+                        void handleOpenRecipientChat(item, recipientTab)
+                      }
+                    >
+                      <View style={styles.modalListAvatar}>
+                        <AppText variant="caption" color={colors.textPrimary}>
+                          {getRecipientName(item).charAt(0).toUpperCase()}
+                        </AppText>
+                      </View>
+                      <View style={styles.modalListTextWrap}>
+                        <AppText variant="subtitle" numberOfLines={1}>
+                          {getRecipientName(item)}
+                        </AppText>
+                        <AppText
+                          variant="caption"
+                          color={colors.textSecondary}
+                          numberOfLines={1}
+                        >
+                          {getRecipientSubtitle(item, recipientTab)}
+                        </AppText>
+                      </View>
+                    </Pressable>
+                  )}
+                  ListEmptyComponent={
+                    <View style={styles.modalEmptyWrap}>
+                      <AppText color={colors.textSecondary}>No results</AppText>
                     </View>
-                  ) : null
-                }
-              />
-            )}
+                  }
+                  ListFooterComponent={
+                    recipientFetchingNextPage ? (
+                      <View style={styles.modalLoaderWrap}>
+                        <ActivityIndicator color={colors.primary} />
+                      </View>
+                    ) : null
+                  }
+                />
+              )}
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -1444,8 +1472,13 @@ export default function MessagesListScreen() {
           resetGroupModal();
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCardTall}>
+        <KeyboardAvoidingView
+          style={styles.modalKeyboard}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCardTall}>
             <View style={styles.modalHeaderRow}>
               <AppText variant="subtitle">Create Group</AppText>
               <Pressable
@@ -1473,7 +1506,7 @@ export default function MessagesListScreen() {
               style={styles.groupInput}
             />
 
-            <Pressable style={styles.iconPickerBtn} onPress={() => setShowIconPicker(true)}>
+            <Pressable style={styles.iconPickerBtn} onPress={openGroupIconPicker}>
               {groupIcon ? (
                 <>
                   <ExpoImage
@@ -1557,7 +1590,9 @@ export default function MessagesListScreen() {
                 keyExtractor={(item: ActiveUser | ChatStudent, idx: number) =>
                   String(item.uid || item.user_id || item.id || idx)
                 }
+                style={styles.modalListView}
                 contentContainerStyle={styles.modalList}
+                keyboardShouldPersistTaps="handled"
                 onEndReached={loadMoreGroupCandidates}
                 onEndReachedThreshold={0.35}
                 renderItem={({ item }: { item: ActiveUser | ChatStudent }) => {
@@ -1628,8 +1663,9 @@ export default function MessagesListScreen() {
                 {creatingGroup ? 'Creating...' : 'Create Group'}
               </AppText>
             </Pressable>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <AttachmentPopup
@@ -1795,6 +1831,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
+  modalKeyboard: {
+    flex: 1,
+  },
   modalCard: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 32,
@@ -1802,6 +1841,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
+    minHeight: 420,
+    height: '82%',
     maxHeight: '85%',
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: -10 },
@@ -1816,6 +1857,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
+    minHeight: 500,
+    height: '90%',
     maxHeight: '92%',
   },
   modalHeaderRow: {
@@ -1861,7 +1904,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalList: {
+    flexGrow: 1,
     paddingBottom: spacing.xl,
+  },
+  modalListView: {
+    flex: 1,
   },
   modalListRow: {
     flexDirection: 'row',

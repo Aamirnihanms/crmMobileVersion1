@@ -161,7 +161,7 @@ export default function LeadsListScreen() {
             No Leads Found
           </AppText>
           <AppText color={colors.textMuted} style={styles.emptySubtext}>
-            Try adjusting your filters or search query to find what you're looking for.
+            Try adjusting your filters or search query to find what you&apos;re looking for.
           </AppText>
         </View>
       ) : (

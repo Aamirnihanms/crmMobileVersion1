@@ -103,6 +103,8 @@ const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
   );
 });
 
+LeadCard.displayName = 'LeadCard';
+
 export default LeadCard;
 
 const styles = StyleSheet.create({

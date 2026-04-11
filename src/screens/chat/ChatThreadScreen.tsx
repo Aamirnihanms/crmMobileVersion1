@@ -57,11 +57,14 @@ import AppText from '@/src/components/common/AppText';
 import { useChatWebSocket, type ChatWsEvent } from '@/src/hooks/useChatWebSocket';
 import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
 import {
-  NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
   decrementUnreadCountInCache,
+  scheduleUnreadCountRefresh,
 } from '@/src/lib/unreadCount';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
-import { useInfiniteChatMessages } from '@/src/queries/chat.query';
+import {
+  getChatMessagesQueryKey,
+  useInfiniteChatMessages,
+} from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
 import { getToken } from '@/src/utils/token';
@@ -1074,7 +1077,7 @@ export default function ChatThreadScreen() {
     [isMineMessage]
   );
   const syncMessageToCache = useCallback((msg: ApiMessage) => {
-    queryClient.setQueryData(['chat-messages', chatId], (old: any) => {
+    queryClient.setQueryData(getChatMessagesQueryKey(chatId, 50), (old: any) => {
       if (!old?.pages?.length) return old;
       const newPages = [...old.pages];
       const firstPageMessages = Array.isArray(newPages[0]?.messages)
@@ -1253,9 +1256,7 @@ export default function ChatThreadScreen() {
     void markMessagesRead(chatId, unreadUids)
       .then(() => {
         decrementUnreadCountInCache(queryClient, unreadUids.length);
-        void queryClient.invalidateQueries({
-          queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
-        });
+        scheduleUnreadCountRefresh(queryClient);
       })
       .catch(() => {
         unreadUids.forEach((uid) => markedReadRef.current.delete(uid));
@@ -1335,9 +1336,7 @@ export default function ChatThreadScreen() {
         if (!isMineMessage(rawMessage)) {
           try {
             await markMessagesRead(chatId, [rawMessage.uid]);
-            void queryClient.invalidateQueries({
-              queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
-            });
+            scheduleUnreadCountRefresh(queryClient);
           } catch {
             // ignore
           }
@@ -2749,7 +2748,7 @@ export default function ChatThreadScreen() {
         keyboardDismissMode={
           Platform.OS === 'ios' ? 'interactive' : 'on-drag'
         }
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps={Platform.OS === 'ios' ? 'never' : 'handled'}
         removeClippedSubviews={Platform.OS === 'android'}
         refreshControl={
           <RefreshControl
@@ -2955,7 +2954,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
-    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border + '50',
   },

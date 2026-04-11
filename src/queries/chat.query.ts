@@ -60,6 +60,11 @@ type ChatRecipientsOptions = {
   enabled?: boolean;
 };
 
+export const getChatMessagesQueryKey = (
+  chatUid: string,
+  pageSize = 50
+) => ['chat-messages', chatUid, pageSize] as const;
+
 export const useInfiniteChatUsers = ({
   search,
   pageSize = 30,
@@ -155,7 +160,7 @@ export const useInfiniteChatMessages = (
   enabled = true
 ) => {
   return useInfiniteQuery({
-    queryKey: ['chat-messages', chatUid, pageSize],
+    queryKey: getChatMessagesQueryKey(chatUid, pageSize),
     initialPageParam: 1,
     enabled: enabled && Boolean(chatUid),
     queryFn: ({ pageParam }) =>

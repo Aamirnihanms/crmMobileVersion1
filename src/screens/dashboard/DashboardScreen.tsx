@@ -715,8 +715,11 @@ export default function DashboardScreen() {
     normalizedRole === 'superadmin' ||
     normalizedRole.includes('superuser');
 
-  const superadminQuery = useSuperadminDashboard(selectedTimeframe, isSuperAdmin);
-  const myDashboardQuery = useMyDashboard(selectedTimeframe, true);
+  const shouldFetchSuperadminDashboard = isSuperAdmin && mode === 'superadmin';
+  const shouldFetchMyDashboard = !isSuperAdmin || mode === 'my';
+
+  const superadminQuery = useSuperadminDashboard(selectedTimeframe, shouldFetchSuperadminDashboard);
+  const myDashboardQuery = useMyDashboard(selectedTimeframe, shouldFetchMyDashboard);
 
   const activeMode: DashboardMode = isSuperAdmin ? mode : 'my';
   const activeQuery = activeMode === 'superadmin' ? superadminQuery : myDashboardQuery;

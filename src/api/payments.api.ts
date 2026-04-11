@@ -135,6 +135,6 @@ export const fetchPaymentTransactionById = async (
 };
 
 export const fetchReceipt = async (transactionId: string): Promise<ReceiptData> => {
-    const res = await http.get<ReceiptResponse>(`receipt/${transactionId}/`);
+    const res = await http.get<ReceiptResponse>(`/receipt/${transactionId}/`);
     return res.data.data;
 };

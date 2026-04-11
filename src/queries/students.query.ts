@@ -109,12 +109,13 @@ export const useConvertLeadToStudent = () => {
       });
 
       /* -------------------------------- */
-      /* REFRESH LEAD DETAILS */
+      /* LEAD DETAILS NO LONGER EXISTS */
       /* -------------------------------- */
 
       if (variables?.lead_id) {
-        queryClient.invalidateQueries({
+        queryClient.removeQueries({
           queryKey: ['lead', variables.lead_id],
+          exact: true,
         });
       }
     },

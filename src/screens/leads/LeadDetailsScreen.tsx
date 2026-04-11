@@ -53,37 +53,36 @@ export default function LeadDetailsScreen() {
       onSuccess: (data: any) => {
         setOpenConvert(false);
 
-        const studentId = data?.data?.student?.student_id;
+        const student = data?.data?.student;
+        const studentId =
+          student?.uid || student?.student_id || student?.id;
+
         if (!studentId) return;
 
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 1,
-            routes: [
-              {
-                name: 'Leads',
-                state: {
-                  routes: [
-                    {
-                      name: 'LeadsList', // 👈 VERY IMPORTANT
-                    },
-                  ],
+        // Reset root to Students stack with list->details history so back button appears.
+        const parentNavigation = navigation.getParent<any>();
+        if (parentNavigation) {
+          parentNavigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [
+                {
+                  name: 'Students',
+                  state: {
+                    index: 1,
+                    routes: [
+                      { name: 'StudentsList' },
+                      {
+                        name: 'StudentDetails',
+                        params: { id: studentId },
+                      },
+                    ],
+                  },
                 },
-              },
-              {
-                name: 'Students',
-                state: {
-                  routes: [
-                    {
-                      name: 'StudentDetails',
-                      params: { id: studentId },
-                    },
-                  ],
-                },
-              },
-            ],
-          })
-        );
+              ],
+            })
+          );
+        }
       },
     });
   };
@@ -136,13 +135,15 @@ export default function LeadDetailsScreen() {
       <LeadDetailsTabs leadId={id} />
 
       {/* ✅ CONVERT MODAL */}
-      <ConvertLeadModalPro
-        visible={openConvert}
-        onClose={() => setOpenConvert(false)}
-        lead={data}
-        onSubmit={handleConvertSubmit}
-        loading={convertMutation.isPending}
-      />
+      {openConvert ? (
+        <ConvertLeadModalPro
+          visible={openConvert}
+          onClose={() => setOpenConvert(false)}
+          lead={data}
+          onSubmit={handleConvertSubmit}
+          loading={convertMutation.isPending}
+        />
+      ) : null}
     </View>
   );
 }

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
@@ -15,6 +16,7 @@ import {
 import { useNotificationsUnreadCount } from '@/src/queries/notifications.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
+import { scheduleUnreadCountRefresh } from '../lib/unreadCount';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
@@ -84,7 +86,8 @@ function HeaderIconButton({
 export default function DashboardStack() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const authUser = useAuthStore((s) => s.user);
-  const { data, refetch } = useNotificationsUnreadCount(isLoggedIn);
+  const queryClient = useQueryClient();
+  const { data } = useNotificationsUnreadCount(isLoggedIn);
   const unreadCount = data?.unread_count ?? 0;
   const avatarUri =
     typeof authUser?.profile_picture === 'string' &&
@@ -100,8 +103,8 @@ export default function DashboardStack() {
   useFocusEffect(
     useCallback(() => {
       if (!isLoggedIn) return;
-      void refetch();
-    }, [isLoggedIn, refetch])
+      scheduleUnreadCountRefresh(queryClient, { minIntervalMs: 3_000, debounceMs: 100 });
+    }, [isLoggedIn, queryClient])
   );
 
   return (
@@ -141,26 +144,31 @@ export default function DashboardStack() {
           ),
           headerRight: () => (
             <Pressable
-              style={styles.profileButton}
+              style={({ pressed }) => [
+                styles.profileButton,
+                pressed && styles.pressed,
+              ]}
               onPress={() => {
                 const parentNav = navigation.getParent() as any;
                 parentNav?.navigate('More');
               }}
             >
-              <View style={styles.avatar}>
-                {avatarUri && !avatarLoadFailed ? (
-                  <Image
-                    source={{ uri: avatarUri }}
-                    style={styles.avatarImage}
-                    onError={() => setAvatarLoadFailed(true)}
-                  />
-                ) : (
-                  <Ionicons
-                    name="person"
-                    size={18}
-                    color={colors.primary}
-                  />
-                )}
+              <View style={styles.avatarShell}>
+                <View style={styles.avatarClip}>
+                  {avatarUri && !avatarLoadFailed ? (
+                    <Image
+                      source={{ uri: avatarUri }}
+                      style={styles.avatarImage}
+                      onError={() => setAvatarLoadFailed(true)}
+                    />
+                  ) : (
+                    <Ionicons
+                      name="person"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  )}
+                </View>
               </View>
             </Pressable>
           ),
@@ -206,7 +214,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingLeft: spacing.sm,
   },
   iconButton: {
     width: 40,
@@ -216,7 +223,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surface,
     position: 'relative',
-    shadowColor: colors.textPrimary,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -230,7 +239,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.danger,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.surface,
   },
   countBadge: {
@@ -244,7 +253,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.danger,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.surface,
   },
   countBadgeText: {
@@ -253,22 +262,29 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   profileButton: {
-    paddingRight: spacing.sm,
+    paddingRight: 0,
   },
-  avatar: {
+  avatarShell: {
     width: 40,
     height: 40,
+    borderRadius: 12,
+    padding: 0,
+    backgroundColor: colors.surface,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  avatarClip: {
+    width: '100%',
+    height: '100%',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primaryLight,
-    borderWidth: 1.5,
-    borderColor: colors.surface,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
     overflow: 'hidden',
   },
   avatarImage: {

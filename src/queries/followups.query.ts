@@ -1,13 +1,11 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { fetchLeadFollowUps } from '../api/followups.api';
-
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   createLeadFollowUp,
+  fetchLeadFollowUps,
+  updateFollowUpStatus,
   type CreateFollowUpPayload,
+  type FollowUpImportance,
 } from '../api/followups.api';
-
-import { updateFollowUpStatus } from '../api/followups.api';
 
 // Follow-ups
 export const useInfiniteLeadFollowUps = (leadId: string) => {
@@ -105,10 +103,10 @@ export type UpdateFollowUpPayload = {
   status: 'completed' | 'postponed' | 'canceled';
   lead: string;
   notes: string;
-  importance: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  importance: FollowUpImportance;
   next_follow_up_date: string;
 
-  follow_up_methods?: Array<'phone' | 'whatsapp'>;
+  follow_up_methods?: ('phone' | 'whatsapp')[];
   call_duration?: string;
   whatsapp_message?: string;
   remark?: string;
@@ -158,4 +156,3 @@ export const useUpdateFollowUpStatus = (leadId: string) => {
     },
   });
 };
-

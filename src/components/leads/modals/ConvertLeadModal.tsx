@@ -41,8 +41,8 @@ export default function ConvertLeadModalPro({
     payment_method: null,
   });
 
-  const { data: courses = [], error: coursesError } = useCourses();
-  const { data: batches = [], error: batchesError } = useBatches(form.course_id);
+  const { data: courses = [], error: coursesError } = useCourses(visible);
+  const { data: batches = [], error: batchesError } = useBatches(form.course_id, visible);
 
   const getErrorMessage = (err: any) => {
     if (!err) return undefined;

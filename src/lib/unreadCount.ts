@@ -5,6 +5,11 @@ export const NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY = [
   'unread-count',
 ] as const;
 
+const unreadRefreshState = new WeakMap<
+  QueryClient,
+  { timer: ReturnType<typeof setTimeout> | null; lastInvalidatedAt: number }
+>();
+
 type UnreadCountCache = {
   unread_count: number;
 };
@@ -61,4 +66,47 @@ export const decrementUnreadCountInCache = (
 
   const current = getUnreadCountFromCache(queryClient);
   setUnreadCountInCache(queryClient, Math.max(0, current - safeAmount));
+};
+
+export const scheduleUnreadCountRefresh = (
+  queryClient: QueryClient,
+  options?: {
+    minIntervalMs?: number;
+    debounceMs?: number;
+  }
+) => {
+  const minIntervalMs = Math.max(0, options?.minIntervalMs ?? 12_000);
+  const debounceMs = Math.max(0, options?.debounceMs ?? 800);
+  const now = Date.now();
+
+  const existingState =
+    unreadRefreshState.get(queryClient) ?? {
+      timer: null,
+      lastInvalidatedAt: 0,
+    };
+
+  const run = () => {
+    existingState.timer = null;
+    existingState.lastInvalidatedAt = Date.now();
+    void queryClient.invalidateQueries({
+      queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+    });
+  };
+
+  const elapsed = now - existingState.lastInvalidatedAt;
+  if (!existingState.timer && elapsed >= minIntervalMs) {
+    unreadRefreshState.set(queryClient, existingState);
+    run();
+    return;
+  }
+
+  if (existingState.timer) {
+    clearTimeout(existingState.timer);
+  }
+
+  const remaining = Math.max(0, minIntervalMs - elapsed);
+  const waitMs = Math.max(debounceMs, remaining);
+
+  existingState.timer = setTimeout(run, waitMs);
+  unreadRefreshState.set(queryClient, existingState);
 };

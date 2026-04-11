@@ -68,7 +68,7 @@ export default function NoNetworkScreen() {
             Whoops! Offline
           </AppText>
           <AppText variant="body" color={colors.textSecondary} style={styles.description}>
-            It seems you've lost your connection. Please check your internet settings and try again.
+            It seems you&apos;ve lost your connection. Please check your internet settings and try again.
           </AppText>
 
           <View style={styles.detailsContainer}>

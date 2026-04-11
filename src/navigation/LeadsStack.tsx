@@ -11,7 +11,6 @@ export type LeadsStackParamList = {
   LeadsList: undefined;
   LeadDetails: { id: string };
   CreateLead: { id?: string } | undefined;
-  StudentDetails: { id: string }; // 👈 MUST EXIST
 };
 
 const Stack = createNativeStackNavigator<LeadsStackParamList>();

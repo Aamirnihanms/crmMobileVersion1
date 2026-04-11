@@ -19,6 +19,13 @@ export type FollowUpUser = {
   uid: string;
 };
 
+export type FollowUpImportance =
+  | 'LOW'
+  | 'NORMAL'
+  | 'HIGH'
+  | 'URGENT'
+  | 'IMPORTANT';
+
 export type FollowUp = {
   id: number;
   lead: FollowUpLeadInfo;
@@ -26,7 +33,7 @@ export type FollowUp = {
   notes: string;
   next_follow_up_date: string;
   status: 'pending' | 'completed';
-  importance: 'LOW' | 'NORMAL' | 'HIGH';
+  importance: FollowUpImportance;
   created_by: FollowUpUser;
   modified_by: FollowUpUser | null;
 };
@@ -69,7 +76,7 @@ export type CreateFollowUpPayload = {
   lead: string; // lead id
   notes: string;
   next_follow_up_date: string; // ISO
-  importance: 'IMPORTANT' | 'NORMAL' | 'URGENT';
+  importance: FollowUpImportance;
   status: 'pending' | 'completed';
 };
 
@@ -87,6 +94,23 @@ export const createLeadFollowUp = async (
 
     return res.data;
   } catch (error: any) {
+    const status = error?.response?.status;
+    const rawErrorText = JSON.stringify(error?.response?.data || '').toLowerCase();
+    const shouldRetryWithLegacyHigh =
+      status === 400 &&
+      payload.importance === 'HIGH' &&
+      rawErrorText.includes('importance');
+
+    if (shouldRetryWithLegacyHigh) {
+      const retryPayload = {
+        ...payload,
+        importance: 'IMPORTANT',
+      };
+
+      const retryRes = await http.post('/followups/', retryPayload);
+      return retryRes.data;
+    }
+
     // ❌ LOG ERROR RESPONSE (VERY IMPORTANT)
     console.error('❌ POST /followups failed');
 
@@ -107,11 +131,11 @@ export type UpdateFollowUpPayload = {
   status: 'completed' | 'postponed' | 'canceled';
   lead: string;
   notes: string;
-  importance: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  importance: FollowUpImportance;
   next_follow_up_date: string;
 
   // completed-only fields
-  follow_up_methods?: Array<'phone' | 'whatsapp'>;
+  follow_up_methods?: ('phone' | 'whatsapp')[];
   call_duration?: string;
   whatsapp_message?: string;
   remark?: string;
@@ -131,4 +155,3 @@ export const updateFollowUpStatus = async (
   console.log('✅ Follow-up updated:', res.data);
   return res.data;
 };
-

@@ -10,12 +10,12 @@ import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 export default function StudentEnrollmentsSection({
   enrollments,
 }: any) {
-  if (!enrollments?.length) return null;
-
   const navigation =
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
     >();
+
+  if (!enrollments?.length) return null;
 
   const handlePress = (e: any) => {
     navigation.navigate('EnrollmentDetails', {
