@@ -4,6 +4,7 @@ import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen
 import SetPaymentModeScreen from '../screens/students/SetPaymentModeScreen';
 import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
 import StudentsListScreen from '../screens/students/StudentsListScreen';
+import { colors } from '@/src/theme';
 
 
 const Stack = createNativeStackNavigator();
@@ -22,10 +23,16 @@ export default function StudentsStack() {
     <Stack.Navigator
       screenOptions={{
         headerShadowVisible: false,
+        headerTransparent: false,
         headerTitleStyle: {
           fontWeight: '700',
           fontSize: 17,
+          color: colors.textPrimary,
         },
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTintColor: colors.primary,
       }}
     >
       <Stack.Screen

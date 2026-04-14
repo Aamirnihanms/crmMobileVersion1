@@ -16,13 +16,26 @@ http.interceptors.request.use(async (config) => {
       return config;
     }
 
-    const token = await getToken();
+    // 1. Try getting token from in-memory store (fast & reliable on iOS)
+    let token = useAuthStore.getState().token;
+
+    // 2. Fallback to SecureStore if memory is empty but we should be logged in
+    if (!token && useAuthStore.getState().isLoggedIn) {
+      console.warn('⚠️ Token missing from memory, attempting SecureStore recovery...');
+      token = await getToken();
+      if (token) {
+        useAuthStore.getState().setToken(token);
+      }
+    }
+
     if (token) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (useAuthStore.getState().isLoggedIn) {
+      console.error(`❌ Missing Auth Token for protected route: ${config.url}`);
     }
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error('❌ Interceptor Auth Error:', err);
   }
   return config;
 }, (error) => {

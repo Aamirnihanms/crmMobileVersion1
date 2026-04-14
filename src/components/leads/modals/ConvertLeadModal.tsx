@@ -24,6 +24,7 @@ type Props = {
   lead: any; // LeadDetails object
   onSubmit: (payload: any) => void;
   loading?: boolean;
+  error?: any;
 };
 
 export default function ConvertLeadModalPro({
@@ -32,6 +33,7 @@ export default function ConvertLeadModalPro({
   lead,
   onSubmit,
   loading = false,
+  error,
 }: Props) {
   const [form, setForm] = useState<any>({
     course_id: null,
@@ -80,6 +82,16 @@ export default function ConvertLeadModalPro({
     { label: 'Bank Transfer', value: 'bank' },
   ];
 
+  const apiError = useMemo(() => {
+    if (!error) return null;
+    const data = error?.response?.data;
+    return {
+      message: data?.message || data?.error || error?.message || 'Something went wrong',
+      suggestion: data?.suggestion,
+      code: data?.error_code,
+    };
+  }, [error]);
+
   const handleSubmit = () => {
     if (
       !form.course_id ||
@@ -92,6 +104,10 @@ export default function ConvertLeadModalPro({
       return;
     }
 
+    // Find the selected batch to get admission_fees
+    const selectedBatch = batches.find((b: any) => b.uid === form.batch_uid);
+    const payment_amount = selectedBatch?.admission_fees || 0;
+
     const payload = {
       lead_id: lead?.id,
       course_id: form.course_id,
@@ -99,8 +115,10 @@ export default function ConvertLeadModalPro({
       attendance_mode: form.attendance_mode,
       preferred_location: form.preferred_location,
       payment_method: form.payment_method,
+      payment_amount: payment_amount,
     };
 
+    console.log('📦 Conversion Modal Payload Constructed:', payload);
     onSubmit(payload);
   };
 
@@ -169,6 +187,23 @@ export default function ConvertLeadModalPro({
               options={paymentMethods}
               onSelect={(v) => setForm({ ...form, payment_method: v })}
             />
+
+            {apiError && (
+              <View style={styles.errorContainer}>
+                <View style={styles.errorHeader}>
+                  <Ionicons name="alert-circle" size={20} color={colors.danger} />
+                  <AppText style={styles.errorTitle}>Enrollment Failed</AppText>
+                </View>
+                <AppText style={styles.errorMessage}>{apiError.message}</AppText>
+                {apiError.suggestion && (
+                  <View style={styles.suggestionBox}>
+                    <AppText variant="caption" style={styles.suggestionText}>
+                      💡 {apiError.suggestion}
+                    </AppText>
+                  </View>
+                )}
+              </View>
+            )}
 
             <View style={styles.footer}>
               <Pressable onPress={handleSubmit} style={{ flex: 1 }} disabled={loading}>
@@ -250,5 +285,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  errorContainer: {
+    backgroundColor: colors.danger + '10',
+    borderRadius: 16,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.danger + '30',
+  },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  errorTitle: {
+    color: colors.danger,
+    fontWeight: '700',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  errorMessage: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  suggestionBox: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  suggestionText: {
+    color: colors.textMuted,
+    fontStyle: 'italic',
   },
 });

@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
+import { Image } from 'expo-image';
 
 const StudentCard = memo(({ student, onPress }: any) => {
   const batch = student.batches?.[0]; // show latest batch
@@ -12,11 +13,20 @@ const StudentCard = memo(({ student, onPress }: any) => {
     <Pressable onPress={onPress}>
       <AppCard style={styles.card}>
         <View style={styles.header}>
-          <View style={styles.avatarPlaceholder}>
-            <AppText variant="subtitle" color={colors.primary}>
-              {student.full_name?.charAt(0) || '?'}
-            </AppText>
-          </View>
+          {student.profile_pic ? (
+            <Image
+              source={{ uri: student.profile_pic }}
+              style={styles.avatar}
+              contentFit="cover"
+              transition={200}
+            />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <AppText variant="subtitle" color={colors.primary}>
+                {student.full_name?.charAt(0) || '?'}
+              </AppText>
+            </View>
+          )}
           <View style={styles.headerContent}>
             <View style={styles.rowBetween}>
               <AppText variant="subtitle" style={styles.name}>
@@ -89,6 +99,7 @@ const StudentCard = memo(({ student, onPress }: any) => {
     prev.student.full_name === next.student.full_name &&
     prev.student.student_id === next.student.student_id &&
     prev.student.location === next.student.location &&
+    prev.student.profile_pic === next.student.profile_pic &&
     JSON.stringify(prev.student.batches?.[0]) === JSON.stringify(next.student.batches?.[0])
   );
 });
@@ -114,6 +125,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight + '30',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     marginRight: spacing.md,
   },
   headerContent: {

@@ -133,7 +133,7 @@ export const updateStudent = async (
 /* ---------------- CONVERT LEAD → STUDENT ---------------- */
 
 export const convertLeadToStudent = async (payload: any) => {
-  console.log('➡️ POST /lead-to-student-conversion', payload);
+  console.log('🚀 CONVERTING LEAD TO STUDENT:', JSON.stringify(payload, null, 2));
 
   try {
     const res = await http.post(

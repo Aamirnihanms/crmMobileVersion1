@@ -5,8 +5,10 @@ import { callNumber, openEmail, openWhatsApp } from '@/src/utils/contactActions'
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 
 export default function StudentHeader({ student }: any) {
+  const profilePic = student.profile_pic || student.dashboard_data?.personal_info?.profile_picture;
   const initials = student.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
 
   return (
@@ -20,11 +22,20 @@ export default function StudentHeader({ student }: any) {
 
       <View style={styles.content}>
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <AppText variant="h1" color={colors.primary} style={styles.avatarText}>
-              {initials}
-            </AppText>
-          </View>
+          {profilePic ? (
+            <Image
+              source={{ uri: profilePic }}
+              style={styles.avatar}
+              contentFit="cover"
+              transition={200}
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <AppText variant="h1" color={colors.primary} style={styles.avatarText}>
+                {initials}
+              </AppText>
+            </View>
+          )}
           <View style={[styles.statusDot, { backgroundColor: student.status?.color || colors.successBright }]} />
         </View>
 

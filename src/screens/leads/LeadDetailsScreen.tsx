@@ -138,10 +138,14 @@ export default function LeadDetailsScreen() {
       {openConvert ? (
         <ConvertLeadModalPro
           visible={openConvert}
-          onClose={() => setOpenConvert(false)}
+          onClose={() => {
+            setOpenConvert(false);
+            convertMutation.reset();
+          }}
           lead={data}
           onSubmit={handleConvertSubmit}
           loading={convertMutation.isPending}
+          error={convertMutation.error}
         />
       ) : null}
     </View>

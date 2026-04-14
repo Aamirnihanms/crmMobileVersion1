@@ -111,6 +111,7 @@ export default function DashboardStack() {
     <Stack.Navigator
       screenOptions={{
         headerShadowVisible: false,
+        headerTransparent: false,
         headerTitleStyle: {
           fontWeight: '800',
           fontSize: 18,
@@ -119,6 +120,7 @@ export default function DashboardStack() {
         headerStyle: {
           backgroundColor: colors.background,
         },
+        headerTintColor: colors.primary,
       }}
     >
       <Stack.Screen

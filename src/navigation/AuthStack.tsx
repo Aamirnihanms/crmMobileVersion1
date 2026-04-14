@@ -1,16 +1,25 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/auth/LoginScreen';
+import ForgotPasswordRequestScreen from '../screens/auth/ForgotPasswordRequestScreen';
+import ForgotPasswordVerifyScreen from '../screens/auth/ForgotPasswordVerifyScreen';
+import ForgotPasswordResetScreen from '../screens/auth/ForgotPasswordResetScreen';
 
-const Stack = createNativeStackNavigator();
+export type AuthStackParamList = {
+  Login: undefined;
+  ForgotPasswordRequest: undefined;
+  ForgotPasswordVerify: { email: string };
+  ForgotPasswordReset: { email: string; otp: string };
+};
+
+const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export default function AuthStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="Login"
-        component={LoginScreen}
-        options={{ headerShown: false }}
-      />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="ForgotPasswordRequest" component={ForgotPasswordRequestScreen} />
+      <Stack.Screen name="ForgotPasswordVerify" component={ForgotPasswordVerifyScreen} />
+      <Stack.Screen name="ForgotPasswordReset" component={ForgotPasswordResetScreen} />
     </Stack.Navigator>
   );
 }

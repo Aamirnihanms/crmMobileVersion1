@@ -15,6 +15,7 @@ export default function PaymentsStack() {
     <Stack.Navigator
       screenOptions={{
         headerShadowVisible: false,
+        headerTransparent: false,
         headerTitleStyle: {
           fontWeight: '800',
           fontSize: 18,
@@ -23,6 +24,7 @@ export default function PaymentsStack() {
         headerStyle: {
           backgroundColor: colors.background,
         },
+        headerTintColor: colors.primary,
       }}
     >
       <Stack.Screen

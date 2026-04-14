@@ -90,6 +90,7 @@ export default function RootNavigator() {
 
         if (!isMounted) return;
         setLoggedIn(true);
+        useAuthStore.getState().setToken(token);
 
         const persistedUser = await getAuthUser().catch(() => null);
         if (persistedUser) {

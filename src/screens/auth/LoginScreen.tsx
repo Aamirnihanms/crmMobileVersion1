@@ -1,3 +1,5 @@
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +15,8 @@ import { getFCMToken } from '../../lib/firebaseHelper';
 import { LoginPlatform } from '../../api/auth.api';
 import { mapLoginUserToStoredUser } from '../../utils/authUser';
 
+import { AuthStackParamList } from '../../navigation/AuthStack';
+
 const getLoginPlatform = (): LoginPlatform => {
   if (Platform.OS === 'android') return 'android';
   if (Platform.OS === 'ios') return 'ios';
@@ -24,6 +28,7 @@ const logo = require('../../../assets/images/logo.png');
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   useSystemBarsStyle();
 
   const [email, setEmail] = useState('');
@@ -49,6 +54,7 @@ export default function LoginScreen() {
           const normalizedUser = mapLoginUserToStoredUser(data.user);
           await saveToken(data.access);
           await saveAuthUser(normalizedUser);
+          useAuthStore.getState().setToken(data.access);
           setUser(normalizedUser);
           setLoggedIn(true);
         },
@@ -114,7 +120,10 @@ export default function LoginScreen() {
                 secureTextEntry
               />
 
-              <TouchableOpacity style={styles.forgotPassword}>
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={() => navigation.navigate('ForgotPasswordRequest')}
+              >
                 <AppText variant="caption" color={colors.primary} style={styles.forgotText}>
                   Forgot Password?
                 </AppText>
@@ -133,17 +142,6 @@ export default function LoginScreen() {
                 </AppText>
               )}
             </View>
-          </View>
-
-          <View style={styles.footer}>
-            <AppText variant="body" color={colors.textSecondary}>
-              {"Don't have an account? "}
-            </AppText>
-            <TouchableOpacity>
-              <AppText variant="body" color={colors.primary} style={styles.signUpText}>
-                Sign Up
-              </AppText>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -249,16 +247,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 15,
     elevation: 8,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.xl,
-    paddingVertical: spacing.lg,
-  },
-  signUpText: {
-    fontWeight: '700',
   },
   errorText: {
     textAlign: 'center',

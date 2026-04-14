@@ -22,9 +22,9 @@ import { useStudentsFilters } from '@/src/hooks/useStudentsFilters';
 import { colors, spacing } from '@/src/theme';
 
 import type { StudentsPageResponse } from '@/src/api/students.api';
+import ShareLinkModal from '@/src/components/students/ShareLinkModal';
 import { useInfiniteStudents } from '@/src/queries/students.query';
 import { getUserIdFromToken } from '@/src/utils/token';
-import ShareLinkModal from '@/src/components/students/ShareLinkModal';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -113,7 +113,7 @@ export default function StudentsListScreen() {
     const errorDetail = (error as any)?.response?.data?.detail;
     const errorMessage = (error as any)?.response?.data?.error;
     const fallbackMessage = (error as Error)?.message || 'Failed to load students';
-    
+
     // Display detail if available, otherwise specific error, otherwise generic message
     const displayMessage = errorDetail || errorMessage || fallbackMessage;
 

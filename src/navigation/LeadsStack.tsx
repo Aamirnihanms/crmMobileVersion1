@@ -20,10 +20,16 @@ export default function LeadsStack() {
     <Stack.Navigator
       screenOptions={{
         headerShadowVisible: false,
+        headerTransparent: false,
         headerTitleStyle: {
           fontWeight: '700',
           fontSize: 17,
+          color: colors.textPrimary,
         },
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTintColor: colors.primary,
       }}
     >
       <Stack.Screen

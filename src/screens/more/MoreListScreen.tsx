@@ -108,8 +108,41 @@ export default function MoreListScreen() {
                         icon="shield-checkmark-outline"
                         label="Security"
                         sublabel="Password & authentication"
-                        onPress={() => { }}
+                        onPress={() => navigation.navigate('ChangePassword')}
                         color={colors.success}
+                        isLast
+                    />
+                </AppCard>
+
+                <AppText variant="h3" style={styles.sectionTitle}>Management</AppText>
+                <AppCard style={styles.menuCard}>
+                    <MenuItem
+                        icon="layers-outline"
+                        label="Batch"
+                        sublabel="Manage training batches"
+                        onPress={() => navigation.navigate('BatchList')}
+                        color={colors.primary}
+                    />
+                    <MenuItem
+                        icon="git-pull-request-outline"
+                        label="Batch Change Request"
+                        sublabel="Review batch transfers"
+                        onPress={() => { }}
+                        color={colors.warning}
+                    />
+                    <MenuItem
+                        icon="people-outline"
+                        label="Users"
+                        sublabel="Manage staff access"
+                        onPress={() => { }}
+                        color={colors.info}
+                    />
+                    <MenuItem
+                        icon="key-outline"
+                        label="Role"
+                        sublabel="Permissions & access levels"
+                        onPress={() => { }}
+                        color={colors.danger}
                         isLast
                     />
                 </AppCard>

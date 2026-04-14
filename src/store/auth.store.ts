@@ -18,18 +18,22 @@ type AuthUser = {
 type AuthState = {
   isLoggedIn: boolean;
   user: AuthUser | null;
+  token: string | null;
   setLoggedIn: (v: boolean) => void;
   setUser: (user: AuthUser | null) => void;
+  setToken: (token: string | null) => void;
   logout: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
   isLoggedIn: false,
   user: null,
+  token: null,
   setLoggedIn: (v) => set({ isLoggedIn: v }),
   setUser: (user) => set({ user }),
+  setToken: (token) => set({ token }),
   logout: async () => {
     await Promise.all([deleteToken(), deleteAuthUser()]);
-    set({ isLoggedIn: false, user: null });
+    set({ isLoggedIn: false, user: null, token: null });
   },
 }));

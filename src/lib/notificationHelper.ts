@@ -32,6 +32,13 @@ export async function configureNotificationChannel() {
 export async function showForegroundNotification(
   remoteMessage: FirebaseMessagingTypes.RemoteMessage,
 ) {
+  // On iOS, expo-notifications' setNotificationHandler (or APNs itself)
+  // automatically displays the remote notification banner in the foreground.
+  // Showing a local notification manually here causes a duplicate.
+  if (Platform.OS === 'ios') {
+    return;
+  }
+
   const title = remoteMessage.notification?.title ?? 'New notification';
   const body = remoteMessage.notification?.body ?? '';
 
