@@ -1,13 +1,24 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { CHAT_UNREAD_COUNT_QUERY_KEY } from '../lib/unreadCount';
 import {
   getAllActiveUsers,
   getChatBatches,
   getChatList,
   getChatStudents,
+  getChatUnreadCount,
   getMessage,
   type ChatListParams,
   type ChatType,
 } from '../api/chat.api';
+
+export const useChatUnreadCount = (enabled = true) => {
+  return useQuery({
+    queryKey: CHAT_UNREAD_COUNT_QUERY_KEY,
+    queryFn: getChatUnreadCount,
+    enabled,
+    staleTime: 30 * 1000,
+  });
+};
 
 type ChatListInfiniteOptions = {
   search?: string;

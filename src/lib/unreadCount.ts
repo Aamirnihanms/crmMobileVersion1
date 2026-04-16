@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-export const NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY = [
-  'notifications',
+export const CHAT_UNREAD_COUNT_QUERY_KEY = [
+  'chat',
   'unread-count',
 ] as const;
 
@@ -29,7 +29,7 @@ const toUnreadCount = (value: unknown) => {
 
 export const getUnreadCountFromCache = (queryClient: QueryClient) => {
   const current = queryClient.getQueryData<UnreadCountCache>(
-    NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY
+    CHAT_UNREAD_COUNT_QUERY_KEY
   );
   return toUnreadCount(current?.unread_count);
 };
@@ -39,7 +39,7 @@ export const setUnreadCountInCache = (
   unreadCount: number
 ) => {
   queryClient.setQueryData<UnreadCountCache>(
-    NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+    CHAT_UNREAD_COUNT_QUERY_KEY,
     {
       unread_count: toUnreadCount(unreadCount),
     }
@@ -89,7 +89,7 @@ export const scheduleUnreadCountRefresh = (
     existingState.timer = null;
     existingState.lastInvalidatedAt = Date.now();
     void queryClient.invalidateQueries({
-      queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
+      queryKey: CHAT_UNREAD_COUNT_QUERY_KEY,
     });
   };
 

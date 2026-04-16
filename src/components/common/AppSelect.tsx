@@ -39,8 +39,8 @@ export type SelectPageResponse = {
 type Props = {
   label: string;
   value?: string | number;
-  options: Option[];
-  onSelect: (value: any) => void;
+  options?: Option[];
+  onSelect: (value: any, item?: any) => void;
   placeholder?: string;
   fetchOptions?: (
     params: SelectPageParams
@@ -53,7 +53,7 @@ type Props = {
 export default function AppSelect({
   label,
   value,
-  options,
+  options = [],
   onSelect,
   placeholder = 'Select',
   fetchOptions,
@@ -129,7 +129,8 @@ export default function AppSelect({
     displayOptions.find(
       o => String(o.value) === String(value)
     ) ||
-    options.find(o => String(o.value) === String(value));
+    options?.find(o => String(o.value) === String(value));
+
 
   const filteredOptions = React.useMemo(() => {
     if (remoteMode) return displayOptions;
@@ -238,7 +239,7 @@ export default function AppSelect({
                 <Pressable
                   style={[styles.option, active && styles.optionActive]}
                   onPress={() => {
-                    onSelect(item.value);
+                    onSelect(item.value, item);
                     closeSheet();
                   }}
                 >

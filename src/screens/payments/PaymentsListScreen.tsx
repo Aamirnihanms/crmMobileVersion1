@@ -20,6 +20,8 @@ import { colors, spacing } from '@/src/theme';
 import { PaymentsStackParamList } from '@/src/navigation/PaymentsStack';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { usePaymentsFilters } from '@/src/hooks/usePaymentsFilters';
+import PaymentsFilterModal from '@/src/components/payments/PaymentsFilterModal';
 
 function PaymentItem({
     transaction,
@@ -82,6 +84,10 @@ export default function PaymentsListScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<PaymentsStackParamList>>();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [filterVisible, setFilterVisible] = useState(false);
+    const { filters, setAllFilters } = usePaymentsFilters();
+
+    const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -100,7 +106,7 @@ export default function PaymentsListScreen() {
         isFetchingNextPage,
         refetch,
         isRefetching,
-    } = useInfinitePaymentTransactions(debouncedSearch);
+    } = useInfinitePaymentTransactions(debouncedSearch, filters);
 
     const transactions = data?.pages.flatMap((page) => page.results) ?? [];
     const totalCount = data?.pages[0]?.access_control?.total_accessible_transactions ?? 0;
@@ -131,6 +137,23 @@ export default function PaymentsListScreen() {
                             containerStyle={styles.searchContainer}
                         />
                     </View>
+                    <Pressable
+                        style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+                        onPress={() => setFilterVisible(true)}
+                    >
+                        <Ionicons
+                            name="options-outline"
+                            size={20}
+                            color={activeFilterCount > 0 ? colors.primary : colors.textPrimary}
+                        />
+                        {activeFilterCount > 0 && (
+                            <View style={styles.filterBadge}>
+                                <AppText variant="caption" style={styles.filterBadgeText}>
+                                    {activeFilterCount}
+                                </AppText>
+                            </View>
+                        )}
+                    </Pressable>
                 </View>
             </View>
 
@@ -200,6 +223,12 @@ export default function PaymentsListScreen() {
                 }
                 contentContainerStyle={styles.listContent}
             />
+            <PaymentsFilterModal
+                visible={filterVisible}
+                onClose={() => setFilterVisible(false)}
+                filters={filters}
+                setAllFilters={setAllFilters}
+            />
         </View>
     );
 }
@@ -248,6 +277,40 @@ const styles = StyleSheet.create({
     searchInput: {
         height: 48,
         fontSize: 15,
+    },
+    filterBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        backgroundColor: colors.primaryLight + '10',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.primaryLight + '20',
+        position: 'relative',
+    },
+    filterBtnActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.primaryLight + '15',
+    },
+    filterBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: colors.primary,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.background,
+        paddingHorizontal: 4,
+    },
+    filterBadgeText: {
+        color: colors.surface,
+        fontSize: 10,
+        fontWeight: '800',
     },
     center: {
         flex: 1,

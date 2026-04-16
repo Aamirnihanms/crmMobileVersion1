@@ -1,16 +1,18 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
 import { fetchPaymentTransactionById, fetchPaymentTransactions, fetchReceipt } from '../api/payments.api';
+import type { PaymentFilters } from '../api/payments.api';
 
 export const useInfinitePaymentTransactions = (
     search: string,
+    filters?: PaymentFilters,
     pageSize = 20
 ) => {
     return useInfiniteQuery({
-        queryKey: ['payment-transactions', search],
+        queryKey: ['payment-transactions', search, filters],
         initialPageParam: 1,
 
         queryFn: ({ pageParam }) =>
-            fetchPaymentTransactions(pageParam, pageSize, search),
+            fetchPaymentTransactions(pageParam, pageSize, search, filters),
 
         getNextPageParam: (lastPage, allPages) => {
             if (!lastPage.next) return undefined;

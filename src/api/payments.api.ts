@@ -111,18 +111,38 @@ export type ReceiptResponse = {
     data: ReceiptData;
 };
 
+export type PaymentFilters = {
+    course?: string | null;
+    batch?: string | null;
+    counselor_id?: string | null;
+    status?: string | null;
+};
+
 export const fetchPaymentTransactions = async (
     page: number,
     pageSize = 20,
-    search = ''
+    search = '',
+    filters?: PaymentFilters
 ): Promise<PaymentTransactionsResponse> => {
-    const res = await http.get('/payment-transactions/', {
-        params: {
-            page,
-            page_size: pageSize,
-            search: search || undefined,
-        },
-    });
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('page_size', pageSize.toString());
+    if (search) params.append('search', search);
+
+    if (filters?.course) {
+        filters.course.split(',').forEach(id => params.append('course', id));
+    }
+    if (filters?.batch) {
+        filters.batch.split(',').forEach(id => params.append('batch', id));
+    }
+    if (filters?.counselor_id) {
+        filters.counselor_id.split(',').forEach(id => params.append('counselor_id', id));
+    }
+    if (filters?.status) {
+        filters.status.split(',').forEach(status => params.append('status', status));
+    }
+
+    const res = await http.get(`/payment-transactions/?${params.toString()}`);
 
     return res.data;
 };

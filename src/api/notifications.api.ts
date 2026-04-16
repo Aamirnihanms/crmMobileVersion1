@@ -1,34 +1,51 @@
 import { http } from './http';
 
-export type NotificationsUnreadCountResponse = {
-  status?: string;
-  total_unread_count?: number | string | null;
-  unread_count?: number | string | null;
-  [key: string]: unknown;
+
+export type Notification = {
+  uid: string;
+  title: string;
+  message: string;
+  link: string;
+  created_at: string;
+  is_read: boolean;
+  read_at: string | null;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW' | string;
 };
 
-const toUnreadCount = (value: unknown) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.max(0, Math.floor(value));
-  }
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return Math.max(0, Math.floor(parsed));
-    }
-  }
-  return 0;
+export type NotificationsPageResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Notification[];
+};
+
+export type NotificationsUnreadCountResponse = {
+  unread_count: number;
 };
 
 export const getNotificationsUnreadCount = async () => {
   const res = await http.get<NotificationsUnreadCountResponse>(
-    '/chats/unread-count/'
+    '/notifications/unread_count/'
   );
-  console.log('Unread count API response:', res.data);
-
-  return {
-    unread_count: toUnreadCount(
-      res.data?.total_unread_count ?? res.data?.unread_count
-    ),
-  };
+  return res.data;
 };
+
+export const markAllNotificationsRead = async () => {
+  const res = await http.post('/notifications/mark_all_read/', {});
+  return res.data;
+};
+
+export const fetchNotifications = async (
+  page: number,
+  pageSize = 10
+): Promise<NotificationsPageResponse> => {
+  console.log('➡️ GET /notifications/ page:', page);
+  const res = await http.get<NotificationsPageResponse>('/notifications/', {
+    params: {
+      page,
+      page_size: pageSize,
+    },
+  });
+  return res.data;
+};
+

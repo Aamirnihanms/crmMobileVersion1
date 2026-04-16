@@ -4,55 +4,23 @@ import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { InfiniteData } from '@tanstack/react-query';
 
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
-import BatchCard from '../../components/cards/BatchCard';
+import BatchChangeRequestCard from '../../components/cards/BatchChangeRequestCard';
 import { colors, spacing } from '@/src/theme';
-import { useInfiniteBatches } from '../../queries/batches.query';
-import type { BatchesPageResponse } from '../../api/batches.api';
-
-/* 🔥 ENTERPRISE FILTERS */
-import BatchesFilterModal from '../../components/batches/BatchesFilterModal';
-import { useBatchesFilters } from '../../hooks/useBatchesFilters';
+import { useBatchChangeRequests } from '../../queries/batch-change.query';
 import { MoreStackParamList } from '../../navigation/MoreStack';
+import type { BatchChangeRequest } from '../../api/batch-change.api';
 
-export default function BatchListScreen() {
+export default function BatchChangeRequestListScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    
-    /* ---------------- FILTERS ---------------- */
-    const { filters, setAllFilters } = useBatchesFilters();
-    const [openFilter, setOpenFilter] = useState(false);
-    const activeFilterCount = Object.keys(filters).filter(k => k !== 'inactive' && filters[k as keyof typeof filters]).length;
-
-    React.useLayoutEffect(() => {
-        navigation.setOptions({
-            headerRight: () => (
-                <Pressable 
-                    onPress={() => navigation.navigate('BatchCreate')}
-                    style={({ pressed }) => ({
-                        opacity: pressed ? 0.7 : 1,
-                        marginRight: 4,
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: colors.primaryLight + '15',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    })}
-                >
-                    <Ionicons name="add" size={24} color={colors.primary} />
-                </Pressable>
-            ),
-        });
-    }, [navigation]);
+    const [statusFilter, setStatusFilter] = useState('all');
 
     useEffect(() => {
-
         const timer = setTimeout(() => {
             setDebouncedSearch(search);
         }, 400);
@@ -68,37 +36,64 @@ export default function BatchListScreen() {
         isFetchingNextPage,
         refetch,
         isRefetching,
-    } = useInfiniteBatches(debouncedSearch, filters) as any;
+    } = useBatchChangeRequests({ 
+        search: debouncedSearch,
+        status: statusFilter === 'all' ? undefined : statusFilter
+    }) as any;
 
-    const batches = data?.pages.flatMap((page: BatchesPageResponse) => page.batches) ?? [];
-    const summary = data?.pages[0]?.summary;
+    const requests = data?.pages.flatMap((page: any) => page.data.requests) ?? [];
+    const summary = data?.pages[0]?.data.summary;
 
-    const renderItem = useCallback(({ item }: { item: any }) => (
-        <BatchCard 
-            batch={item} 
-            onPress={() => navigation.navigate('BatchDetail', { uid: item.uid })}
+    const renderItem = useCallback(({ item }: { item: BatchChangeRequest }) => (
+        <BatchChangeRequestCard 
+            request={item} 
+            onPress={() => {
+                navigation.navigate('BatchChangeRequestDetail', { uid: item.uid });
+            }}
         />
-    ), [navigation]);
+    ), []);
 
     const renderHeader = () => {
         if (!summary) return null;
         return (
             <View style={styles.summaryContainer}>
-                <View style={[styles.summaryItem, { backgroundColor: colors.primary + '10' }]}>
-                    <AppText variant="caption" color={colors.primary} style={{ fontWeight: '700' }}>TOTAL</AppText>
-                    <AppText variant="h3" style={{ fontWeight: '800' }}>{summary.total_batches}</AppText>
+                <View style={[styles.summaryItem, { borderColor: colors.primary + '30' }]}>
+                    <View style={[styles.summaryIcon, { backgroundColor: colors.primary + '15' }]}>
+                        <Ionicons name="layers-outline" size={14} color={colors.primary} />
+                    </View>
+                    <View style={styles.summaryTextWrapper}>
+                        <AppText variant="caption" color={colors.textMuted} style={styles.summaryLabel}>TOTAL</AppText>
+                        <AppText variant="subtitle" style={styles.summaryValue}>{summary.total_requests}</AppText>
+                    </View>
                 </View>
-                <View style={[styles.summaryItem, { backgroundColor: colors.success + '10' }]}>
-                    <AppText variant="caption" color={colors.success} style={{ fontWeight: '700' }}>ENROLLED</AppText>
-                    <AppText variant="h3" style={{ fontWeight: '800' }}>{summary.total_enrolled}</AppText>
+                <View style={[styles.summaryItem, { borderColor: colors.warning + '30' }]}>
+                    <View style={[styles.summaryIcon, { backgroundColor: colors.warning + '15' }]}>
+                        <Ionicons name="time-outline" size={14} color={colors.warning} />
+                    </View>
+                    <View style={styles.summaryTextWrapper}>
+                        <AppText variant="caption" color={colors.textMuted} style={styles.summaryLabel}>PENDING</AppText>
+                        <AppText variant="subtitle" style={styles.summaryValue}>{summary.pending_count}</AppText>
+                    </View>
                 </View>
-                <View style={[styles.summaryItem, { backgroundColor: colors.info + '10' }]}>
-                    <AppText variant="caption" color={colors.info} style={{ fontWeight: '700' }}>OPEN</AppText>
-                    <AppText variant="h3" style={{ fontWeight: '800' }}>{summary.open_batches}</AppText>
+                <View style={[styles.summaryItem, { borderColor: colors.success + '30' }]}>
+                    <View style={[styles.summaryIcon, { backgroundColor: colors.success + '15' }]}>
+                        <Ionicons name="checkmark-circle-outline" size={14} color={colors.success} />
+                    </View>
+                    <View style={styles.summaryTextWrapper}>
+                        <AppText variant="caption" color={colors.textMuted} style={styles.summaryLabel}>APPROVED</AppText>
+                        <AppText variant="subtitle" style={styles.summaryValue}>{summary.approved_count}</AppText>
+                    </View>
                 </View>
             </View>
         );
     };
+
+    const statusOptions = [
+        { label: 'All', value: 'all' },
+        { label: 'Pending', value: 'pending' },
+        { label: 'Processed', value: 'processed' },
+        { label: 'Rejected', value: 'rejected' }
+    ];
 
     return (
         <View style={styles.container}>
@@ -107,29 +102,36 @@ export default function BatchListScreen() {
                     <View style={styles.searchWrapper}>
                         <Ionicons name="search-outline" size={20} color={colors.textMuted} style={styles.searchIcon} />
                         <AppInput
-                            placeholder="Search batches..."
+                            placeholder="Search student..."
                             value={search}
                             onChangeText={setSearch}
                             style={styles.searchInput}
                             containerStyle={styles.searchContainer}
                         />
                     </View>
-                    <Pressable 
-                        style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]} 
-                        onPress={() => setOpenFilter(true)}
-                    >
-                        <Ionicons 
-                            name={activeFilterCount > 0 ? "options" : "options-outline"} 
-                            size={22} 
-                            color={activeFilterCount > 0 ? colors.primary : colors.textPrimary} 
-                        />
-                        {activeFilterCount > 0 && (
-                            <View style={styles.filterBadge}>
-                                <AppText color={colors.surface} style={styles.filterBadgeText}>{activeFilterCount}</AppText>
-                            </View>
-                        )}
-                    </Pressable>
                 </View>
+
+                <View style={styles.filterRow}>
+                    {statusOptions.map((opt) => (
+                        <Pressable 
+                            key={opt.value}
+                            onPress={() => setStatusFilter(opt.value)}
+                            style={[
+                                styles.statusTab,
+                                statusFilter === opt.value && styles.statusTabActive
+                            ]}
+                        >
+                            <AppText 
+                                variant="caption" 
+                                color={statusFilter === opt.value ? colors.primary : colors.textMuted}
+                                style={{ fontWeight: statusFilter === opt.value ? '700' : '500' }}
+                            >
+                                {opt.label}
+                            </AppText>
+                        </Pressable>
+                    ))}
+                </View>
+
                 {renderHeader()}
             </View>
 
@@ -140,24 +142,24 @@ export default function BatchListScreen() {
             ) : isError ? (
                 <View style={styles.center}>
                     <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
-                    <AppText color={colors.danger} style={styles.errorText}>Failed to load batches</AppText>
+                    <AppText color={colors.danger} style={styles.errorText}>Failed to load requests</AppText>
                     <Pressable onPress={() => refetch()} style={styles.retryBtn}>
                         <AppText color={colors.primary}>Try Again</AppText>
                     </Pressable>
                 </View>
-            ) : batches.length === 0 ? (
+            ) : requests.length === 0 ? (
                 <View style={styles.center}>
                     <View style={styles.emptyIconCircle}>
-                        <Ionicons name="layers-outline" size={40} color={colors.primary} />
+                        <Ionicons name="git-pull-request-outline" size={40} color={colors.primary} />
                     </View>
-                    <AppText variant="h3" style={styles.emptyText}>No Batches Found</AppText>
+                    <AppText variant="h3" style={styles.emptyText}>No Requests Found</AppText>
                     <AppText color={colors.textMuted} style={styles.emptySubtext}>
-                        We couldn't find any batches matching your criteria.
+                        We couldn't find any batch change requests.
                     </AppText>
                 </View>
             ) : (
                 <FlashList
-                    data={batches}
+                    data={requests}
                     keyExtractor={(item) => item.uid}
                     renderItem={renderItem}
                     contentContainerStyle={styles.list}
@@ -166,7 +168,7 @@ export default function BatchListScreen() {
                             fetchNextPage();
                         }
                     }}
-                    onEndReachedThreshold={0.3}
+                    onEndReachedThreshold={0.4}
                     ListFooterComponent={isFetchingNextPage ? <AppLoader /> : <View style={{ height: spacing.xl }} />}
                     refreshControl={
                         <RefreshControl
@@ -176,15 +178,9 @@ export default function BatchListScreen() {
                             colors={[colors.primary]}
                         />
                     }
+                    estimatedItemSize={160}
                 />
             )}
-
-            <BatchesFilterModal
-                visible={openFilter}
-                onClose={() => setOpenFilter(false)}
-                filters={filters}
-                setAllFilters={setAllFilters}
-            />
         </View>
     );
 }
@@ -228,34 +224,22 @@ const styles = StyleSheet.create({
         height: 48,
         fontSize: 15,
     },
-    filterButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        backgroundColor: colors.primaryLight + '10',
+    filterRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        marginBottom: spacing.xs,
+    },
+    statusTab: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: 8,
+        borderRadius: 12,
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: colors.primaryLight + '20',
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderColor: colors.border,
     },
-    filterButtonActive: {
+    statusTabActive: {
         borderColor: colors.primary,
-        backgroundColor: colors.primaryLight + '20',
-    },
-    filterBadge: {
-        position: 'absolute',
-        top: 6,
-        right: 6,
-        backgroundColor: colors.primary,
-        borderRadius: 8,
-        minWidth: 16,
-        height: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    filterBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
+        backgroundColor: colors.primaryLight + '10',
     },
     summaryContainer: {
         flexDirection: 'row',
@@ -264,9 +248,41 @@ const styles = StyleSheet.create({
     },
     summaryItem: {
         flex: 1,
-        padding: spacing.md,
+        padding: spacing.sm,
         borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        flexDirection: 'row',
         alignItems: 'center',
+        gap: 6,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 5,
+        elevation: 1,
+    },
+    summaryIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    summaryTextWrapper: {
+        flex: 1,
+    },
+    summaryLabel: {
+        fontWeight: '700',
+        fontSize: 8,
+        letterSpacing: 0.3,
+        marginBottom: 0,
+        textTransform: 'uppercase',
+    },
+    summaryValue: {
+        fontWeight: '800',
+        fontSize: 14,
+        color: colors.textPrimary,
+        marginTop: -2,
     },
     list: {
         padding: spacing.lg,

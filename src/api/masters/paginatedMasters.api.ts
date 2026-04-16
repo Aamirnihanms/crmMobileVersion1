@@ -192,7 +192,7 @@ export const fetchLeadSourcesPage = async (
 };
 
 export const fetchBatchesPage = (
-  params: MasterPageParams & { courseId?: number }
+  params: MasterPageParams & { courseId?: number | string }
 ) =>
   fetchMasterPage<Batch>(
     '/batch/',
@@ -217,4 +217,47 @@ export const fetchSpecializationsPage = (
     '/specializations/list/',
     ['specializations'],
     params
+  );
+
+export type Building = {
+  id: number;
+  name: string;
+  value: string;
+  location: number;
+  location_name: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type Classroom = {
+  id: number;
+  name: string;
+  value: string;
+  capacity: number;
+  location: number;
+  location_name: string;
+  building: number;
+  building_name: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export const fetchBuildingsPage = (
+  params: MasterPageParams & { location_id?: number }
+) =>
+  fetchMasterPage<Building>(
+    '/buildings/',
+    ['buildings'],
+    params,
+    { location: params.location_id || undefined }
+  );
+
+export const fetchClassroomsPage = (
+  params: MasterPageParams & { building_id?: number }
+) =>
+  fetchMasterPage<Classroom>(
+    '/classrooms/',
+    ['classrooms'],
+    params,
+    { building: params.building_id || undefined }
   );

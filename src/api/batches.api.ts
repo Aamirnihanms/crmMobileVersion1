@@ -24,6 +24,85 @@ export type Batch = {
   };
 };
 
+export type StaffMember = {
+  uid: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  whatsapp_number: string;
+  is_active: boolean;
+  id: number;
+};
+
+export type BatchDetail = Batch & {
+  description: string;
+  notes: string;
+  online_batch_capacity: string | number;
+  offline_batch_capacity: number;
+  minimum_attendance_duration: string | number;
+  certificate_enabled: boolean;
+  course_details: {
+    id: number;
+    course_name: string;
+    course_fee: string;
+    course_fee_discount: string;
+    admission_fee: string;
+    location_details: Array<{
+        id: number;
+        name: string;
+        value: string;
+    }>;
+  };
+  course_mode_details: Array<{
+    id: number;
+    name: string;
+    value: string;
+  }>;
+  location_details: {
+    id: number;
+    name: string;
+  };
+  building_details: {
+    id: number;
+    name: string;
+  };
+  classroom_details: {
+    id: number;
+    name: string;
+    capacity: number;
+  };
+  staff_summary: {
+    counselors: Array<{ uid: string; name: string; email: string }>;
+    trainers: Array<{ uid: string; name: string; email: string }>;
+    total_staff: number;
+  };
+  fee_structure: {
+    course_fees: number;
+    course_fees_discount: number;
+    admission_fees: number;
+  };
+  seat_availability: {
+    online: any;
+    offline: any;
+    total: any;
+    can_enroll_online: boolean;
+    can_enroll_offline: boolean;
+    enrollment_status: string;
+  };
+  start_date_formatted: string;
+  end_date_formatted: string;
+  duration: string;
+  sessions: any[];
+  is_enrollment_open: boolean;
+  status: string;
+};
+
+export type BatchDetailResponse = {
+  status: string;
+  batch: BatchDetail;
+};
+
+
 export type BatchesFilters = {
   location_id?: string;
   course_id?: string;
@@ -83,5 +162,23 @@ export const fetchPaginatedBatches = async (
     },
   });
 
+  return res.data;
+};
+
+export const fetchBatchDetail = async (uid: string): Promise<BatchDetailResponse> => {
+  console.log('➡️ GET batch detail:', uid);
+  const res = await http.get(`/batch/${uid}/`);
+  return res.data;
+};
+
+export const createBatch = async (payload: any): Promise<{ status: string; message?: string; batch?: any }> => {
+  console.log('➡️ POST create batch:', payload);
+  const res = await http.post('/batch/create/', payload);
+  return res.data;
+};
+
+export const updateBatch = async (uid: string, payload: any): Promise<{ status: string; message?: string; batch?: any }> => {
+  console.log('➡️ PUT update batch:', uid, payload);
+  const res = await http.put(`/batch/${uid}/`, payload);
   return res.data;
 };

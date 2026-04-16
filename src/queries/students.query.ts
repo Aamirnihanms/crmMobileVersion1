@@ -3,6 +3,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type InfiniteData,
 } from '@tanstack/react-query';
 import {
   convertLeadToStudent,
@@ -15,18 +16,19 @@ import {
 
 export const useInfiniteStudents = (
   search: string,
-  filters: StudentFilters
+  filters: StudentFilters,
+  enabled: boolean = true
 ) => {
   return useInfiniteQuery<
     StudentsPageResponse,
     Error,
-    StudentsPageResponse,
+    InfiniteData<StudentsPageResponse>,
     ['students', string, StudentFilters],
     number
   >({
     queryKey: ['students', search, filters],
     initialPageParam: 1,
-
+    enabled,
     queryFn: ({ pageParam }) =>
       fetchStudents(pageParam, 50, search, filters),
 

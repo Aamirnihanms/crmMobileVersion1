@@ -4,15 +4,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Dimensions,
   Image,
   Pressable,
   StyleSheet,
   Text,
-  View,
+  View
 } from 'react-native';
 
+import { useChatUnreadCount } from '@/src/queries/chat.query';
 import { useNotificationsUnreadCount } from '@/src/queries/notifications.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { colors, spacing } from '@/src/theme';
@@ -20,6 +20,7 @@ import { scheduleUnreadCountRefresh } from '../lib/unreadCount';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
+import NotificationListScreen from '../screens/notifications/NotificationListScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ export type DashboardStackParamList = {
     chatId: string;
     chatType: 'group' | 'batch';
   };
+  Notifications: undefined;
 };
 
 const Stack = createNativeStackNavigator<DashboardStackParamList>();
@@ -87,8 +89,10 @@ export default function DashboardStack() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const authUser = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
-  const { data } = useNotificationsUnreadCount(isLoggedIn);
-  const unreadCount = data?.unread_count ?? 0;
+  const { data: chatData } = useChatUnreadCount(isLoggedIn);
+  const { data: notificationsData } = useNotificationsUnreadCount(isLoggedIn);
+  const chatUnreadCount = chatData?.unread_count ?? 0;
+  const notificationsUnreadCount = notificationsData?.unread_count ?? 0;
   const avatarUri =
     typeof authUser?.profile_picture === 'string' &&
       authUser.profile_picture.trim().length > 0
@@ -132,14 +136,15 @@ export default function DashboardStack() {
             <View style={styles.leftActions}>
               <HeaderIconButton
                 icon="notifications-outline"
-                showDot
+                badgeCount={notificationsUnreadCount}
+                showDot={notificationsUnreadCount > 0}
                 onPress={() =>
-                  Alert.alert('Notifications', 'Coming soon')
+                  navigation.navigate('Notifications')
                 }
               />
               <HeaderIconButton
                 icon="chatbubble-ellipses-outline"
-                badgeCount={unreadCount}
+                badgeCount={chatUnreadCount}
                 onPress={() => navigation.navigate('MessagesList')}
               />
             </View>
@@ -197,6 +202,14 @@ export default function DashboardStack() {
         component={require('../screens/chat/GroupDetailsScreen').default}
         options={{
           title: 'Group Info',
+          headerTitleAlign: 'center',
+        }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationListScreen}
+        options={{
+          title: 'Notifications',
           headerTitleAlign: 'center',
         }}
       />

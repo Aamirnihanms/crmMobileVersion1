@@ -39,8 +39,8 @@ export type MultiSelectPageResponse = {
 type Props = {
     label: string;
     value?: (string | number)[];
-    options: Option[];
-    onSelect: (values: (string | number)[]) => void;
+    options?: Option[];
+    onSelect: (values: (string | number)[], items?: any[]) => void;
     placeholder?: string;
     fetchOptions?: (
         params: MultiSelectPageParams
@@ -53,7 +53,7 @@ type Props = {
 export default function AppMultiSelect({
     label,
     value = [],
-    options,
+    options = [],
     onSelect,
     placeholder = 'Select',
     fetchOptions,
@@ -128,7 +128,7 @@ export default function AppMultiSelect({
         if (!value || value.length === 0) return placeholder;
         if (value.length === 1) {
             const selectedValue = String(value[0]);
-            const knownOptions = [...options, ...remoteOptions];
+            const knownOptions = [...(options || []), ...remoteOptions];
             const opt = knownOptions.find(
                 o => String(o.value) === selectedValue
             );
@@ -174,7 +174,8 @@ export default function AppMultiSelect({
         });
     };
 
-    const handleSelect = (itemValue: string | number) => {
+    const handleSelect = (item: any) => {
+        const itemValue = item.value;
         const newValues = value || [];
         const isSelected = newValues.some(v => String(v) === String(itemValue));
 
@@ -253,7 +254,7 @@ export default function AppMultiSelect({
                             return (
                                 <Pressable
                                     style={[styles.option, active && styles.optionActive]}
-                                    onPress={() => handleSelect(item.value)}
+                                onPress={() => handleSelect(item)}
                                 >
                                     <AppText
                                         variant="body"

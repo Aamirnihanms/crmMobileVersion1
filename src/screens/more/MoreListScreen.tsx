@@ -127,7 +127,7 @@ export default function MoreListScreen() {
                         icon="git-pull-request-outline"
                         label="Batch Change Request"
                         sublabel="Review batch transfers"
-                        onPress={() => { }}
+                        onPress={() => navigation.navigate('BatchChangeRequestList')}
                         color={colors.warning}
                     />
                     <MenuItem

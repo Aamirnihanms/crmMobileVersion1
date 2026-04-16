@@ -1,10 +1,13 @@
 import { colors, spacing, typography } from '@/src/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  StyleProp,
   ViewStyle,
+  TextStyle,
 } from 'react-native';
 import AppText from './AppText';
 
@@ -12,9 +15,10 @@ type AppButtonProps = {
   title: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'outline';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   loading?: boolean;
   disabled?: boolean;
+  textStyle?: StyleProp<TextStyle>;
 };
 
 export default function AppButton({
@@ -24,6 +28,7 @@ export default function AppButton({
   style,
   loading = false,
   disabled = false,
+  textStyle,
 }: AppButtonProps) {
   const isDisabled = disabled || loading;
 
@@ -32,7 +37,7 @@ export default function AppButton({
       <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.surface} />
     ) : (
       <AppText
-        style={styles.text}
+        style={[styles.text, textStyle]}
         color={variant === 'outline' ? colors.primary : colors.surface}
       >
         {title}
