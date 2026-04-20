@@ -96,10 +96,16 @@ export default function PhoneInputWithCode({
                 <TextInput
                     style={styles.input}
                     value={value}
-                    onChangeText={onChangeText}
+                    onChangeText={(text) => {
+                        const numericValue = text.replace(/[^0-9]/g, '');
+                        if (numericValue.length <= 10) {
+                            onChangeText(numericValue);
+                        }
+                    }}
                     placeholder={placeholder}
                     placeholderTextColor={colors.textMuted}
                     keyboardType="phone-pad"
+                    maxLength={10}
                 />
             </View>
 

@@ -9,7 +9,7 @@ import AppButton from '../common/AppButton';
 
 const { width } = Dimensions.get('window');
 
-export default function NoNetworkScreen() {
+export default function NoNetworkScreen({ onRetry }: { onRetry?: () => Promise<boolean> }) {
   const shakeAnimation = React.useRef(new Animated.Value(0)).current;
   const [isRetrying, setIsRetrying] = React.useState(false);
 
@@ -26,8 +26,13 @@ export default function NoNetworkScreen() {
     if (isRetrying) return;
     setIsRetrying(true);
     try {
-      const state = await NetInfo.fetch();
-      const online = state.isConnected !== false && state.isInternetReachable !== false;
+      let online = false;
+      if (onRetry) {
+        online = await onRetry();
+      } else {
+        const state = await NetInfo.fetch();
+        online = state.isConnected !== false && state.isInternetReachable !== false;
+      }
       if (!online) {
         // Still offline — shake to indicate failure
         triggerShake();

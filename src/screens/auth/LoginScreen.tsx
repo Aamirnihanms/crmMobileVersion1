@@ -58,13 +58,6 @@ export default function LoginScreen() {
           setUser(normalizedUser);
           setLoggedIn(true);
         },
-        onError: (err: any) => {
-          const message =
-            err?.response?.data?.detail ??
-            err?.message ??
-            'Invalid credentials';
-          Alert.alert('Login failed', message);
-        },
       }
     );
   };
@@ -138,7 +131,10 @@ export default function LoginScreen() {
 
               {isError && (
                 <AppText variant="caption" color={colors.danger} style={styles.errorText}>
-                  {(error as Error)?.message}
+                  {(error as any)?.response?.data?.error ??
+                    (error as any)?.response?.data?.detail ??
+                    (error as Error)?.message ??
+                    'Invalid credentials'}
                 </AppText>
               )}
             </View>

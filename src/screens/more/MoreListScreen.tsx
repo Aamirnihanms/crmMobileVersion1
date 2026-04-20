@@ -97,13 +97,13 @@ export default function MoreListScreen() {
                 <AppText variant="h3" style={styles.sectionTitle}>General Settings</AppText>
                 <AppCard style={styles.menuCard}>
 
-                    <MenuItem
+                    {/* <MenuItem
                         icon="notifications-outline"
                         label="Notifications"
                         sublabel="Preference & alerts"
                         onPress={() => { }}
                         color={colors.primary}
-                    />
+                    /> */}
                     <MenuItem
                         icon="shield-checkmark-outline"
                         label="Security"
@@ -129,8 +129,9 @@ export default function MoreListScreen() {
                         sublabel="Review batch transfers"
                         onPress={() => navigation.navigate('BatchChangeRequestList')}
                         color={colors.warning}
+                        isLast
                     />
-                    <MenuItem
+                    {/* <MenuItem
                         icon="people-outline"
                         label="Users"
                         sublabel="Manage staff access"
@@ -144,10 +145,10 @@ export default function MoreListScreen() {
                         onPress={() => { }}
                         color={colors.danger}
                         isLast
-                    />
+                    /> */}
                 </AppCard>
 
-                <AppText variant="h3" style={styles.sectionTitle}>Support & About</AppText>
+                {/* <AppText variant="h3" style={styles.sectionTitle}>Support & About</AppText>
                 <AppCard style={styles.menuCard}>
                     <MenuItem
                         icon="help-circle-outline"
@@ -164,7 +165,7 @@ export default function MoreListScreen() {
                         color={colors.slate}
                         isLast
                     />
-                </AppCard>
+                </AppCard> */}
 
                 <View style={styles.footer}>
                     <AppText variant="caption" color={colors.textMuted} style={{ textAlign: 'center' }}>

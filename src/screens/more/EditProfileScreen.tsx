@@ -104,6 +104,16 @@ export default function EditProfileScreen() {
       return;
     }
 
+    if (phone && phone.length !== 10) {
+      Alert.alert('Error', 'Phone number must be 10 digits');
+      return;
+    }
+
+    if (whatsapp && whatsapp.length !== 10) {
+      Alert.alert('Error', 'WhatsApp number must be 10 digits');
+      return;
+    }
+
     try {
       await updateProfileMutation.mutateAsync({
         full_name: fullName,

@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/auth.store';
 import { getToken } from '../utils/token';
 
 export const http = axios.create({
-  baseURL: 'https://api.crm.dev.luminartechnohub.com/api',
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });

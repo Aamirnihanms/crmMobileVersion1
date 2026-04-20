@@ -166,6 +166,7 @@ export default function DashboardStack() {
                     <Image
                       source={{ uri: avatarUri }}
                       style={styles.avatarImage}
+                      resizeMode="cover"
                       onError={() => setAvatarLoadFailed(true)}
                     />
                   ) : (
@@ -287,11 +288,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 0,
     borderColor: 'transparent',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 3,
   },
   avatarClip: {
     width: '100%',

@@ -203,7 +203,7 @@ const appTheme = {
 
 export default function App() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
-  const { isOffline } = useNetworkStatus();
+  const { isOffline, checkNetwork } = useNetworkStatus();
   const pendingChatRef = useRef<ChatThreadParams | null>(null);
   const lastHandledKeyRef = useRef<{ key: string; at: number } | null>(null);
 
@@ -386,7 +386,7 @@ export default function App() {
               <RootNavigator />
             </NavigationContainer>
           </QueryClientProvider>
-          {isOffline && <NoNetworkScreen />}
+          {isOffline && <NoNetworkScreen onRetry={checkNetwork} />}
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </KeyboardProvider>
