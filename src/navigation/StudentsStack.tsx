@@ -1,20 +1,27 @@
+import { colors } from '@/src/theme';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AddDiscountScreen from '../screens/students/AddDiscountScreen';
+import BatchChangeScreen from '../screens/students/BatchChangeScreen';
 import EditStudentScreen from '../screens/students/EditStudentScreen';
 import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen';
+import NewEnrollmentScreen from '../screens/students/NewEnrollmentScreen';
 import SetPaymentModeScreen from '../screens/students/SetPaymentModeScreen';
 import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
 import StudentsListScreen from '../screens/students/StudentsListScreen';
-import { colors } from '@/src/theme';
 
 
 const Stack = createNativeStackNavigator();
 
 export type StudentsStackParamList = {
   StudentsList: undefined;
-  StudentDetails: { id: string };
-  EnrollmentDetails: { id: string };
+  StudentDetails: { id: string; is_active?: boolean };
+  EnrollmentDetails: { id: string; studentId: string };
   EditStudent: { id: string };
   SetPaymentMode: { enrollmentId: string };
+  AddDiscount: { enrollmentId: string; studentId: string };
+  BatchChange: { enrollmentId: string; studentId: string };
+  NewEnrollment: { studentId: string; studentName?: string };
+  RejoinStudent: { student: any };
 };
 
 
@@ -59,6 +66,26 @@ export default function StudentsStack() {
         name="SetPaymentMode"
         component={SetPaymentModeScreen}
         options={{ title: 'Set Payment Mode' }}
+      />
+      <Stack.Screen
+        name="AddDiscount"
+        component={AddDiscountScreen}
+        options={{ title: 'Add Discount' }}
+      />
+      <Stack.Screen
+        name="BatchChange"
+        component={BatchChangeScreen}
+        options={{ title: 'Batch Change Request' }}
+      />
+      <Stack.Screen
+        name="NewEnrollment"
+        component={NewEnrollmentScreen}
+        options={{ title: 'New Enrollment' }}
+      />
+      <Stack.Screen
+        name="RejoinStudent"
+        getComponent={() => require('../screens/more/RejoinStudentScreen').default}
+        options={{ title: 'Rejoin Student' }}
       />
     </Stack.Navigator>
 

@@ -264,8 +264,18 @@ export default function App() {
     });
   }, [isLoggedIn, navigateToChatThread, resolveChatParamsWithLookup]);
 
-  const handleChatNotificationData = useCallback(
+  const handleNotificationData = useCallback(
     async (data: NotificationData, fallbackTitle?: string) => {
+      if (!data) return;
+
+      // Handle General Notifications from WebSocket or FCM
+      if (data.type === 'new_notification') {
+        if (!navigationRef.isReady()) return;
+        navigationRef.navigate('Dashboard', { screen: 'Notifications' });
+        return;
+      }
+
+      // Handle Chat Notifications
       const params = getChatParamsFromNotification(data, fallbackTitle);
       if (!params) return;
 
@@ -324,7 +334,7 @@ export default function App() {
     const unsubscribeOpened = onNotificationOpenedApp(
       messaging,
       (remoteMessage) => {
-        void handleChatNotificationData(
+        void handleNotificationData(
           remoteMessage?.data as NotificationData,
           remoteMessage?.notification?.title,
         );
@@ -333,7 +343,7 @@ export default function App() {
 
     void getInitialNotification(messaging).then((remoteMessage) => {
       if (!remoteMessage) return;
-      void handleChatNotificationData(
+      void handleNotificationData(
         remoteMessage.data as NotificationData,
         remoteMessage.notification?.title || undefined,
       );
@@ -342,7 +352,7 @@ export default function App() {
     const responseSub =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data as NotificationData;
-        void handleChatNotificationData(
+        void handleNotificationData(
           data,
           response.notification.request.content.title || undefined,
         );
@@ -353,7 +363,7 @@ export default function App() {
       unsubscribeOpened();
       responseSub.remove();
     };
-  }, [handleChatNotificationData]);
+  }, [handleNotificationData]);
 
   useEffect(() => {
     flushPendingChatNavigation();

@@ -7,6 +7,8 @@ import {
     Dimensions,
     Alert,
     Modal,
+    Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, RouteProp } from '@react-navigation/native';
@@ -37,6 +39,11 @@ export default function BatchChangeRequestDetailScreen() {
 
     const actionMutation = useApproveBatchChangeRequest();
 
+    const closeModal = () => {
+        Keyboard.dismiss();
+        setActionModalVisible(false);
+    };
+
     const handleConfirmAction = () => {
         if (!notes.trim()) {
             Alert.alert('Error', 'Notes are mandatory.');
@@ -54,7 +61,7 @@ export default function BatchChangeRequestDetailScreen() {
             onSuccess: () => {
                 const actionLabel = currentAction === 'process' ? 'approved' : 'cancelled';
                 Alert.alert('Success', `Request ${actionLabel} successfully.`);
-                setActionModalVisible(false);
+                closeModal();
                 setNotes('');
                 setProcessingNotes('');
             },
@@ -313,53 +320,55 @@ export default function BatchChangeRequestDetailScreen() {
 
         {/* Action Modal (Approve / Reject) */}
         <Modal visible={actionModalVisible} transparent animationType="slide">
-            <View style={styles.modalOverlay}>
-                <AppCard style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <AppText variant="h3" style={{ fontWeight: '800' }}>
-                            {currentAction === 'process' ? 'Confirm Approval' : 'Confirm Cancellation'}
-                        </AppText>
-                        <Pressable onPress={() => setActionModalVisible(false)}>
-                            <Ionicons name="close" size={24} color={colors.textMuted} />
-                        </Pressable>
-                    </View>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={styles.modalOverlay}>
+                    <AppCard style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <AppText variant="h3" style={{ fontWeight: '800' }}>
+                                {currentAction === 'process' ? 'Confirm Approval' : 'Confirm Cancellation'}
+                            </AppText>
+                            <Pressable onPress={closeModal}>
+                                <Ionicons name="close" size={24} color={colors.textMuted} />
+                            </Pressable>
+                        </View>
 
-                    <View style={styles.modalBody}>
-                        <AppInput 
-                            label={`Notes (${currentAction === 'process' ? 'Approval' : 'Reason'})`} 
-                            placeholder="Enter notes..." 
-                            value={notes} 
-                            onChangeText={setNotes} 
-                            multiline 
-                            numberOfLines={3}
-                        />
-                        <AppInput 
-                            label="Processing Notes (Optional)" 
-                            placeholder="Enter additional processing info..." 
-                            value={processingNotes} 
-                            onChangeText={setProcessingNotes} 
-                            multiline 
-                            numberOfLines={3}
-                        />
-                    </View>
+                        <View style={styles.modalBody}>
+                            <AppInput 
+                                label={`Notes (${currentAction === 'process' ? 'Approval' : 'Reason'})`} 
+                                placeholder="Enter notes..." 
+                                value={notes} 
+                                onChangeText={setNotes} 
+                                multiline 
+                                numberOfLines={3}
+                            />
+                            <AppInput 
+                                label="Processing Notes (Optional)" 
+                                placeholder="Enter additional processing info..." 
+                                value={processingNotes} 
+                                onChangeText={setProcessingNotes} 
+                                multiline 
+                                numberOfLines={3}
+                            />
+                        </View>
 
-                    <View style={styles.modalFooter}>
-                        <AppButton 
-                            title="Back" 
-                            variant="outline" 
-                            onPress={() => setActionModalVisible(false)} 
-                            style={{ flex: 1 }}
-                        />
-                        <AppButton 
-                            title={currentAction === 'process' ? 'Confirm Approve' : 'Confirm Cancel'} 
-                            onPress={handleConfirmAction} 
-                            loading={actionMutation.isPending}
-                            variant={currentAction === 'reject' ? 'danger' : 'primary'}
-                            style={{ flex: 1.5 }}
-                        />
-                    </View>
-                </AppCard>
-            </View>
+                        <View style={styles.modalFooter}>
+                            <AppButton 
+                                title="Back" 
+                                variant="outline" 
+                                onPress={closeModal} 
+                                style={{ flex: 1 }}
+                            />
+                            <AppButton 
+                                title={currentAction === 'process' ? 'Confirm Approve' : 'Confirm Cancel'} 
+                                onPress={handleConfirmAction} 
+                                loading={actionMutation.isPending}
+                                variant={currentAction === 'reject' ? 'danger' : 'primary'}
+                                style={{ flex: 1.5 }}
+                            />
+                        </View>
+                    </AppCard>
+                </View>
+            </TouchableWithoutFeedback>
         </Modal>
     </View>
     );

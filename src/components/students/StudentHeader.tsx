@@ -4,12 +4,52 @@ import { colors, spacing } from '@/src/theme';
 import { callNumber, openEmail, openWhatsApp } from '@/src/utils/contactActions';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useEnableDisableStudent } from '@/src/queries/students.query';
 
 export default function StudentHeader({ student }: any) {
   const profilePic = student.profile_pic || student.dashboard_data?.personal_info?.profile_picture;
   const initials = student.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
+
+  const [isActive, setIsActive] = useState<boolean>(student.user?.is_active ?? true);
+  const enableDisableMutation = useEnableDisableStudent();
+
+  const handleToggle = (newValue: boolean) => {
+    const newStatus = newValue ? 'enable' : 'disable';
+
+    Alert.alert(
+      newValue ? 'Enable Student' : 'Disable Student',
+      newValue
+        ? `Are you sure you want to enable "${student.full_name}"?`
+        : `Are you sure you want to disable "${student.full_name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: newValue ? 'Enable' : 'Disable',
+          style: newValue ? 'default' : 'destructive',
+          onPress: () => {
+            setIsActive(newValue); // optimistic update
+            enableDisableMutation.mutate(
+              { student_id: student.student_id, status: newStatus },
+              {
+                onError: (err: any) => {
+                  setIsActive(!newValue); // revert on error
+                  const msg =
+                    err?.response?.data?.detail ||
+                    err?.response?.data?.error ||
+                    err?.response?.data?.message ||
+                    'Something went wrong. Please try again.';
+                  Alert.alert('Error', msg);
+                },
+              }
+            );
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <AppCard style={styles.card}>
@@ -40,9 +80,24 @@ export default function StudentHeader({ student }: any) {
         </View>
 
         <View style={styles.mainInfo}>
-          <View>
-            <AppText variant="h2" style={styles.name}>{student.full_name}</AppText>
-            <AppText variant="caption" color={colors.textMuted}>Student ID: {student.student_id}</AppText>
+          <View style={styles.nameContainer}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="h2" style={styles.name}>{student.full_name}</AppText>
+              <AppText variant="caption" color={colors.textMuted}>Student ID: {student.student_id}</AppText>
+            </View>
+            <View style={styles.toggleWrapper}>
+              {enableDisableMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Switch
+                  value={isActive}
+                  onValueChange={handleToggle}
+                  trackColor={{ false: colors.danger + '40', true: colors.success + '40' }}
+                  thumbColor={isActive ? colors.success : colors.danger}
+                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                />
+              )}
+            </View>
           </View>
 
           <View style={styles.statsRow}>
@@ -156,6 +211,15 @@ const styles = StyleSheet.create({
   },
   mainInfo: {
     flex: 1,
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  toggleWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   name: {
     fontWeight: '800',

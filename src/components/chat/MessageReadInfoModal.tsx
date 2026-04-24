@@ -47,6 +47,7 @@ const formatReadTime = (dateString: string) => {
     const timeStr = date.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
+        hour12: true,
     });
 
     if (isToday) {

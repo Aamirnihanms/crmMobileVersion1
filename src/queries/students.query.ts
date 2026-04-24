@@ -6,12 +6,17 @@ import {
   type InfiniteData,
 } from '@tanstack/react-query';
 import {
+  addNewEnrollment,
   convertLeadToStudent,
+  enableDisableStudent,
   fetchStudentProfile,
   fetchStudents,
-  type StudentFilters,
+  fetchDroppedStudents,
   updateStudent,
+  type NewEnrollmentPayload,
+  type StudentFilters,
   type StudentsPageResponse,
+  type DroppedStudentsPageResponse,
 } from '../api/students.api';
 
 export const useInfiniteStudents = (
@@ -31,6 +36,31 @@ export const useInfiniteStudents = (
     enabled,
     queryFn: ({ pageParam }) =>
       fetchStudents(pageParam, 50, search, filters),
+
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.pagination.has_next) return undefined;
+      return lastPage.pagination.current_page + 1;
+    },
+  });
+};
+
+export const useInfiniteDroppedStudents = (
+  search: string,
+  filters: any = {},
+  enabled: boolean = true
+) => {
+  return useInfiniteQuery<
+    DroppedStudentsPageResponse,
+    Error,
+    InfiniteData<DroppedStudentsPageResponse>,
+    ['dropped-students', string, any],
+    number
+  >({
+    queryKey: ['dropped-students', search, filters],
+    initialPageParam: 1,
+    enabled,
+    queryFn: ({ pageParam }) =>
+      fetchDroppedStudents(pageParam, 25, search, filters),
 
     getNextPageParam: (lastPage) => {
       if (!lastPage.pagination.has_next) return undefined;
@@ -120,6 +150,66 @@ export const useConvertLeadToStudent = () => {
           exact: true,
         });
       }
+    },
+  });
+};
+
+
+/* -------------------------------------------------- */
+/* 🔄 ENABLE / DISABLE STUDENT MUTATION */
+/* -------------------------------------------------- */
+
+export const useEnableDisableStudent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { student_id: string; status: 'enable' | 'disable' }) =>
+      enableDisableStudent(payload),
+
+    onSuccess: (_data, variables) => {
+      console.log('🎉 Student status changed:', variables.student_id, variables.status);
+
+      queryClient.invalidateQueries({
+        queryKey: ['students'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['student'],
+      });
+    },
+
+    onError: (error: any) => {
+      console.log('🚨 Enable/Disable student failed:', error?.response?.data || error);
+    },
+  });
+};
+
+
+/* -------------------------------------------------- */
+/* 🎓 ADD NEW ENROLLMENT MUTATION */
+/* -------------------------------------------------- */
+
+export const useAddNewEnrollment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: NewEnrollmentPayload) =>
+      addNewEnrollment(payload),
+
+    onSuccess: (_data, variables) => {
+      console.log('🎉 New enrollment created for:', variables.student_id);
+
+      queryClient.invalidateQueries({
+        queryKey: ['students'],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ['student'],
+      });
+    },
+
+    onError: (error: any) => {
+      console.log('🚨 New enrollment failed:', error?.response?.data || error);
     },
   });
 };

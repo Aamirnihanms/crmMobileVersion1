@@ -20,6 +20,9 @@ export type Lead = {
   course_details?: {
     course_name: string;
   } | null;
+  counselor_details?: {
+    full_name: string;
+  } | null;
 };
 
 type LeadCardProps = {
@@ -79,6 +82,14 @@ const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
               {lead.course_details?.course_name ?? 'No Course'}
             </AppText>
           </View>
+          {lead.counselor_details?.full_name && (
+            <View style={styles.footerItem}>
+              <Ionicons name="person-outline" size={12} color={colors.info} />
+              <AppText variant="caption" numberOfLines={1} style={styles.footerText}>
+                {lead.counselor_details.full_name}
+              </AppText>
+            </View>
+          )}
           {lead.lead_source_details?.label && (
             <View style={styles.footerItem}>
               <Ionicons name="megaphone-outline" size={12} color={colors.secondary} />
@@ -99,6 +110,7 @@ const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
     prevProps.lead.lead_status_details.value === nextProps.lead.lead_status_details.value &&
     prevProps.lead.lead_status_details.color === nextProps.lead.lead_status_details.color &&
     prevProps.lead.course_details?.course_name === nextProps.lead.course_details?.course_name &&
+    prevProps.lead.counselor_details?.full_name === nextProps.lead.counselor_details?.full_name &&
     prevProps.lead.lead_source_details?.label === nextProps.lead.lead_source_details?.label
   );
 });

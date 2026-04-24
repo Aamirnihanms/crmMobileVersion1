@@ -4,12 +4,13 @@ import { colors, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 
 export default function StudentEnrollmentsSection({
   enrollments,
-}: any) {
+  studentId,
+}: { enrollments: any[], studentId: string }) {
   const navigation =
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
@@ -20,6 +21,14 @@ export default function StudentEnrollmentsSection({
   const handlePress = (e: any) => {
     navigation.navigate('EnrollmentDetails', {
       id: e.uid,
+      studentId: studentId,
+    });
+  };
+
+  const handleBatchChange = (e: any) => {
+    navigation.navigate('BatchChange', {
+      enrollmentId: e.uid,
+      studentId: studentId,
     });
   };
 
@@ -60,12 +69,21 @@ export default function StudentEnrollmentsSection({
                 </AppText>
               </View>
 
-              <View style={styles.codeContainer}>
-                <Ionicons name="barcode-outline" size={12} color={colors.textMuted} />
-                <AppText variant="caption" color={colors.textMuted} style={styles.codeText}>
-                  {e.batch?.batch_code || 'N/A'}
-                </AppText>
-              </View>
+              {e.status_object?.value !== 'removed' && e.status_object?.value !== 'dropped' && (
+                <TouchableOpacity
+                  style={styles.batchChangeBtn}
+                  onPress={(ev) => {
+                    ev.stopPropagation();
+                    handleBatchChange(e);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="swap-horizontal-outline" size={13} color={colors.primary} />
+                  <AppText variant="caption" style={styles.batchChangeBtnText}>
+                    Batch Change
+                  </AppText>
+                </TouchableOpacity>
+              )}
             </View>
           </AppCard>
         </Pressable>
@@ -160,5 +178,21 @@ const styles = StyleSheet.create({
   codeText: {
     marginLeft: 4,
     fontWeight: '600',
+  },
+  batchChangeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+    backgroundColor: colors.primary + '0D',
+  },
+  batchChangeBtnText: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

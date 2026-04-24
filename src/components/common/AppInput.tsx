@@ -6,6 +6,7 @@ type AppInputProps = TextInputProps & {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
+  rightElement?: React.ReactNode;
 };
 
 export default function AppInput({
@@ -13,6 +14,7 @@ export default function AppInput({
   error,
   style,
   containerStyle,
+  rightElement,
   ...props
 }: AppInputProps) {
   return (
@@ -27,15 +29,24 @@ export default function AppInput({
         </AppText>
       ) : null}
 
-      <TextInput
-        {...props}
-        style={[
-          styles.input,
-          error && styles.errorBorder,
-          style,
-        ]}
-        placeholderTextColor={colors.textMuted}
-      />
+      <View style={[
+        styles.inputWrapper,
+        error && styles.errorBorder,
+      ]}>
+        <TextInput
+          {...props}
+          style={[
+            styles.input,
+            style,
+          ]}
+          placeholderTextColor={colors.textMuted}
+        />
+        {rightElement && (
+          <View style={styles.rightElement}>
+            {rightElement}
+          </View>
+        )}
+      </View>
 
       {error ? (
         <AppText
@@ -59,16 +70,27 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xs,
     fontWeight: '600',
   },
-  input: {
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 12,
+    backgroundColor: colors.surface,
+    height: 46,
+  },
+  input: {
+    flex: 1,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     fontSize: 14,
     color: colors.textPrimary,
-    backgroundColor: colors.surface,
-    height: 46,
+    height: '100%',
+  },
+  rightElement: {
+    paddingRight: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorBorder: {
     borderColor: colors.danger,

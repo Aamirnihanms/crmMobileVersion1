@@ -102,6 +102,7 @@ export default function StudentsListScreen() {
       onPress={() =>
         navigation.navigate('StudentDetails', {
           id: item.uid,
+          is_active: item.is_active,
         })
       }
     />

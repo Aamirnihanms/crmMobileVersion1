@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { completeFullPayment, confirmEmi, fetchEmiPlans, fetchEmiPreview, fetchEnrollmentById, markInstallmentPaid, markInstallmentUnpaid, revertEmi, updateInstallment } from '../api/enrollment.api';
+import { completeFullPayment, confirmEmi, dropEnrollment, fetchEmiPlans, fetchEmiPreview, fetchEnrollmentById, markInstallmentPaid, markInstallmentUnpaid, rejoinStudent, revertEmi, updateInstallment } from '../api/enrollment.api';
 
 export const useEnrollmentDetails = (id: string) => {
   return useQuery({
@@ -89,6 +89,30 @@ export const useMarkInstallmentUnpaid = () => {
       queryClient.invalidateQueries({ queryKey: ['enrollment'] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: ['student'] });
+    },
+  });
+};
+export const useDropEnrollment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => dropEnrollment(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['enrollment', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['student'] });
+    },
+  });
+};
+
+export const useRejoinStudent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ studentId, payload }: { studentId: string; payload: any }) => rejoinStudent(studentId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dropped-students'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['student'] });
+      queryClient.invalidateQueries({ queryKey: ['enrollment'] });
     },
   });
 };

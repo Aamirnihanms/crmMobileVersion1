@@ -3,7 +3,7 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Alert, Modal, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Modal, ScrollView, Share, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 import AppButton from '@/src/components/common/AppButton';
 import AppCard from '@/src/components/common/AppCard';
@@ -11,12 +11,12 @@ import AppInput from '@/src/components/common/AppInput';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
-import { useEnrollmentDetails, useMarkInstallmentPaid, useMarkInstallmentUnpaid, useRevertEmi, useUpdateInstallment } from '@/src/queries/enrollment.query';
+import { useDropEnrollment, useEnrollmentDetails, useMarkInstallmentPaid, useMarkInstallmentUnpaid, useRevertEmi, useUpdateInstallment } from '@/src/queries/enrollment.query';
 import { colors, spacing } from '@/src/theme';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 
 type RootParamList = {
-  EnrollmentDetails: { id: string };
+  EnrollmentDetails: { id: string; studentId: string };
 };
 
 export default function EnrollmentDetailsScreen() {
@@ -32,11 +32,13 @@ export default function EnrollmentDetailsScreen() {
   const markPaidMutation = useMarkInstallmentPaid();
   const markUnpaidMutation = useMarkInstallmentUnpaid();
   const updateMutation = useUpdateInstallment();
+  const dropMutation = useDropEnrollment();
 
   // Modal States
   const [payModalVisible, setPayModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [unpaidModalVisible, setUnpaidModalVisible] = useState(false);
+  const [dropModalVisible, setDropModalVisible] = useState(false);
 
   const [selectedInstallmentId, setSelectedInstallmentId] = useState<string | null>(null);
 
@@ -47,6 +49,12 @@ export default function EnrollmentDetailsScreen() {
   const [editDate, setEditDate] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [unpaidNotes, setUnpaidNotes] = useState('');
+
+  // Drop States
+  const [dropReason, setDropReason] = useState('');
+  const [dropDate, setDropDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dropNotes, setDropNotes] = useState('');
+  const [confirmDropChecked, setConfirmDropChecked] = useState(false);
 
   if (isLoading) return <AppLoader />;
 
@@ -61,6 +69,13 @@ export default function EnrollmentDetailsScreen() {
 
   const handleSetPaymentMode = () => {
     navigation.navigate('SetPaymentMode', { enrollmentId: params.id });
+  };
+
+  const handleNavigateToDiscount = () => {
+    navigation.navigate('AddDiscount', {
+      enrollmentId: params.id,
+      studentId: params.studentId
+    });
   };
 
   const handleRevertEmi = () => {
@@ -163,6 +178,38 @@ export default function EnrollmentDetailsScreen() {
     });
   };
 
+  const handleConfirmDrop = () => {
+    if (!confirmDropChecked) {
+      Alert.alert('Validation', 'Please confirm the drop by checking the checkbox.');
+      return;
+    }
+    if (!dropReason.trim()) {
+      Alert.alert('Validation', 'Please enter a reason for dropping.');
+      return;
+    }
+
+    dropMutation.mutate({
+      id: params.id,
+      payload: {
+        drop_date: new Date(dropDate).toISOString(),
+        drop_reason: dropReason.trim(),
+        notes: dropNotes.trim(),
+      }
+    }, {
+      onSuccess: () => {
+        Alert.alert('Success', 'Enrollment dropped successfully');
+        setDropModalVisible(false);
+        // Reset states
+        setDropReason('');
+        setDropNotes('');
+        setConfirmDropChecked(false);
+      },
+      onError: (error: any) => {
+        Alert.alert('Error', error?.response?.data?.message || 'Failed to drop enrollment');
+      }
+    });
+  };
+
   const handleSharePaymentLink = () => {
     const link = `https://student.luminartechnolab.com/payment-link/${data.uid}`;
     Share.share({
@@ -228,18 +275,18 @@ export default function EnrollmentDetailsScreen() {
           </View>
         </AppCard>
 
-        {isRevertEnabled && (
-          <AppButton
-            title="Revert EMI Plan"
-            variant="outline"
-            onPress={handleRevertEmi}
-            loading={revertEmiMutation.isPending}
-            style={styles.revertButton}
-          />
-        )}
 
         <View style={styles.sectionHeader}>
           <AppText variant="h3" style={styles.sectionTitle}>Course & Student</AppText>
+          {data.status_object?.value !== 'removed' && data.status_object?.value !== 'dropped' && (
+            <TouchableOpacity
+              style={styles.dropHeaderBtn}
+              onPress={() => setDropModalVisible(true)}
+            >
+              <Ionicons name="close-circle-outline" size={14} color={colors.danger} />
+              <AppText variant="caption" style={{ color: colors.danger, fontWeight: '700' }}>Drop Enrollment</AppText>
+            </TouchableOpacity>
+          )}
         </View>
         <AppCard style={styles.detailsCard}>
           <InfoRow icon="school-outline" label="Course" value={data.batch?.course_name} />
@@ -261,13 +308,40 @@ export default function EnrollmentDetailsScreen() {
             </View>
           </View>
 
-          {data.payment_type === 'not_set' && (
-            <AppButton
-              title="Set Payment Mode"
-              variant="outline"
-              onPress={handleSetPaymentMode}
-              style={{ marginBottom: spacing.lg }}
-            />
+          {data.status_object?.value !== 'removed' && data.status_object?.value !== 'dropped' && (
+            <View style={styles.actionRow}>
+              {data.payment_type === 'not_set' && (
+                <TouchableOpacity
+                  style={[styles.smallActionBtn, { backgroundColor: colors.primary + '10' }]}
+                  onPress={handleSetPaymentMode}
+                >
+                  <Ionicons name="card-outline" size={16} color={colors.primary} />
+                  <AppText variant="caption" style={{ color: colors.primary, fontWeight: '700' }}>Set Payment</AppText>
+                </TouchableOpacity>
+              )}
+              {isRevertEnabled && (
+                <TouchableOpacity
+                  style={[styles.smallActionBtn, { backgroundColor: colors.danger + '10' }]}
+                  onPress={handleRevertEmi}
+                >
+                  {revertEmiMutation.isPending ? (
+                    <ActivityIndicator size="small" color={colors.danger} />
+                  ) : (
+                    <>
+                      <Ionicons name="refresh-outline" size={16} color={colors.danger} />
+                      <AppText variant="caption" style={{ color: colors.danger, fontWeight: '700' }}>Revert EMI</AppText>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.smallActionBtn, { backgroundColor: colors.success + '10' }]}
+                onPress={handleNavigateToDiscount}
+              >
+                <Ionicons name="pricetag-outline" size={16} color={colors.success} />
+                <AppText variant="caption" style={{ color: colors.success, fontWeight: '700' }}>Add Discount</AppText>
+              </TouchableOpacity>
+            </View>
           )}
 
           <View style={styles.progressContainer}>
@@ -440,6 +514,81 @@ export default function EnrollmentDetailsScreen() {
             </View>
           </AppCard>
         </View>
+      </Modal>
+
+      {/* Drop Modal */}
+      <Modal visible={dropModalVisible} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <AppCard style={styles.modalContent}>
+              <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
+                <View style={[styles.bigIcon, { backgroundColor: colors.danger + '15' }]}>
+                  <Ionicons name="warning-outline" size={32} color={colors.danger} />
+                </View>
+                <AppText variant="h2" style={{ marginTop: spacing.md, color: colors.danger, fontWeight: '800' }}>Drop Enrollment</AppText>
+                <AppText variant="caption" color={colors.textMuted} style={{ textAlign: 'center', marginTop: 4 }}>
+                  This action cannot be undone. Please proceed with caution.
+                </AppText>
+              </View>
+
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setConfirmDropChecked(!confirmDropChecked)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, confirmDropChecked && styles.checkboxChecked]}>
+                  {confirmDropChecked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </View>
+                <AppText variant="caption" style={{ flex: 1, fontWeight: '600' }}>
+                  I confirm that I want to drop this enrollment permanently.
+                </AppText>
+              </TouchableOpacity>
+
+              {confirmDropChecked && (
+                <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
+                  <AppInput
+                    label="Drop Reason *"
+                    value={dropReason}
+                    onChangeText={setDropReason}
+                    placeholder="Why is this student dropping out?"
+                  />
+                  <AppInput
+                    label="Drop Date"
+                    value={dropDate}
+                    onChangeText={setDropDate}
+                    placeholder="YYYY-MM-DD"
+                  />
+                  <AppInput
+                    label="Additional Notes (Optional)"
+                    value={dropNotes}
+                    onChangeText={setDropNotes}
+                    multiline
+                    placeholder="Any extra context..."
+                  />
+                </View>
+              )}
+
+              <View style={styles.modalButtons}>
+                <AppButton
+                  title="Cancel"
+                  variant="outline"
+                  onPress={() => {
+                    setDropModalVisible(false);
+                    setConfirmDropChecked(false);
+                  }}
+                  style={{ flex: 1, marginRight: spacing.md }}
+                />
+                <AppButton
+                  title="Drop"
+                  onPress={handleConfirmDrop}
+                  loading={dropMutation.isPending}
+                  style={{ flex: 1, backgroundColor: colors.danger, borderColor: colors.danger }}
+                  disabled={!confirmDropChecked}
+                />
+              </View>
+            </AppCard>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -667,5 +816,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: spacing.xl,
     gap: spacing.md,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  smallActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+  },
+  bigIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surfaceAlt,
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  dropHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.danger + '10',
+    borderWidth: 1,
+    borderColor: colors.danger + '20',
   },
 });

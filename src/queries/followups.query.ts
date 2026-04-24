@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import {
   createLeadFollowUp,
   fetchLeadFollowUps,
+  fetchMyFollowUps,
   updateFollowUpStatus,
   type CreateFollowUpPayload,
   type FollowUpImportance,
@@ -14,6 +15,28 @@ export const useInfiniteLeadFollowUps = (leadId: string) => {
     initialPageParam: 1, // ✅ REQUIRED IN v5
     queryFn: ({ pageParam }) =>
       fetchLeadFollowUps(leadId, pageParam),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.next) return undefined;
+
+      const url = new URL(lastPage.next);
+      return Number(url.searchParams.get('page'));
+    },
+  });
+};
+
+export const useInfiniteMyFollowUps = (
+  userUid: string,
+  filters: {
+    today_followups?: boolean;
+    overdue_followups?: boolean;
+    upcoming_followups?: boolean;
+  }
+) => {
+  return useInfiniteQuery({
+    queryKey: ['my-followups', userUid, filters],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      fetchMyFollowUps(userUid, pageParam, 10, filters),
     getNextPageParam: (lastPage) => {
       if (!lastPage.next) return undefined;
 

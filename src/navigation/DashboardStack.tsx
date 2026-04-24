@@ -20,6 +20,7 @@ import { scheduleUnreadCountRefresh } from '../lib/unreadCount';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
+import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
 import NotificationListScreen from '../screens/notifications/NotificationListScreen';
 
 const { width } = Dimensions.get('window');
@@ -88,6 +89,7 @@ function HeaderIconButton({
 export default function DashboardStack() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const authUser = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
   const { data: chatData } = useChatUnreadCount(isLoggedIn);
   const { data: notificationsData } = useNotificationsUnreadCount(isLoggedIn);
@@ -110,6 +112,11 @@ export default function DashboardStack() {
       scheduleUnreadCountRefresh(queryClient, { minIntervalMs: 3_000, debounceMs: 100 });
     }, [isLoggedIn, queryClient])
   );
+
+  useNotificationWebSocket({
+    token: token || '',
+    enabled: isLoggedIn && !!token,
+  });
 
   return (
     <Stack.Navigator
@@ -161,22 +168,20 @@ export default function DashboardStack() {
               }}
             >
               <View style={styles.avatarShell}>
-                <View style={styles.avatarClip}>
-                  {avatarUri && !avatarLoadFailed ? (
-                    <Image
-                      source={{ uri: avatarUri }}
-                      style={styles.avatarImage}
-                      resizeMode="cover"
-                      onError={() => setAvatarLoadFailed(true)}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="person"
-                      size={18}
-                      color={colors.primary}
-                    />
-                  )}
-                </View>
+                {avatarUri && !avatarLoadFailed ? (
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                    onError={() => setAvatarLoadFailed(true)}
+                  />
+                ) : (
+                  <Ionicons
+                    name="person"
+                    size={20}
+                    color={colors.primary}
+                  />
+                )}
               </View>
             </Pressable>
           ),
@@ -278,29 +283,26 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   profileButton: {
-    paddingRight: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarShell: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    padding: 0,
     backgroundColor: colors.surface,
-    borderWidth: 0,
-    borderColor: 'transparent',
-  },
-  avatarClip: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primaryLight,
-    overflow: 'hidden',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   avatarImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 12,
   },
   pressed: {
     opacity: 0.7,

@@ -132,6 +132,7 @@ const formatChatTime = (rawValue?: string | null) => {
     return date.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     });
   }
   if (dayDiff === 1) return 'Yesterday';

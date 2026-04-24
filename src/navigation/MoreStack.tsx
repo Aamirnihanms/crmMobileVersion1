@@ -1,15 +1,18 @@
 import { colors } from '@/src/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import EditProfileScreen from '../screens/more/EditProfileScreen';
+import { Pressable } from 'react-native';
+import BatchCreateScreen from '../screens/more/BatchCreateScreen';
 import BatchListScreen from '../screens/more/BatchListScreen';
+import ChangePasswordScreen from '../screens/more/ChangePasswordScreen';
+import EditProfileScreen from '../screens/more/EditProfileScreen';
 import MoreListScreen from '../screens/more/MoreListScreen';
 import ProfileScreen from '../screens/more/ProfileScreen';
-import ChangePasswordScreen from '../screens/more/ChangePasswordScreen';
-import BatchCreateScreen from '../screens/more/BatchCreateScreen';
 
 
-import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
+import LeadDetailsScreen from '../screens/leads/LeadDetailsScreen';
 import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen';
+import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
 
 export type MoreStackParamList = {
   MoreList: undefined;
@@ -18,12 +21,22 @@ export type MoreStackParamList = {
   BatchList: undefined;
   BatchDetail: { uid: string };
   ChangePassword: undefined;
-  StudentDetails: { id: string };
+  StudentDetails: { id: string; is_active?: boolean };
   EnrollmentDetails: { id: string };
   BatchChangeRequestList: undefined;
   BatchChangeRequestDetail: { uid: string };
   BatchCreate: undefined;
   BatchEdit: { uid: string };
+  FollowUps: undefined;
+  LeadDetails: { id: string };
+  GalleryList: undefined;
+  CreateGallery: { gallery?: any } | undefined;
+  GalleryDetail: { uid: string };
+  FolderDetail: { uid: string; gallery_uid: string };
+  CreateFolder: { gallery_uid: string; parent_folder_uid?: string; folder?: any };
+  AddVideo: { gallery_uid: string; folder_uid?: string; video?: any };
+  DroppedStudents: undefined;
+  RejoinStudent: { student: any };
 };
 
 
@@ -105,6 +118,66 @@ export default function MoreStack() {
         name="BatchEdit"
         getComponent={() => require('../screens/more/BatchEditScreen').default}
         options={{ title: 'Edit Batch' }}
+      />
+      <Stack.Screen
+        name="FollowUps"
+        getComponent={() => require('../screens/more/FollowUpsScreen').default}
+        options={{ title: 'My Follow Ups' }}
+      />
+      <Stack.Screen
+        name="LeadDetails"
+        component={LeadDetailsScreen}
+        options={{ title: 'Lead Details' }}
+      />
+      <Stack.Screen
+        name="GalleryList"
+        component={require('../screens/more/GalleryListScreen').default}
+        options={({ navigation }) => ({
+          title: 'Galleries',
+          headerRight: () => (
+            <Pressable
+              onPress={() => navigation.navigate('CreateGallery')}
+              style={{ padding: 4 }}
+            >
+              <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+            </Pressable>
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="CreateGallery"
+        component={require('../screens/more/CreateGalleryScreen').default}
+        options={{ title: 'Create Gallery' }}
+      />
+      <Stack.Screen
+        name="GalleryDetail"
+        component={require('../navigation/GalleryDetailTabs').default}
+        options={{ title: 'Gallery Details' }}
+      />
+      <Stack.Screen
+        name="FolderDetail"
+        component={require('../screens/more/FolderDetailScreen').default}
+        options={{ title: 'Folder Contents' }}
+      />
+      <Stack.Screen
+        name="CreateFolder"
+        component={require('../screens/more/CreateFolderScreen').default}
+        options={{ title: 'Create Folder' }}
+      />
+      <Stack.Screen
+        name="AddVideo"
+        component={require('../screens/more/AddVideoScreen').default}
+        options={{ title: 'Add Video' }}
+      />
+      <Stack.Screen
+        name="DroppedStudents"
+        getComponent={() => require('../screens/more/DroppedStudentsScreen').default}
+        options={{ title: 'Dropped Students' }}
+      />
+      <Stack.Screen
+        name="RejoinStudent"
+        getComponent={() => require('../screens/more/RejoinStudentScreen').default}
+        options={{ title: 'Rejoin Student' }}
       />
     </Stack.Navigator>
 

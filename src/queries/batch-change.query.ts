@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchBatchChangeRequests, BatchChangeRequestFilters, fetchBatchChangeRequestDetail, approveBatchChangeRequest, ApproveBatchChangeRequestPayload } from '../api/batch-change.api';
+import { fetchBatchChangeRequests, BatchChangeRequestFilters, fetchBatchChangeRequestDetail, approveBatchChangeRequest, ApproveBatchChangeRequestPayload, createBatchChangeRequest, CreateBatchChangeRequestPayload } from '../api/batch-change.api';
 
 export const useBatchChangeRequests = (filters: BatchChangeRequestFilters = {}) => {
   return useInfiniteQuery({
@@ -30,6 +30,17 @@ export const useApproveBatchChangeRequest = () => {
       approveBatchChangeRequest(uid, payload),
     onSuccess: (_, { uid }) => {
       queryClient.invalidateQueries({ queryKey: ['batch-change-request-detail', uid] });
+      queryClient.invalidateQueries({ queryKey: ['batch-change-requests'] });
+    },
+  });
+};
+
+export const useCreateBatchChangeRequest = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ studentId, payload }: { studentId: string; payload: CreateBatchChangeRequestPayload }) =>
+      createBatchChangeRequest(studentId, payload),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-change-requests'] });
     },
   });

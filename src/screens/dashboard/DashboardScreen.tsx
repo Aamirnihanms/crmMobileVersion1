@@ -17,8 +17,8 @@ import {
   StackedBarChart,
 } from 'react-native-chart-kit';
 
-import AppCard from '@/src/components/common/AppCard';
 import type { DashboardTimeframeParam } from '@/src/api/dashboard.api';
+import AppCard from '@/src/components/common/AppCard';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useMyDashboard, useSuperadminDashboard } from '@/src/queries/dashboard.query';
@@ -667,13 +667,13 @@ function NestedObjectBlock({
 
       {depth < 2
         ? nestedObjects.map(([key, value]) => (
-            <NestedObjectBlock
-              key={`${title}-${key}`}
-              title={key}
-              data={value as Record<string, unknown>}
-              depth={depth + 1}
-            />
-          ))
+          <NestedObjectBlock
+            key={`${title}-${key}`}
+            title={key}
+            data={value as Record<string, unknown>}
+            depth={depth + 1}
+          />
+        ))
         : null}
     </View>
   );
@@ -941,9 +941,9 @@ export default function DashboardScreen() {
           </AppCard>
         ) : null}
 
-        {sections.map(([title, sectionData]) => (
+        {/* {sections.map(([title, sectionData]) => (
           <SectionCard key={title} title={title} data={sectionData} />
-        ))}
+        ))} */}
 
         {!hasAnyInsights ? (
           <AppCard style={styles.emptyCard}>

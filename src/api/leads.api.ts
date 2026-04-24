@@ -44,6 +44,32 @@ export type LeadsPageResponse = {
   results: LeadResponse[];
 };
 
+export type Reminder = {
+  id: string;
+  name: string;
+  phone_number: string;
+  email: string | null;
+  lead_status: number;
+  reminder_date: string;
+  lead_status_name: string;
+};
+
+export type RemindersPageResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Reminder[];
+  counts: {
+    total: number;
+    today: number;
+    upcoming: number;
+    overdue: number;
+    this_week: number;
+  };
+  current_date: string;
+  timezone: string;
+};
+
 /* ------------------ API CALL ------------------ */
 
 export const fetchLeads = async (
@@ -60,6 +86,31 @@ export const fetchLeads = async (
       ...filters, // 🔥 THIS ENABLES FILTERING
     },
   });
+
+  return res.data;
+};
+
+export const fetchMyReminders = async (
+  userUid: string,
+  page: number,
+  pageSize: number = 10,
+  filters: {
+    today_reminders?: boolean;
+    overdue_reminders?: boolean;
+    upcoming_reminders?: boolean;
+  }
+): Promise<RemindersPageResponse> => {
+  const res = await http.get<RemindersPageResponse>(
+    `/leads/reminders/`,
+    {
+      params: {
+        user_uid: userUid,
+        page,
+        page_size: pageSize,
+        ...filters,
+      },
+    }
+  );
 
   return res.data;
 };

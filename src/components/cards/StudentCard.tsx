@@ -1,10 +1,10 @@
 import { colors, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
-import { Image } from 'expo-image';
 
 const StudentCard = memo(({ student, onPress }: any) => {
   const batch = student.batches?.[0]; // show latest batch
@@ -32,9 +32,6 @@ const StudentCard = memo(({ student, onPress }: any) => {
               <AppText variant="subtitle" style={styles.name}>
                 {student.full_name}
               </AppText>
-              {/* <AppText variant="caption" color={colors.textMuted}>
-                {student.student_id}
-              </AppText> */}
             </View>
             {batch?.course && (
               <AppText variant="caption" color={colors.primary} style={styles.course}>
@@ -100,6 +97,7 @@ const StudentCard = memo(({ student, onPress }: any) => {
     prev.student.student_id === next.student.student_id &&
     prev.student.location === next.student.location &&
     prev.student.profile_pic === next.student.profile_pic &&
+    prev.student.is_active === next.student.is_active &&
     JSON.stringify(prev.student.batches?.[0]) === JSON.stringify(next.student.batches?.[0])
   );
 });

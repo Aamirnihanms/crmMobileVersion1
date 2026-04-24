@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Image,
     Pressable,
     ScrollView,
@@ -44,11 +45,30 @@ function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colo
 export default function MoreListScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList, 'MoreList'>>();
     const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
     const avatarUri =
         typeof user?.profile_picture === 'string' && user.profile_picture.trim().length > 0
             ? user.profile_picture.trim()
             : null;
     const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Logout',
+            'Are you sure you want to logout?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await logout();
+                    },
+                },
+            ],
+            { cancelable: true }
+        );
+    };
 
     useEffect(() => {
         setAvatarLoadFailed(false);
@@ -117,11 +137,32 @@ export default function MoreListScreen() {
                 <AppText variant="h3" style={styles.sectionTitle}>Management</AppText>
                 <AppCard style={styles.menuCard}>
                     <MenuItem
+                        icon="calendar-outline"
+                        label="My Followups"
+                        sublabel="Track your leads and reminders"
+                        onPress={() => navigation.navigate('FollowUps')}
+                        color={colors.info}
+                    />
+                    <MenuItem
                         icon="layers-outline"
                         label="Batch"
                         sublabel="Manage training batches"
                         onPress={() => navigation.navigate('BatchList')}
                         color={colors.primary}
+                    />
+                    <MenuItem
+                        icon="person-remove-outline"
+                        label="Dropped Students"
+                        sublabel="Rejoin dropped students"
+                        onPress={() => navigation.navigate('DroppedStudents')}
+                        color={colors.danger}
+                    />
+                    <MenuItem
+                        icon="images-outline"
+                        label="Gallery"
+                        sublabel="Manage gallery contents"
+                        onPress={() => navigation.navigate('GalleryList')}
+                        color={colors.info}
                     />
                     <MenuItem
                         icon="git-pull-request-outline"
@@ -166,6 +207,18 @@ export default function MoreListScreen() {
                         isLast
                     />
                 </AppCard> */}
+
+                <AppText variant="h3" style={styles.sectionTitle}>Account Actions</AppText>
+                <AppCard style={styles.menuCard}>
+                    <MenuItem
+                        icon="log-out-outline"
+                        label="Logout"
+                        sublabel="Sign out of your account"
+                        onPress={handleLogout}
+                        color={colors.danger}
+                        isLast
+                    />
+                </AppCard>
 
                 <View style={styles.footer}>
                     <AppText variant="caption" color={colors.textMuted} style={{ textAlign: 'center' }}>

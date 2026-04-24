@@ -212,3 +212,22 @@ export const approveBatchChangeRequest = async (uid: string, payload: ApproveBat
     const res = await http.post(`/batch-change-request/${uid}/approval/`, payload);
     return res.data;
 };
+
+export type CreateBatchChangeRequestPayload = {
+  current_enrollment_uid: string;
+  new_batch_uid: string;
+  attendance_mode: string;
+  counselor_uid: string;
+  remarks: string;
+  reason: string;
+  priority: 'high' | 'medium' | 'low';
+};
+
+export const createBatchChangeRequest = async (
+  studentId: string,
+  payload: CreateBatchChangeRequestPayload
+): Promise<{ status: string; message: string; data?: any }> => {
+  console.log('➡️ POST create batch change request for student:', studentId, payload);
+  const res = await http.post(`/student/${studentId}/batch-change-request/`, payload);
+  return res.data;
+};

@@ -7,6 +7,7 @@ import { BatchDetail } from '@/src/api/batches.api';
 import BatchOverviewTab from '@/src/screens/more/tabs/BatchOverviewTab';
 import BatchStudentsTab from '@/src/screens/more/tabs/BatchStudentsTab';
 import BatchAttendanceTab from '@/src/screens/more/tabs/BatchAttendanceTab';
+import BatchGalleryTab from '@/src/screens/more/tabs/BatchGalleryTab';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -34,7 +35,10 @@ const PlaceholderTab = ({ title }: { title: string }) => (
     </View>
 );
 
-const GalleryTab = () => <PlaceholderTab title="Gallery" />;
+const GalleryTab = () => {
+    const { batch } = useContext(BatchContext);
+    return batch ? <BatchGalleryTab batchUid={batch.uid} /> : null;
+};
 
 export default function BatchDetailsTabs({ batch }: { batch: BatchDetail }) {
     const value = useMemo(() => ({ batch }), [batch]);

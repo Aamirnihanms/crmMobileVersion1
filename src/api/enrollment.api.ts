@@ -46,6 +46,7 @@ export type EnrollmentDetailsResponse = {
   student_name: string;
   student_email: string;
   student_phone: string;
+  student: string;
 
   total_amount_paid: string;
   total_pending_amount: string;
@@ -180,5 +181,15 @@ export const updateInstallment = async (id: string, payload: { new_amount: numbe
 
 export const markInstallmentUnpaid = async (id: string, payload: { notes: string }) => {
   const res = await http.post(`/enrollments/emi/installments/${id}/mark-as-incomplete/`, payload);
+  return res.data;
+};
+
+export const dropEnrollment = async (id: string, payload: { drop_date: string; drop_reason: string; notes?: string }) => {
+  const res = await http.post(`/student-enrollment/${id}/drop/`, payload);
+  return res.data;
+};
+
+export const rejoinStudent = async (studentId: string, payload: any) => {
+  const res = await http.post(`/student-enrollment/rejoin/${studentId}/`, payload);
   return res.data;
 };

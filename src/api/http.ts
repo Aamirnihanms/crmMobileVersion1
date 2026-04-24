@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/auth.store';
 import { getToken } from '../utils/token';
+import { API_CONFIG } from '../config/api.config';
 
 export const http = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL,
+  baseURL: API_CONFIG.BASE_URL,
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });

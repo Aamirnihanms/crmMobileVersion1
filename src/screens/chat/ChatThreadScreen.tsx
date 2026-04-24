@@ -103,6 +103,14 @@ type ImagePreview = {
   messageId?: string;
 };
 
+type DateHeader = {
+  id: string;
+  isDateHeader: true;
+  dateLabel: string;
+};
+
+type ChatListItem = ThreadMessage | DateHeader;
+
 type PendingAttachment = {
   uri: string;
   name: string;
@@ -137,7 +145,34 @@ const formatTime = (rawValue?: string | null) => {
   return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: true,
   });
+};
+
+const isSameDay = (d1: Date, d2: Date) => {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+};
+
+const formatDateHeader = (date: Date) => {
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (isSameDay(date, today)) {
+    return 'Today';
+  } else if (isSameDay(date, yesterday)) {
+    return 'Yesterday';
+  } else {
+    return date.toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
 };
 
 const toAbsoluteUrl = (rawUrl?: string | null) => {
@@ -935,7 +970,7 @@ export default function ChatThreadScreen() {
     statusBarStyle: 'light',
   });
 
-  const flatListRef = useRef<React.ComponentRef<typeof FlashList<ThreadMessage>> | null>(null);
+  const flatListRef = useRef<React.ComponentRef<typeof FlashList<ChatListItem>> | null>(null);
   const hasInitiallyPositionedRef = useRef(false);
   const isAtBottomRef = useRef(true);
 
@@ -1215,7 +1250,7 @@ export default function ChatThreadScreen() {
   }, [queryMessages]);
 
   useEffect(() => {
-    if (!messages.length) return;
+    if (!chatListItems.length) return;
 
     if (!hasInitiallyPositionedRef.current) {
       requestAnimationFrame(() => {
@@ -1228,7 +1263,7 @@ export default function ChatThreadScreen() {
     if (isAtBottomRef.current) {
       flatListRef.current?.scrollToEnd({ animated: false });
     }
-  }, [messages]);
+  }, [chatListItems]);
 
   const latestMessagePage = useMemo(
     () =>
@@ -1237,6 +1272,29 @@ export default function ChatThreadScreen() {
         : [],
     [messagesQueryData]
   );
+
+  const chatListItems = useMemo(() => {
+    const items: ChatListItem[] = [];
+    let lastDate: string | null = null;
+
+    messages.forEach((msg) => {
+      const createdAt = msg.raw?.created_at;
+      const msgDate = createdAt ? new Date(createdAt) : new Date();
+      const dateKey = msgDate.toDateString();
+
+      if (dateKey !== lastDate) {
+        items.push({
+          id: `header-${dateKey}`,
+          isDateHeader: true,
+          dateLabel: formatDateHeader(msgDate),
+        });
+        lastDate = dateKey;
+      }
+      items.push(msg);
+    });
+
+    return items;
+  }, [messages]);
 
   useEffect(() => {
     if (!latestMessagePage.length) return;
@@ -2306,7 +2364,7 @@ export default function ChatThreadScreen() {
     [isImageFile, openAttachmentUrl]
   );
 
-  const keyExtractor = useCallback((item: ThreadMessage) => item.clientId || item.id, []);
+  const keyExtractor = useCallback((item: ChatListItem) => item.id, []);
 
   const handleMessageLongPress = useCallback((message: ThreadMessage) => {
     setSelectedMessage(message);
@@ -2471,7 +2529,17 @@ export default function ChatThreadScreen() {
     }
   }, [selectedMessage, chatId, refetchMessages]);
 
-  const renderMessageItem = useCallback(({ item }: ListRenderItemInfo<ThreadMessage>) => {
+  const renderMessageItem = useCallback(({ item }: ListRenderItemInfo<ChatListItem>) => {
+    if ('isDateHeader' in item) {
+      return (
+        <View style={styles.dateHeaderContainer}>
+          <View style={styles.dateHeaderPill}>
+            <AppText style={styles.dateHeaderText}>{item.dateLabel}</AppText>
+          </View>
+        </View>
+      );
+    }
+
     const idProgress = downloadProgress[item.id];
     const clientProgress = item.clientId ? downloadProgress[item.clientId] : undefined;
     const progress = idProgress ?? clientProgress;
@@ -2736,7 +2804,7 @@ export default function ChatThreadScreen() {
 
       <FlashList
         ref={flatListRef}
-        data={messages}
+        data={chatListItems}
         keyExtractor={keyExtractor}
         style={styles.messagesArea}
         contentContainerStyle={styles.messagesList}
@@ -3418,5 +3486,29 @@ const styles = StyleSheet.create({
   },
   sendButtonRecording: {
     backgroundColor: colors.danger,
+  },
+  dateHeaderContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: spacing.md,
+  },
+  dateHeaderPill: {
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
   },
 });

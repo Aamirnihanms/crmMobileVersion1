@@ -62,8 +62,33 @@ export const fetchLeadFollowUps = async (
     {
       params: {
         lead: leadId,
-         page 
-        },
+        page
+      },
+    }
+  );
+
+  return res.data;
+};
+
+export const fetchMyFollowUps = async (
+  userUid: string,
+  page: number,
+  pageSize: number = 10,
+  filters: {
+    today_followups?: boolean;
+    overdue_followups?: boolean;
+    upcoming_followups?: boolean;
+  }
+): Promise<FollowUpsPageResponse> => {
+  const res = await http.get<FollowUpsPageResponse>(
+    `/followups/`,
+    {
+      params: {
+        user_uid: userUid,
+        page,
+        page_size: pageSize,
+        ...filters,
+      },
     }
   );
 

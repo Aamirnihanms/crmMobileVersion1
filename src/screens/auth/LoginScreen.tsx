@@ -1,19 +1,20 @@
+import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
+import { colors, spacing } from '@/src/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LoginPlatform } from '../../api/auth.api';
 import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
 import AppText from '../../components/common/AppText';
+import { getFCMToken } from '../../lib/firebaseHelper';
 import { useLogin } from '../../queries/auth.query';
 import { useAuthStore } from '../../store/auth.store';
-import { colors, spacing } from '@/src/theme';
-import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
-import { saveAuthUser, saveToken } from '../../utils/token';
-import { getFCMToken } from '../../lib/firebaseHelper';
-import { LoginPlatform } from '../../api/auth.api';
 import { mapLoginUserToStoredUser } from '../../utils/authUser';
+import { saveAuthUser, saveToken } from '../../utils/token';
 
 import { AuthStackParamList } from '../../navigation/AuthStack';
 
@@ -33,6 +34,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const setLoggedIn = useAuthStore((s) => s.setLoggedIn);
   const setUser = useAuthStore((s) => s.setUser);
@@ -44,11 +46,12 @@ export default function LoginScreen() {
       return;
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
     const fcmToken = await getFCMToken();
     const platform = getLoginPlatform();
 
     mutate(
-      { email, password, fcmToken, platform },
+      { email: normalizedEmail, password, fcmToken, platform },
       {
         onSuccess: async (data) => {
           const normalizedUser = mapLoginUserToStoredUser(data.user);
@@ -110,7 +113,19 @@ export default function LoginScreen() {
                 placeholder="••••••••"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!showPassword}
+                rightElement={
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                }
               />
 
               <TouchableOpacity

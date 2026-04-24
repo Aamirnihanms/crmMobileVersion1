@@ -41,13 +41,32 @@ export default function StudentDetailsScreen() {
     });
   }, [navigation, id]);
 
+  const droppedEnrollments = data?.enrollments?.filter((e: any) => e.status_object?.value === 'dropped') || [];
+  const hasDropped = droppedEnrollments.length > 0;
+
+  const handleNewEnrollment = () => {
+    navigation.navigate('NewEnrollment', {
+      studentId: data?.student_id || id,
+      studentName: data?.full_name,
+    });
+  };
+
+  const handleRejoin = () => {
+    navigation.navigate('RejoinStudent', {
+      student: {
+        ...data,
+        dropped_enrollments: droppedEnrollments
+      }
+    });
+  };
+
   if (isLoading) return <AppLoader />;
 
   if (isError) {
     const errorDetail = (error as any)?.response?.data?.detail;
     const errorMessage = (error as any)?.response?.data?.error;
     const fallbackMessage = (error as Error)?.message || 'Failed to load student details';
-    
+
     // Display detail if available, otherwise specific error, otherwise generic message
     const displayMessage = errorDetail || errorMessage || fallbackMessage;
 
@@ -70,12 +89,32 @@ export default function StudentDetailsScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <StudentHeader student={data} />
 
+      {/* ─── Action Button (Rejoin or New Enrollment) ─── */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.enrollBtn,
+          pressed && styles.pressedBtn,
+          hasDropped && { backgroundColor: colors.danger + '08', borderColor: colors.danger + '20' }
+        ]}
+        onPress={hasDropped ? handleRejoin : handleNewEnrollment}
+      >
+        <Ionicons 
+            name={hasDropped ? "refresh-circle-outline" : "add-circle-outline"} 
+            size={22} 
+            color={hasDropped ? colors.danger : colors.primary} 
+        />
+        <AppText style={[styles.enrollBtnText, hasDropped && { color: colors.danger }]}>
+          {hasDropped ? "Rejoin Student" : "New Enrollment"}
+        </AppText>
+      </Pressable>
+
       <StudentOverviewSection
         student={data}
       />
 
       <StudentEnrollmentsSection
         enrollments={data.enrollments}
+        studentId={data.student_id}
       />
     </ScrollView>
   );
@@ -84,5 +123,26 @@ export default function StudentDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: spacing.lg,
+  },
+  enrollBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    backgroundColor: colors.primaryLight + '10',
+    borderColor: colors.primaryLight + '30',
+    marginBottom: spacing.lg,
+  },
+  pressedBtn: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
+  },
+  enrollBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
   },
 });

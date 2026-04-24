@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query';
 import {
   fetchLeads,
+  fetchMyReminders,
   createLead,
   updateLead,
   type LeadsFilters,
@@ -24,6 +25,28 @@ export const useInfiniteLeads = (
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.next) return undefined;
       return allPages.length + 1;
+    },
+  });
+};
+
+export const useInfiniteMyReminders = (
+  userUid: string,
+  filters: {
+    today_reminders?: boolean;
+    overdue_reminders?: boolean;
+    upcoming_reminders?: boolean;
+  }
+) => {
+  return useInfiniteQuery({
+    queryKey: ['my-reminders', userUid, filters],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      fetchMyReminders(userUid, pageParam, 10, filters),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.next) return undefined;
+
+      const url = new URL(lastPage.next);
+      return Number(url.searchParams.get('page'));
     },
   });
 };

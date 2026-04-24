@@ -44,7 +44,7 @@ export default function BatchStudentsTab({ batchUid }: BatchStudentsTabProps) {
     const renderItem = ({ item }: { item: any }) => (
         <StudentCard
             student={item}
-            onPress={() => navigation.navigate('StudentDetails', { id: item.uid })}
+            onPress={() => navigation.navigate('StudentDetails', { id: item.uid, is_active: item.is_active })}
         />
     );
 

@@ -16,11 +16,23 @@ export type Batch = {
   is_active: boolean;
   admission_fees?: number;
   seat_availability?: {
+    online?: {
+      capacity: number;
+      enrolled: number;
+      available: number;
+    };
+    offline?: {
+      capacity: number;
+      enrolled: number;
+      available: number;
+    };
     total: {
       capacity: number;
       enrolled: number;
       available: number;
-    }
+    };
+    can_enroll_online?: boolean;
+    can_enroll_offline?: boolean;
   };
 };
 
