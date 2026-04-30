@@ -3,7 +3,8 @@ import { fetchPaginatedBatches, fetchBatchDetail, createBatch, updateBatch, dele
 
 export const useInfiniteBatches = (
   search: string,
-  filters: BatchesFilters = {}
+  filters: BatchesFilters = {},
+  options: any = {}
 ) => {
   return useInfiniteQuery({
     queryKey: ['batches-paginated', search, filters],
@@ -18,6 +19,7 @@ export const useInfiniteBatches = (
       }
       return lastPage.pagination.current_page + 1;
     },
+    ...options
   });
 };
 

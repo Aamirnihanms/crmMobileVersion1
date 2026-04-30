@@ -52,8 +52,9 @@ export type MoreStackParamList = {
   RejoinStudent: { student: any };
   EvaluationTemplates: undefined;
   EvaluationTemplateDetail: { uid: string };
-  ExamSessions: undefined;
-  Marking: undefined;
+  ExamSessions: { batch?: any } | undefined;
+  Marking: { sessionUid: string };
+  EvaluationMarkingDetail: { attemptUid: string };
 };
 
 
@@ -250,6 +251,11 @@ export default function MoreStack() {
         name="Marking"
         getComponent={() => require('../screens/more/MarkingScreen').default}
         options={{ title: 'Marking' }}
+      />
+      <Stack.Screen
+        name="EvaluationMarkingDetail"
+        getComponent={() => require('../screens/more/EvaluationMarkingDetailScreen').default}
+        options={{ title: 'Mark Sheet' }}
       />
     </Stack.Navigator>
 

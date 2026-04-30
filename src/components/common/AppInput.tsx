@@ -7,6 +7,7 @@ type AppInputProps = TextInputProps & {
   error?: string;
   containerStyle?: ViewStyle;
   rightElement?: React.ReactNode;
+  leftElement?: React.ReactNode;
 };
 
 export default function AppInput({
@@ -15,6 +16,7 @@ export default function AppInput({
   style,
   containerStyle,
   rightElement,
+  leftElement,
   ...props
 }: AppInputProps) {
   return (
@@ -34,11 +36,17 @@ export default function AppInput({
         error && styles.errorBorder,
         props.multiline && styles.multilineInputWrapper,
       ]}>
+        {leftElement && (
+          <View style={styles.leftElement}>
+            {leftElement}
+          </View>
+        )}
         <TextInput
           {...props}
           style={[
             styles.input,
             props.multiline && { textAlignVertical: 'top' },
+            leftElement && { paddingLeft: 0 },
             style,
           ]}
           placeholderTextColor={colors.textMuted}
@@ -97,6 +105,11 @@ const styles = StyleSheet.create({
   },
   rightElement: {
     paddingRight: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  leftElement: {
+    paddingLeft: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
   },

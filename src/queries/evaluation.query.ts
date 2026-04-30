@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
     fetchEvaluationTemplates, 
     createEvaluationTemplate, 
@@ -19,7 +19,10 @@ import {
     updateEvaluationModule,
     deleteEvaluationModule,
     updateEvaluationCriteria,
-    deleteEvaluationCriteria
+    deleteEvaluationCriteria,
+    fetchExamSessions,
+    fetchExamAttempts,
+    fetchMarkSheet
 } from '../api/evaluation.api';
 
 export const useEvaluationTemplates = () => {
@@ -200,5 +203,47 @@ export const useDeleteEvaluationCriteria = (templateUid: string) => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['evaluation-template', templateUid] });
         },
+    });
+};
+
+export const useInfiniteExamSessions = (batchUid: string) => {
+    return useInfiniteQuery({
+        queryKey: ['exam-sessions', batchUid],
+        queryFn: ({ pageParam = 1 }) => fetchExamSessions({ 
+            batch_uid: batchUid, 
+            page: pageParam as number, 
+            page_size: 20 
+        }),
+        getNextPageParam: (lastPage) => {
+            const pagination = lastPage.pagination;
+            return pagination.has_next ? pagination.page + 1 : undefined;
+        },
+        enabled: !!batchUid,
+        initialPageParam: 1,
+    });
+};
+
+export const useInfiniteExamAttempts = (sessionUid: string) => {
+    return useInfiniteQuery({
+        queryKey: ['exam-attempts', sessionUid],
+        queryFn: ({ pageParam = 1 }) => fetchExamAttempts({ 
+            exam_session_uid: sessionUid, 
+            page: pageParam as number, 
+            page_size: 20 
+        }),
+        getNextPageParam: (lastPage) => {
+            const pagination = lastPage.pagination;
+            return pagination.has_next ? pagination.page + 1 : undefined;
+        },
+        enabled: !!sessionUid,
+        initialPageParam: 1,
+    });
+};
+
+export const useMarkSheet = (attemptUid: string) => {
+    return useQuery({
+        queryKey: ['mark-sheet', attemptUid],
+        queryFn: () => fetchMarkSheet(attemptUid),
+        enabled: !!attemptUid,
     });
 };

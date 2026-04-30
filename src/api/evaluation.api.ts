@@ -115,3 +115,18 @@ export const deleteEvaluationCriteria = async (uid: string): Promise<any> => {
     const res = await http.delete(`/evaluation/criteria/${uid}/`);
     return res.data;
 };
+
+export const fetchExamSessions = async (params: { batch_uid: string, page: number, page_size: number }): Promise<any> => {
+    const res = await http.get('/evaluation/exam-sessions/', { params });
+    return res.data;
+};
+
+export const fetchExamAttempts = async (params: { exam_session_uid: string, page: number, page_size: number }): Promise<any> => {
+    const res = await http.get('/evaluation/attempts/', { params });
+    return res.data;
+};
+
+export const fetchMarkSheet = async (attemptUid: string): Promise<any> => {
+    const res = await http.get(`/evaluation/attempts/${attemptUid}/mark-sheet/`);
+    return res.data;
+};
