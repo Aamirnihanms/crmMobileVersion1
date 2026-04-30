@@ -172,7 +172,11 @@ export default function AppSelect({
       <AppText variant="caption" style={styles.label}>{label}</AppText>
 
       <Pressable
-        style={[styles.selector, open && styles.selectorActive]}
+        style={[
+          styles.selector, 
+          open && styles.selectorActive,
+          externalError && styles.selectorError
+        ]}
         onPress={openSheet}
       >
         <AppText color={selected ? colors.textPrimary : colors.textMuted} style={styles.selectorText}>
@@ -180,6 +184,12 @@ export default function AppSelect({
         </AppText>
         <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
       </Pressable>
+
+      {externalError ? (
+        <AppText variant="caption" color={colors.danger} style={styles.errorText}>
+          {externalError}
+        </AppText>
+      ) : null}
 
       <Modal visible={open} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={closeSheet}>
@@ -319,8 +329,17 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: 'white',
   },
+  selectorError: {
+    borderColor: colors.danger,
+    borderWidth: 1.5,
+  },
   selectorText: {
     fontSize: 14,
+    fontWeight: '500',
+  },
+  errorText: {
+    marginTop: 4,
+    marginLeft: 4,
     fontWeight: '500',
   },
   overlay: {

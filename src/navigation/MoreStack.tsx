@@ -50,6 +50,10 @@ export type MoreStackParamList = {
   AddVideo: { gallery_uid: string; folder_uid?: string; video?: any };
   DroppedStudents: undefined;
   RejoinStudent: { student: any };
+  EvaluationTemplates: undefined;
+  EvaluationTemplateDetail: { uid: string };
+  ExamSessions: undefined;
+  Marking: undefined;
 };
 
 
@@ -226,6 +230,26 @@ export default function MoreStack() {
         name="BatchChange"
         component={BatchChangeScreen}
         options={{ title: 'Batch Change Request' }}
+      />
+      <Stack.Screen
+        name="EvaluationTemplates"
+        getComponent={() => require('../screens/more/EvaluationTemplatesScreen').default}
+        options={{ title: 'Evaluation Templates' }}
+      />
+      <Stack.Screen
+        name="EvaluationTemplateDetail"
+        getComponent={() => require('@/src/screens/more/EvaluationTemplateDetailScreen').default}
+        options={{ title: 'Template Details' }}
+      />
+      <Stack.Screen
+        name="ExamSessions"
+        getComponent={() => require('../screens/more/ExamSessionsScreen').default}
+        options={{ title: 'Exam Sessions' }}
+      />
+      <Stack.Screen
+        name="Marking"
+        getComponent={() => require('../screens/more/MarkingScreen').default}
+        options={{ title: 'Marking' }}
       />
     </Stack.Navigator>
 

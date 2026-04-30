@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -37,9 +37,11 @@ type SubTabType = 'today' | 'overdue' | 'upcoming';
 
 export default function FollowUpsScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
+    const isFocused = useIsFocused();
     const user = useAuthStore((state) => state.user);
     const [activeTab, setActiveTab] = useState<TabType>('followups');
     const [activeSubTab, setActiveSubTab] = useState<SubTabType>('today');
+    const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
     const followUpFilters = useMemo(() => ({
         today_followups: activeSubTab === 'today' ? true : undefined,
@@ -83,6 +85,21 @@ export default function FollowUpsScreen() {
     const isFetchingNextPage = activeTab === 'followups' ? isFetchingNextFollowUps : isFetchingNextReminders;
     const fetchNextPage = activeTab === 'followups' ? fetchNextFollowUps : fetchNextReminders;
     const refetch = activeTab === 'followups' ? refetchFollowUps : refetchReminders;
+
+    React.useEffect(() => {
+        if (isFocused) {
+            void refetch();
+        }
+    }, [isFocused, refetch]);
+
+    const onRefresh = useCallback(async () => {
+        try {
+            setIsManualRefreshing(true);
+            await refetch();
+        } finally {
+            setIsManualRefreshing(false);
+        }
+    }, [refetch]);
 
     const counts = useMemo(() => {
         if (activeTab === 'followups') {
@@ -245,8 +262,8 @@ export default function FollowUpsScreen() {
                     onEndReachedThreshold={0.5}
                     refreshControl={
                         <RefreshControl
-                            refreshing={isRefetching}
-                            onRefresh={refetch}
+                            refreshing={isManualRefreshing}
+                            onRefresh={onRefresh}
                             colors={[colors.primary]}
                             tintColor={colors.primary}
                         />

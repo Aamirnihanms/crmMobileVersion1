@@ -189,6 +189,32 @@ export default function MoreListScreen() {
                     /> */}
                 </AppCard>
 
+                <AppText variant="h3" style={styles.sectionTitle}>Evaluation</AppText>
+                <AppCard style={styles.menuCard}>
+                    <MenuItem
+                        icon="document-text-outline"
+                        label="Templates"
+                        sublabel="Manage evaluation templates"
+                        onPress={() => navigation.navigate('EvaluationTemplates')}
+                        color={colors.primary}
+                    />
+                    <MenuItem
+                        icon="calendar-outline"
+                        label="Exam Sessions"
+                        sublabel="Schedule and manage exams"
+                        onPress={() => navigation.navigate('ExamSessions')}
+                        color={colors.warning}
+                    />
+                    <MenuItem
+                        icon="create-outline"
+                        label="Marking"
+                        sublabel="Grade student performance"
+                        onPress={() => navigation.navigate('Marking')}
+                        color={colors.success}
+                        isLast
+                    />
+                </AppCard>
+
                 {/* <AppText variant="h3" style={styles.sectionTitle}>Support & About</AppText>
                 <AppCard style={styles.menuCard}>
                     <MenuItem

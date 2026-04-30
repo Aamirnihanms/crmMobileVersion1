@@ -1,12 +1,21 @@
+import React from 'react';
 import { colors, spacing } from '@/src/theme';
-import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { Platform, StyleProp, StyleSheet, View, ViewStyle, Pressable } from 'react-native';
 
 type AppCardProps = {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
 };
 
-export default function AppCard({ children, style }: AppCardProps) {
+export default function AppCard({ children, style, onPress }: AppCardProps) {
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]}>
+        {children}
+      </Pressable>
+    );
+  }
   return <View style={[styles.card, style]}>{children}</View>;
 }
 

@@ -1,0 +1,204 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { 
+    fetchEvaluationTemplates, 
+    createEvaluationTemplate, 
+    updateEvaluationTemplate,
+    deleteEvaluationTemplate,
+    CreateEvaluationTemplatePayload, 
+    fetchEvaluationTemplateDetail,
+    fetchGradeBands,
+    fetchPlacementRules,
+    createGradeBand,
+    updateGradeBand,
+    deleteGradeBand,
+    createEvaluationModule,
+    createEvaluationCriteria,
+    createPlacementRule,
+    updatePlacementRule,
+    deletePlacementRule,
+    updateEvaluationModule,
+    deleteEvaluationModule,
+    updateEvaluationCriteria,
+    deleteEvaluationCriteria
+} from '../api/evaluation.api';
+
+export const useEvaluationTemplates = () => {
+    return useQuery({
+        queryKey: ['evaluation-templates'],
+        queryFn: fetchEvaluationTemplates,
+    });
+};
+
+export const useEvaluationTemplateDetail = (uid: string) => {
+    return useQuery({
+        queryKey: ['evaluation-template', uid],
+        queryFn: () => fetchEvaluationTemplateDetail(uid),
+        enabled: !!uid,
+    });
+};
+
+export const useGradeBands = (templateUid: string) => {
+    return useQuery({
+        queryKey: ['grade-bands', templateUid],
+        queryFn: () => fetchGradeBands(templateUid),
+        enabled: !!templateUid,
+    });
+};
+
+export const usePlacementRules = (templateUid: string) => {
+    return useQuery({
+        queryKey: ['placement-rules', templateUid],
+        queryFn: () => fetchPlacementRules(templateUid),
+        enabled: !!templateUid,
+    });
+};
+
+export const useCreateEvaluationTemplate = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: CreateEvaluationTemplatePayload) => createEvaluationTemplate(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-templates'] });
+        },
+    });
+};
+
+export const useUpdateEvaluationTemplate = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ uid, payload }: { uid: string; payload: any }) => updateEvaluationTemplate(uid, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-templates'] });
+        },
+    });
+};
+
+export const useDeleteEvaluationTemplate = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (uid: string) => deleteEvaluationTemplate(uid),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-templates'] });
+        },
+    });
+};
+
+export const useCreateGradeBand = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: any) => createGradeBand(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['grade-bands', templateUid] });
+        },
+    });
+};
+
+export const useUpdateGradeBand = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ uid, payload }: { uid: string, payload: any }) => updateGradeBand(uid, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['grade-bands', templateUid] });
+        },
+    });
+};
+
+export const useDeleteGradeBand = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (uid: string) => deleteGradeBand(uid),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['grade-bands', templateUid] });
+        },
+    });
+};
+
+export const useCreateEvaluationModule = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: any) => createEvaluationModule(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-template', templateUid] });
+        },
+    });
+};
+
+export const useCreateEvaluationCriteria = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: any) => createEvaluationCriteria(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-template', templateUid] });
+        },
+    });
+};
+
+export const useCreatePlacementRule = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: any) => createPlacementRule(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['placement-rules', templateUid] });
+        },
+    });
+};
+
+export const useUpdatePlacementRule = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ uid, payload }: { uid: string, payload: any }) => updatePlacementRule(uid, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['placement-rules', templateUid] });
+        },
+    });
+};
+
+export const useDeletePlacementRule = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (uid: string) => deletePlacementRule(uid),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['placement-rules', templateUid] });
+        },
+    });
+};
+
+export const useUpdateEvaluationModule = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ uid, payload }: { uid: string; payload: any }) => updateEvaluationModule(uid, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-template', templateUid] });
+        },
+    });
+};
+
+export const useDeleteEvaluationModule = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (uid: string) => deleteEvaluationModule(uid),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-template', templateUid] });
+        },
+    });
+};
+
+export const useUpdateEvaluationCriteria = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ uid, payload }: { uid: string; payload: any }) => updateEvaluationCriteria(uid, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-template', templateUid] });
+        },
+    });
+};
+
+export const useDeleteEvaluationCriteria = (templateUid: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (uid: string) => deleteEvaluationCriteria(uid),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['evaluation-template', templateUid] });
+        },
+    });
+};
