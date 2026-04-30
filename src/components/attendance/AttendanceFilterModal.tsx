@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -11,10 +11,10 @@ import {
   View,
 } from 'react-native';
 
+import { AttendanceFilters } from '@/src/api/attendance.api';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 import { colors, spacing } from '@/src/theme';
-import { AttendanceFilters } from '@/src/api/attendance.api';
 
 type Props = {
   visible: boolean;

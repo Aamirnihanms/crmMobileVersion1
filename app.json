@@ -26,7 +26,7 @@
       },
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
-      "package": "com.luminar.crmmobile",
+      "package": "com.luminar.crmstaff",
       "versionCode": 1,
       "permissions": [
         "android.permission.RECORD_AUDIO",

@@ -1,5 +1,5 @@
 import AppText from '@/src/components/common/AppText';
-import { colors } from '@/src/theme';
+import { colors, spacing } from '@/src/theme';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import React, { createContext, useContext, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -8,6 +8,7 @@ import BatchOverviewTab from '@/src/screens/more/tabs/BatchOverviewTab';
 import BatchStudentsTab from '@/src/screens/more/tabs/BatchStudentsTab';
 import BatchAttendanceTab from '@/src/screens/more/tabs/BatchAttendanceTab';
 import BatchGalleryTab from '@/src/screens/more/tabs/BatchGalleryTab';
+import BatchSessionsTab from '@/src/screens/more/tabs/BatchSessionsTab';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -29,6 +30,11 @@ const AttendanceTab = () => {
     return batch ? <BatchAttendanceTab batchUid={batch.uid} /> : null;
 };
 
+const SessionsTab = () => {
+    const { batch } = useContext(BatchContext);
+    return batch ? <BatchSessionsTab batchUid={batch.uid} /> : null;
+};
+
 const PlaceholderTab = ({ title }: { title: string }) => (
     <View style={styles.placeholder}>
         <AppText variant="subtitle" color={colors.textMuted}>{title} Coming Soon!</AppText>
@@ -47,6 +53,11 @@ export default function BatchDetailsTabs({ batch }: { batch: BatchDetail }) {
         <BatchContext.Provider value={value}>
             <Tab.Navigator
                 screenOptions={{
+                    tabBarScrollEnabled: true,
+                    tabBarItemStyle: {
+                        width: 'auto',
+                        paddingHorizontal: spacing.md,
+                    },
                     tabBarIndicatorStyle: {
                         backgroundColor: colors.primary,
                         height: 3,
@@ -71,6 +82,7 @@ export default function BatchDetailsTabs({ batch }: { batch: BatchDetail }) {
             >
                 <Tab.Screen name="Overview" component={OverviewTab} />
                 <Tab.Screen name="Students" component={StudentsTab} />
+                <Tab.Screen name="Sessions" component={SessionsTab} />
                 <Tab.Screen name="Attendance" component={AttendanceTab} />
                 <Tab.Screen name="Gallery" component={GalleryTab} />
             </Tab.Navigator>

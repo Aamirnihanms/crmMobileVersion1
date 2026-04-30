@@ -1,5 +1,4 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { CHAT_UNREAD_COUNT_QUERY_KEY } from '../lib/unreadCount';
 import {
   getAllActiveUsers,
   getChatBatches,
@@ -10,6 +9,7 @@ import {
   type ChatListParams,
   type ChatType,
 } from '../api/chat.api';
+import { CHAT_UNREAD_COUNT_QUERY_KEY } from '../lib/unreadCount';
 
 export const useChatUnreadCount = (enabled = true) => {
   return useQuery({

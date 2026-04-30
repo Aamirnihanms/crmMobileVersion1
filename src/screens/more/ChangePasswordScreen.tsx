@@ -1,13 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import AppButton from '@/src/components/common/AppButton';
 import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
 import ScreenShell from '@/src/components/common/ScreenShell';
 import { useChangePassword } from '@/src/queries/auth.query';
 import { colors, spacing } from '@/src/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 export default function ChangePasswordScreen() {
     const navigation = useNavigation();

@@ -24,7 +24,7 @@ export default function BatchChangeRequestCard({ request, onPress }: BatchChange
     };
 
     const statusColor = getStatusColor(request.request_info.status, request.request_info.is_expired);
-    const initials = request.student.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const initials = request.student?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
 
     const impactColor = request.fees_impact.impact_type === 'increase' 
         ? colors.danger 
@@ -57,7 +57,7 @@ export default function BatchChangeRequestCard({ request, onPress }: BatchChange
                             </View>
                         </View>
                         <AppText variant="subtitle" style={styles.studentName} numberOfLines={1}>
-                            {request.student.full_name}
+                            {request.student?.full_name || 'Unknown Student'}
                         </AppText>
                     </View>
                 </View>

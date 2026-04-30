@@ -34,6 +34,11 @@ export type EnrollmentDetailsResponse = {
     end_date: string;
     status: string;
     time: string;
+    fee_structure?: {
+      course_fees: number;
+      course_fees_discount: number;
+      admission_fees: number;
+    };
   };
 
   status_object?: {
@@ -51,12 +56,24 @@ export type EnrollmentDetailsResponse = {
   total_amount_paid: string;
   total_pending_amount: string;
   net_fees: number;
+  original_course_fees_discount?: string | number;
+  original_admission_fees?: string | number;
+  original_course_fees?: string | number;
+  total_discount_amount?: string | number;
 
   payment_type: string;
   payment_type_display: string;
 
   emi_installments?: EmiInstallment[];
   payment_transactions?: PaymentTransaction[];
+
+  admission_counselor_uid?: string;
+  attendance_mode?: {
+    id: number;
+    name: string;
+    value: string;
+  };
+  certificate_data_collected?: boolean;
 
   created_at: string;
   updated_at: string;
@@ -191,5 +208,22 @@ export const dropEnrollment = async (id: string, payload: { drop_date: string; d
 
 export const rejoinStudent = async (studentId: string, payload: any) => {
   const res = await http.post(`/student-enrollment/rejoin/${studentId}/`, payload);
+  return res.data;
+};
+
+export const toggleEnrollmentAccess = async (id: string, is_active: boolean) => {
+  const res = await http.patch(`/student/${id}/toggle/`, { is_active });
+  return res.data;
+};
+
+export type EditEnrollmentPayload = {
+  admission_counselor_uid: string;
+  attendance_mode_uid: string;
+  certificate_data_collected: boolean;
+  remarks?: string;
+};
+
+export const editEnrollment = async (uid: string, payload: EditEnrollmentPayload) => {
+  const res = await http.patch(`/student-enrollment/${uid}/edit/`, payload);
   return res.data;
 };

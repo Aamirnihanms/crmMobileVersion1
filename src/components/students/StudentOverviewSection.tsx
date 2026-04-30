@@ -9,8 +9,8 @@ const InfoItem = ({ icon, label, value, color = colors.textPrimary }: any) => {
     typeof value === 'string'
       ? value.trim() || 'N/A'
       : value !== null && value !== undefined
-      ? String(value)
-      : 'N/A';
+        ? String(value)
+        : 'N/A';
 
   return (
     <View style={styles.infoItem}>

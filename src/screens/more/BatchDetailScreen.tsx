@@ -4,6 +4,7 @@ import {
     StyleSheet,
     Pressable,
     Dimensions,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
@@ -13,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AppText from '../../components/common/AppText';
 import AppLoader from '../../components/common/AppLoader';
 import { colors, spacing } from '@/src/theme';
-import { useBatchDetail } from '../../queries/batches.query';
+import { useBatchDetail, useDeleteBatch, useMarkBatchCompleted } from '../../queries/batches.query';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 import BatchDetailsTabs from '../../navigation/BatchDetailsTabs';
 
@@ -25,29 +26,114 @@ export default function BatchDetailScreen() {
     const { uid } = route.params;
 
     const { data, isLoading, isError, refetch } = useBatchDetail(uid);
+    const deleteMutation = useDeleteBatch();
+    const markCompletedMutation = useMarkBatchCompleted();
     const batch = data?.batch;
+
+    const handleMarkCompleted = () => {
+        Alert.alert(
+            'Mark Completed',
+            'Are you sure you want to mark this batch as completed?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Confirm',
+                    onPress: () => {
+                        markCompletedMutation.mutate(uid, {
+                            onSuccess: () => {
+                                Alert.alert('Success', 'Batch marked as completed');
+                            },
+                            onError: (error: any) => {
+                                Alert.alert('Error', error?.response?.data?.message || 'Failed to mark batch as completed');
+                            }
+                        });
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleDelete = () => {
+        Alert.alert(
+            'Delete Batch',
+            'Are you sure you want to delete this batch? This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => {
+                        deleteMutation.mutate(uid, {
+                            onSuccess: () => {
+                                navigation.goBack();
+                            },
+                            onError: (error: any) => {
+                                Alert.alert('Error', error?.response?.data?.message || 'Failed to delete batch');
+                            }
+                        });
+                    }
+                }
+            ]
+        );
+    };
 
     React.useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
-                <Pressable 
-                    onPress={() => navigation.navigate('BatchEdit', { uid })}
-                    style={({ pressed }) => ({
-                        opacity: pressed ? 0.7 : 1,
-                        marginRight: 4,
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: colors.primaryLight + '15',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    })}
-                >
-                    <Ionicons name="pencil" size={20} color={colors.primary} />
-                </Pressable>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {batch?.status !== 'Completed' && (
+                        <Pressable 
+                            onPress={handleMarkCompleted}
+                            disabled={markCompletedMutation.isPending}
+                            style={({ pressed }) => ({
+                                opacity: pressed || markCompletedMutation.isPending ? 0.7 : 1,
+                                marginRight: 8,
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: colors.success + '15',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            })}
+                        >
+                            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                        </Pressable>
+                    )}
+                    <Pressable 
+                        onPress={handleDelete}
+                        disabled={deleteMutation.isPending}
+                        style={({ pressed }) => ({
+                            opacity: pressed || deleteMutation.isPending ? 0.7 : 1,
+                            marginRight: 8,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: colors.danger + '15',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        })}
+                    >
+                        <Ionicons name="trash" size={20} color={colors.danger} />
+                    </Pressable>
+                    <Pressable 
+                        onPress={() => navigation.navigate('BatchEdit', { uid })}
+                        style={({ pressed }) => ({
+                            opacity: pressed ? 0.7 : 1,
+                            marginRight: 4,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: colors.primaryLight + '15',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        })}
+                    >
+                        <Ionicons name="pencil" size={20} color={colors.primary} />
+                    </Pressable>
+                </View>
             ),
         });
-    }, [navigation, uid]);
+    }, [navigation, uid, deleteMutation.isPending, markCompletedMutation.isPending, batch?.status]);
 
     if (isLoading) {
         return (

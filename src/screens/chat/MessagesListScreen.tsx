@@ -258,15 +258,17 @@ function Avatar({
   color,
   online,
   uri,
+  onPress,
 }: {
   label: string;
   color: string;
   online?: boolean;
   uri?: string | null;
+  onPress?: () => void;
 }) {
   const initial = label?.trim()?.charAt(0)?.toUpperCase() || 'U';
 
-  return (
+  const content = (
     <View style={styles.avatarOuter}>
       <View style={[styles.avatar, { backgroundColor: color + '25' }]}>
         {uri ? (
@@ -285,15 +287,94 @@ function Avatar({
       {online ? <View style={styles.onlineDot} /> : null}
     </View>
   );
+
+  if (onPress) {
+    return <Pressable onPress={onPress}>{content}</Pressable>;
+  }
+
+  return content;
 }
+
+type ProfilePreviewModalProps = {
+  visible: boolean;
+  chat: ChatPreview | null;
+  onClose: () => void;
+  onOpenChat: (chat: ChatPreview) => void;
+};
+
+const ProfilePreviewModal = memo(function ProfilePreviewModal({
+  visible,
+  chat,
+  onClose,
+  onOpenChat,
+}: ProfilePreviewModalProps) {
+  if (!chat) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.profilePreviewOverlay} onPress={onClose}>
+        <Pressable style={styles.profilePreviewCard} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.profilePreviewHeader}>
+            <AppText variant="subtitle" color={colors.surface} numberOfLines={1} style={{ fontWeight: '600' }}>
+              {chat.name}
+            </AppText>
+          </View>
+
+          <View style={styles.profilePreviewBody}>
+            {chat.profilePic ? (
+              <ExpoImage
+                source={{ uri: chat.profilePic }}
+                style={styles.profilePreviewImage}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={[styles.profilePreviewPlaceholder, { backgroundColor: chat.avatarColor + '40' }]}>
+                <AppText variant="h1" color={colors.primary} style={{ fontSize: 80 }}>
+                  {chat.name?.trim()?.charAt(0)?.toUpperCase() || 'U'}
+                </AppText>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.profilePreviewFooter}>
+            <Pressable
+              style={styles.profilePreviewAction}
+              onPress={() => {
+                onClose();
+                onOpenChat(chat);
+              }}
+            >
+              <Ionicons name="chatbubble-outline" size={22} color={colors.primary} />
+            </Pressable>
+            <Pressable style={styles.profilePreviewAction} onPress={() => Alert.alert('Coming Soon')}>
+              <Ionicons name="call-outline" size={22} color={colors.primary} />
+            </Pressable>
+            <Pressable style={styles.profilePreviewAction} onPress={() => Alert.alert('Coming Soon')}>
+              <Ionicons name="videocam-outline" size={22} color={colors.primary} />
+            </Pressable>
+            <Pressable style={styles.profilePreviewAction} onPress={() => Alert.alert('Coming Soon')}>
+              <Ionicons name="information-circle-outline" size={22} color={colors.primary} />
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+});
 
 type ChatRowProps = {
   chat: ChatPreview;
   onOpenChat: (chat: ChatPreview) => void;
   onMenuPress: (chat: ChatPreview) => void;
+  onAvatarPress: (chat: ChatPreview) => void;
 };
 
-const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress }: ChatRowProps) {
+const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarPress }: ChatRowProps) {
   return (
     <Pressable
       style={({ pressed }) => [
@@ -308,6 +389,7 @@ const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress }: ChatRow
         color={chat.avatarColor}
         online={chat.online}
         uri={chat.profilePic}
+        onPress={() => onAvatarPress(chat)}
       />
 
       <View style={styles.chatMiddle}>
@@ -365,6 +447,7 @@ const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress }: ChatRow
 }, (prev, next) =>
   prev.onOpenChat === next.onOpenChat &&
   prev.onMenuPress === next.onMenuPress &&
+  prev.onAvatarPress === next.onAvatarPress &&
   areChatPreviewsEqual(prev.chat, next.chat)
 );
 
@@ -382,9 +465,13 @@ export default function MessagesListScreen() {
     useState<string | number | null>(null);
 
   const [chats, setChats] = useState<ChatPreview[]>([]);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [selectedChat, setSelectedChat] = useState<ChatPreview | null>(null);
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+
+  const [previewChat, setPreviewChat] = useState<ChatPreview | null>(null);
+  const [showProfilePreview, setShowProfilePreview] = useState(false);
 
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
@@ -557,9 +644,21 @@ export default function MessagesListScreen() {
   }, [isFocused, queryClient, refetchChats]);
 
   useEffect(() => {
-    setChats((prev) => {
-      if (!mappedChatsFromQuery.length) return [];
+    // Clear local state when mode or search changes to prevent cross-contamination of cached data
+    setChats([]);
+  }, [showArchivedOnly, debouncedSearch]);
 
+  useEffect(() => {
+    if (mappedChatsFromQuery.length === 0) {
+      if (!chatsLoading && !chatsRefetching) {
+        // If query returned nothing, we should respect that for the current mode
+        // but maybe we don't want to clear EVERYTHING if we had some local updates.
+        // However, for mode switching, we already clear it above.
+      }
+      return;
+    }
+
+    setChats((prev) => {
       const prevById = new Map(prev.map((chat) => [chat.id, chat]));
       const mappedWithStableRefs = mappedChatsFromQuery.map((chat) => {
         const existing = prevById.get(chat.id);
@@ -642,6 +741,11 @@ export default function MessagesListScreen() {
 
   const navigateToChat = useCallback(
     (chat: ChatPreview) => {
+      // 🚀 Instant Update: Zero out unread count locally
+      setChats((prev) =>
+        prev.map((c) => (c.id === chat.id ? { ...c, unread: 0 } : c))
+      );
+
       navigation.navigate('ChatThread', {
         chatId: chat.id,
         name: chat.name,
@@ -1056,12 +1160,13 @@ export default function MessagesListScreen() {
       setChats((prev) =>
         prev.map((c) => c.id === selectedChat.id ? { ...c, isArchived: true } : c)
       );
+      queryClient.invalidateQueries({ queryKey: ['chat-list'] });
       setShowChatMenu(false);
       setSelectedChat(null);
     } catch {
       Alert.alert('Error', 'Failed to archive chat');
     }
-  }, [selectedChat]);
+  }, [selectedChat, queryClient]);
 
   const handleUnarchiveChat = useCallback(async () => {
     if (!selectedChat) return;
@@ -1070,12 +1175,13 @@ export default function MessagesListScreen() {
       setChats((prev) =>
         prev.map((c) => c.id === selectedChat.id ? { ...c, isArchived: false } : c)
       );
+      queryClient.invalidateQueries({ queryKey: ['chat-list'] });
       setShowChatMenu(false);
       setSelectedChat(null);
     } catch {
       Alert.alert('Error', 'Failed to unarchive chat');
     }
-  }, [selectedChat, unarchiveChat]);
+  }, [selectedChat, queryClient]);
 
   const handleDeleteChat = useCallback(() => {
     if (!selectedChat) return;
@@ -1092,6 +1198,7 @@ export default function MessagesListScreen() {
             try {
               await deleteChat(selectedChat.id);
               setChats((prev) => prev.filter((c) => c.id !== selectedChat.id));
+              queryClient.invalidateQueries({ queryKey: ['chat-list'] });
               setShowChatMenu(false);
               setSelectedChat(null);
             } catch {
@@ -1101,7 +1208,7 @@ export default function MessagesListScreen() {
         },
       ]
     );
-  }, [selectedChat]);
+  }, [selectedChat, queryClient]);
 
   const chatKeyExtractor = useCallback((item: ChatPreview) => item.id, []);
   const getChatItemLayout = useCallback(
@@ -1113,18 +1220,28 @@ export default function MessagesListScreen() {
     []
   );
 
-  const renderChatItem = useCallback((
-    { item }: any
-  ) => (
-    <ChatRow
-      chat={item}
-      onOpenChat={handleOpenChat}
-      onMenuPress={handleMenuPress}
-    />
-  ), [handleOpenChat, handleMenuPress]);
+  const renderChatItem = useCallback(
+    ({ item }: { item: ChatPreview }) => (
+      <ChatRow
+        chat={item}
+        onOpenChat={handleOpenChat}
+        onMenuPress={handleMenuPress}
+        onAvatarPress={(chat) => {
+          setPreviewChat(chat);
+          setShowProfilePreview(true);
+        }}
+      />
+    ),
+    [handleOpenChat, handleMenuPress]
+  );
 
-  const refreshChats = useCallback(() => {
-    void refetchChats();
+  const refreshChats = useCallback(async () => {
+    try {
+      setIsManualRefreshing(true);
+      await refetchChats();
+    } finally {
+      setIsManualRefreshing(false);
+    }
   }, [refetchChats]);
 
   const loadMoreChats = useCallback(() => {
@@ -1204,11 +1321,15 @@ export default function MessagesListScreen() {
   ), [chatLoadError, chatsLoading, refetchChats]);
 
   const renderChatRow = useCallback(
-    ({ item }: any) => (
+    ({ item }: { item: ChatPreview }) => (
       <ChatRow
         chat={item}
         onOpenChat={navigateToChat}
         onMenuPress={handleMenuPress}
+        onAvatarPress={(chat) => {
+          setPreviewChat(chat);
+          setShowProfilePreview(true);
+        }}
       />
     ),
     [navigateToChat, handleMenuPress]
@@ -1310,6 +1431,13 @@ export default function MessagesListScreen() {
         </Pressable>
       </Modal>
 
+      <ProfilePreviewModal
+        visible={showProfilePreview}
+        chat={previewChat}
+        onClose={() => setShowProfilePreview(false)}
+        onOpenChat={navigateToChat}
+      />
+
       <FlatList
         data={filteredChats}
         keyExtractor={chatKeyExtractor}
@@ -1318,7 +1446,7 @@ export default function MessagesListScreen() {
         removeClippedSubviews
         refreshControl={
           <RefreshControl
-            refreshing={chatsRefetching}
+            refreshing={isManualRefreshing}
             onRefresh={refreshChats}
           />
         }
@@ -1480,190 +1608,190 @@ export default function MessagesListScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalCardTall}>
-            <View style={styles.modalHeaderRow}>
-              <AppText variant="subtitle">Create Group</AppText>
-              <Pressable
-                onPress={() => {
-                  setShowCreateGroupModal(false);
-                  resetGroupModal();
-                }}
-              >
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            <TextInput
-              value={groupName}
-              onChangeText={setGroupName}
-              placeholder="Group name"
-              placeholderTextColor={colors.textMuted}
-              style={styles.groupInput}
-            />
-            <TextInput
-              value={groupDescription}
-              onChangeText={setGroupDescription}
-              placeholder="Group description"
-              placeholderTextColor={colors.textMuted}
-              style={styles.groupInput}
-            />
-
-            <Pressable style={styles.iconPickerBtn} onPress={openGroupIconPicker}>
-              {groupIcon ? (
-                <>
-                  <ExpoImage
-                    source={{ uri: groupIcon.uri }}
-                    style={styles.groupIconPreview}
-                    contentFit="cover"
-                  />
-                  <View style={styles.groupIconActionRow}>
-                    <AppText variant="caption" color={colors.primary}>
-                      Change Icon
-                    </AppText>
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setGroupIcon(null);
-                      }}
-                      hitSlop={10}
-                      style={{ marginLeft: 8 }}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                    </Pressable>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.iconPlaceholder}>
-                    <Ionicons name="camera-outline" size={24} color={colors.textSecondary} />
-                  </View>
-                  <AppText variant="caption" color={colors.textSecondary}>
-                    Add group icon (optional)
-                  </AppText>
-                </>
-              )}
-            </Pressable>
-
-            <View style={styles.tabsRow}>
-              {(['users', 'students'] as GroupTab[]).map((tab) => (
+              <View style={styles.modalHeaderRow}>
+                <AppText variant="subtitle">Create Group</AppText>
                 <Pressable
-                  key={tab}
-                  style={[
-                    styles.tabBtn,
-                    groupTab === tab && styles.tabBtnActive,
-                  ]}
                   onPress={() => {
-                    setGroupTab(tab);
-                    setGroupSearch('');
+                    setShowCreateGroupModal(false);
+                    resetGroupModal();
                   }}
                 >
-                  <AppText
-                    variant="caption"
-                    color={groupTab === tab ? colors.surface : colors.textSecondary}
-                  >
-                    {tab === 'users' ? 'Users' : 'Students'}
-                  </AppText>
+                  <Ionicons name="close" size={20} color={colors.textSecondary} />
                 </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.modalSearchRow}>
-              <Ionicons name="search" size={16} color={colors.textSecondary} />
-              <TextInput
-                value={groupSearch}
-                onChangeText={setGroupSearch}
-                placeholder={`Search ${groupTab}`}
-                placeholderTextColor={colors.textMuted}
-                style={styles.modalSearchInput}
-              />
-            </View>
-
-            <AppText variant="caption" color={colors.textSecondary}>
-              Selected: {selectedGroupParticipants.length}
-            </AppText>
-
-            {groupCandidatesLoading ? (
-              <View style={styles.modalLoaderWrap}>
-                <ActivityIndicator color={colors.primary} />
               </View>
-            ) : (
-              <FlatList
-                data={groupCandidates}
-                keyExtractor={(item: ActiveUser | ChatStudent, idx: number) =>
-                  String(item.uid || item.user_id || item.id || idx)
-                }
-                style={styles.modalListView}
-                contentContainerStyle={styles.modalList}
-                keyboardShouldPersistTaps="handled"
-                onEndReached={loadMoreGroupCandidates}
-                onEndReachedThreshold={0.35}
-                renderItem={({ item }: { item: ActiveUser | ChatStudent }) => {
-                  const participantId = getParticipantId(item);
-                  const selected =
-                    typeof participantId === 'number' &&
-                    groupParticipantIds.has(participantId);
 
-                  return (
-                    <Pressable
-                      style={styles.modalListRow}
-                      onPress={() => toggleGroupParticipant(item)}
-                    >
-                      <View style={styles.modalListAvatar}>
-                        <AppText variant="caption" color={colors.textPrimary}>
-                          {getRecipientName(item).charAt(0).toUpperCase()}
-                        </AppText>
-                      </View>
-                      <View style={styles.modalListTextWrap}>
-                        <AppText variant="subtitle" numberOfLines={1}>
-                          {getRecipientName(item)}
-                        </AppText>
-                        <AppText
-                          variant="caption"
-                          color={colors.textSecondary}
-                          numberOfLines={1}
-                        >
-                          {getRecipientSubtitle(item, groupTab)}
-                        </AppText>
-                      </View>
-                      <Ionicons
-                        name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                        size={20}
-                        color={selected ? colors.successStrong : colors.textMuted}
-                      />
-                    </Pressable>
-                  );
-                }}
-                ListEmptyComponent={
-                  <View style={styles.modalEmptyWrap}>
-                    <AppText color={colors.textSecondary}>No participants</AppText>
-                  </View>
-                }
-                ListFooterComponent={
-                  groupCandidatesFetchingNextPage ? (
-                    <View style={styles.modalLoaderWrap}>
-                      <ActivityIndicator color={colors.primary} />
-                    </View>
-                  ) : null
-                }
+              <TextInput
+                value={groupName}
+                onChangeText={setGroupName}
+                placeholder="Group name"
+                placeholderTextColor={colors.textMuted}
+                style={styles.groupInput}
               />
-            )}
+              <TextInput
+                value={groupDescription}
+                onChangeText={setGroupDescription}
+                placeholder="Group description"
+                placeholderTextColor={colors.textMuted}
+                style={styles.groupInput}
+              />
 
-            <Pressable
-              style={[
-                styles.createGroupBtn,
-                (!groupName.trim() || !selectedGroupParticipants.length || creatingGroup) &&
-                styles.createGroupBtnDisabled,
-              ]}
-              onPress={() => void handleCreateGroup()}
-              disabled={
-                !groupName.trim() ||
-                !selectedGroupParticipants.length ||
-                creatingGroup
-              }
-            >
-              <AppText variant="subtitle" color={colors.surface}>
-                {creatingGroup ? 'Creating...' : 'Create Group'}
+              <Pressable style={styles.iconPickerBtn} onPress={openGroupIconPicker}>
+                {groupIcon ? (
+                  <>
+                    <ExpoImage
+                      source={{ uri: groupIcon.uri }}
+                      style={styles.groupIconPreview}
+                      contentFit="cover"
+                    />
+                    <View style={styles.groupIconActionRow}>
+                      <AppText variant="caption" color={colors.primary}>
+                        Change Icon
+                      </AppText>
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setGroupIcon(null);
+                        }}
+                        hitSlop={10}
+                        style={{ marginLeft: 8 }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                      </Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.iconPlaceholder}>
+                      <Ionicons name="camera-outline" size={24} color={colors.textSecondary} />
+                    </View>
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      Add group icon (optional)
+                    </AppText>
+                  </>
+                )}
+              </Pressable>
+
+              <View style={styles.tabsRow}>
+                {(['users', 'students'] as GroupTab[]).map((tab) => (
+                  <Pressable
+                    key={tab}
+                    style={[
+                      styles.tabBtn,
+                      groupTab === tab && styles.tabBtnActive,
+                    ]}
+                    onPress={() => {
+                      setGroupTab(tab);
+                      setGroupSearch('');
+                    }}
+                  >
+                    <AppText
+                      variant="caption"
+                      color={groupTab === tab ? colors.surface : colors.textSecondary}
+                    >
+                      {tab === 'users' ? 'Users' : 'Students'}
+                    </AppText>
+                  </Pressable>
+                ))}
+              </View>
+
+              <View style={styles.modalSearchRow}>
+                <Ionicons name="search" size={16} color={colors.textSecondary} />
+                <TextInput
+                  value={groupSearch}
+                  onChangeText={setGroupSearch}
+                  placeholder={`Search ${groupTab}`}
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.modalSearchInput}
+                />
+              </View>
+
+              <AppText variant="caption" color={colors.textSecondary}>
+                Selected: {selectedGroupParticipants.length}
               </AppText>
-            </Pressable>
+
+              {groupCandidatesLoading ? (
+                <View style={styles.modalLoaderWrap}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : (
+                <FlatList
+                  data={groupCandidates}
+                  keyExtractor={(item: ActiveUser | ChatStudent, idx: number) =>
+                    String(item.uid || item.user_id || item.id || idx)
+                  }
+                  style={styles.modalListView}
+                  contentContainerStyle={styles.modalList}
+                  keyboardShouldPersistTaps="handled"
+                  onEndReached={loadMoreGroupCandidates}
+                  onEndReachedThreshold={0.35}
+                  renderItem={({ item }: { item: ActiveUser | ChatStudent }) => {
+                    const participantId = getParticipantId(item);
+                    const selected =
+                      typeof participantId === 'number' &&
+                      groupParticipantIds.has(participantId);
+
+                    return (
+                      <Pressable
+                        style={styles.modalListRow}
+                        onPress={() => toggleGroupParticipant(item)}
+                      >
+                        <View style={styles.modalListAvatar}>
+                          <AppText variant="caption" color={colors.textPrimary}>
+                            {getRecipientName(item).charAt(0).toUpperCase()}
+                          </AppText>
+                        </View>
+                        <View style={styles.modalListTextWrap}>
+                          <AppText variant="subtitle" numberOfLines={1}>
+                            {getRecipientName(item)}
+                          </AppText>
+                          <AppText
+                            variant="caption"
+                            color={colors.textSecondary}
+                            numberOfLines={1}
+                          >
+                            {getRecipientSubtitle(item, groupTab)}
+                          </AppText>
+                        </View>
+                        <Ionicons
+                          name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={20}
+                          color={selected ? colors.successStrong : colors.textMuted}
+                        />
+                      </Pressable>
+                    );
+                  }}
+                  ListEmptyComponent={
+                    <View style={styles.modalEmptyWrap}>
+                      <AppText color={colors.textSecondary}>No participants</AppText>
+                    </View>
+                  }
+                  ListFooterComponent={
+                    groupCandidatesFetchingNextPage ? (
+                      <View style={styles.modalLoaderWrap}>
+                        <ActivityIndicator color={colors.primary} />
+                      </View>
+                    ) : null
+                  }
+                />
+              )}
+
+              <Pressable
+                style={[
+                  styles.createGroupBtn,
+                  (!groupName.trim() || !selectedGroupParticipants.length || creatingGroup) &&
+                  styles.createGroupBtnDisabled,
+                ]}
+                onPress={() => void handleCreateGroup()}
+                disabled={
+                  !groupName.trim() ||
+                  !selectedGroupParticipants.length ||
+                  creatingGroup
+                }
+              >
+                <AppText variant="subtitle" color={colors.surface}>
+                  {creatingGroup ? 'Creating...' : 'Create Group'}
+                </AppText>
+              </Pressable>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -2035,5 +2163,57 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.surfaceSubtle,
     marginHorizontal: 8,
+  },
+  profilePreviewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profilePreviewCard: {
+    width: 260,
+    backgroundColor: colors.surface,
+    borderRadius: 0, // WhatsApp uses a square look but let's give it a tiny radius if needed
+    overflow: 'hidden',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  profilePreviewHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    zIndex: 10,
+  },
+  profilePreviewBody: {
+    width: 260,
+    height: 260,
+    backgroundColor: colors.border,
+  },
+  profilePreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  profilePreviewPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profilePreviewFooter: {
+    flexDirection: 'row',
+    height: 48,
+    backgroundColor: colors.surface,
+  },
+  profilePreviewAction: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -27,7 +27,7 @@ import { useInfiniteStudents } from '@/src/queries/students.query';
 import { getUserIdFromToken } from '@/src/utils/token';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 
 export default function StudentsListScreen() {
   const [search, setSearch] = useState('');
@@ -60,6 +60,8 @@ export default function StudentsListScreen() {
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
     >();
+  const isFocused = useIsFocused();
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -95,6 +97,21 @@ export default function StudentsListScreen() {
     refetch: () => void;
     isRefetching: boolean;
   };
+
+  useEffect(() => {
+    if (isFocused) {
+      void refetch();
+    }
+  }, [isFocused, refetch]);
+
+  const onRefresh = useCallback(async () => {
+    try {
+      setIsManualRefreshing(true);
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refetch]);
 
   const renderItem = useCallback(({ item }: { item: any }) => (
     <StudentCard
@@ -196,8 +213,8 @@ export default function StudentsListScreen() {
           }
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
+              refreshing={isManualRefreshing}
+              onRefresh={onRefresh}
               tintColor={colors.primary}
               colors={[colors.primary]}
             />

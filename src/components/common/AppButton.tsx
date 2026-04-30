@@ -45,7 +45,7 @@ export default function AppButton({
     )
   );
 
-  if (variant === 'primary' && !isDisabled) {
+  if (variant === 'primary' && !disabled) {
     return (
       <Pressable
         onPress={onPress}
@@ -53,7 +53,7 @@ export default function AppButton({
         disabled={isDisabled}
         style={({ pressed }) => [
           styles.container,
-          pressed && styles.pressed,
+          (pressed || loading) && styles.pressed,
           style,
         ]}
       >
@@ -61,7 +61,7 @@ export default function AppButton({
           colors={[colors.gradientStart, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.gradient}
+          style={[styles.gradient, loading && { opacity: 0.8 }]}
         >
           {renderContent()}
         </LinearGradient>
@@ -77,8 +77,8 @@ export default function AppButton({
       style={({ pressed }) => [
         styles.base,
         styles[variant],
-        (pressed || isDisabled) && styles.pressed,
-        isDisabled && styles.disabled,
+        (pressed || loading) && styles.pressed,
+        disabled && styles.disabled,
         style,
       ]}
     >

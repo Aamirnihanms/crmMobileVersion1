@@ -8,6 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { colors, spacing } from '@/src/theme';
 import AppCard from './../common/AppCard';
 import AppInput from './../common/AppInput';
+import AppDatePicker from './../common/AppDatePicker';
 import AppSelect from './../common/AppSelect';
 import AppText from './../common/AppText';
 
@@ -129,11 +130,11 @@ export default function LeadAdditionalSection({
           }
         />
 
-        <AppInput
+        <AppDatePicker
           label="Reminder Date"
-          placeholder="YYYY-MM-DD"
+          placeholder="Select a date for follow-up"
           value={form.reminder_date}
-          onChangeText={(v) =>
+          onChange={(v) =>
             setForm({ ...form, reminder_date: v })
           }
           containerStyle={styles.inputContainer}

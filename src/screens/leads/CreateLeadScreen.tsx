@@ -34,17 +34,17 @@ import AppText from '@/src/components/common/AppText';
 
 import { validateLead } from '@/src/utils/leadValidation';
 
+import { useAddFollowUp } from '@/src/queries/followups.query';
 import { useLeadDetails } from '@/src/queries/leadDetails.query';
 import {
   useCreateLead,
   useUpdateLead,
 } from '@/src/queries/leads.query';
-import { useCreateNote } from '@/src/queries/notes.query';
-import { useAddFollowUp } from '@/src/queries/followups.query';
 import { useLeadStatuses } from '@/src/queries/masters/leadStatuses.query';
+import { useCreateNote } from '@/src/queries/notes.query';
 
-import AddEditNoteModal from '@/src/components/notes/AddEditNoteModal';
 import AddFollowUpModal from '@/src/components/followups/AddFollowUpModal';
+import AddEditNoteModal from '@/src/components/notes/AddEditNoteModal';
 
 import { colors, spacing } from '@/src/theme';
 
@@ -190,8 +190,8 @@ export default function CreateLeadScreen() {
 
   const handleSubmit = () => {
     const mutationPending =
-      createLeadMutation.isPending || 
-      updateLeadMutation.isPending || 
+      createLeadMutation.isPending ||
+      updateLeadMutation.isPending ||
       createNoteMutation.isPending ||
       addFollowUpMutation.isPending;
 
@@ -243,16 +243,16 @@ export default function CreateLeadScreen() {
 
     const onError = (err: any) => {
       const action = 'Create';
-      
+
       const errorData = err?.response?.data;
       console.log(`❌ ${action} Lead Error:`, errorData);
-      
+
       const errorDetail = errorData?.detail;
       const errorMessage = errorData?.error;
       const fallbackMessage = `Failed to ${action.toLowerCase()} lead. Please try again.`;
-      
+
       const displayMessage = errorDetail || errorMessage || fallbackMessage;
-      
+
       Alert.alert('Error', displayMessage);
     };
 
@@ -296,13 +296,13 @@ export default function CreateLeadScreen() {
     const onError = (err: any) => {
       const errorData = err?.response?.data;
       console.log(`❌ Update Process Error:`, errorData);
-      
+
       const errorDetail = errorData?.detail;
       const errorMessage = errorData?.error;
       const fallbackMessage = `Failed to complete update. Please try again.`;
-      
+
       const displayMessage = errorDetail || errorMessage || fallbackMessage;
-      
+
       Alert.alert('Error', displayMessage);
     };
 
@@ -354,8 +354,8 @@ export default function CreateLeadScreen() {
   }
 
   const mutationPending =
-    createLeadMutation.isPending || 
-    updateLeadMutation.isPending || 
+    createLeadMutation.isPending ||
+    updateLeadMutation.isPending ||
     createNoteMutation.isPending ||
     addFollowUpMutation.isPending;
 

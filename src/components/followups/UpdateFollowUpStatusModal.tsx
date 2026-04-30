@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  KeyboardAvoidingView,
+  Alert,
   Modal,
   Platform,
   Pressable,
@@ -10,10 +10,13 @@ import {
   StyleSheet,
   TextInput,
   View,
+  ActivityIndicator
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { colors, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
+import AppButton from '../common/AppButton';
 
 type Method = 'phone' | 'whatsapp';
 type Status = 'completed' | 'postponed' | 'canceled';
@@ -24,12 +27,14 @@ export default function UpdateFollowUpStatusModal({
   leadId,
   onClose,
   onSubmit,
+  loading,
 }: {
   visible: boolean;
   followup: any;
   leadId: string;
   onClose: () => void;
   onSubmit: (payload: any) => void;
+  loading?: boolean;
 }) {
   const [status, setStatus] = React.useState<Status>('completed');
   const [methods, setMethods] = React.useState<Method[]>([]);
@@ -45,9 +50,18 @@ export default function UpdateFollowUpStatusModal({
 
   const submit = () => {
     if (status === 'completed') {
-      if (!methods.length) return;
-      if (methods.includes('phone') && !callDuration) return;
-      if (methods.includes('whatsapp') && !whatsappMessage) return;
+      if (!methods.length) {
+        Alert.alert('Required Field', 'Please select at least one method of connection.');
+        return;
+      }
+      if (methods.includes('phone') && !callDuration.trim()) {
+        Alert.alert('Required Field', 'Please enter the call duration.');
+        return;
+      }
+      if (methods.includes('whatsapp') && !whatsappMessage.trim()) {
+        Alert.alert('Required Field', 'Please enter the WhatsApp message content.');
+        return;
+      }
     }
 
     const payload: any = {
@@ -71,7 +85,7 @@ export default function UpdateFollowUpStatusModal({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior="padding"
         style={styles.overlay}
       >
         <Pressable style={styles.dismissArea} onPress={onClose} />
@@ -189,14 +203,12 @@ export default function UpdateFollowUpStatusModal({
             )}
 
             <View style={styles.footer}>
-              <Pressable onPress={submit} style={{ flex: 1 }}>
-                <LinearGradient
-                  colors={[colors.gradientStart, colors.gradientEnd]}
-                  style={styles.saveBtn}
-                >
-                  <AppText style={styles.saveBtnText}>Save Status</AppText>
-                </LinearGradient>
-              </Pressable>
+              <AppButton
+                title="Save Status"
+                onPress={submit}
+                loading={loading}
+                style={{ height: 56, borderRadius: 16 }}
+              />
             </View>
           </ScrollView>
         </View>
@@ -292,21 +304,5 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: spacing.xl,
     marginBottom: spacing.xl,
-  },
-  saveBtn: {
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  saveBtnText: {
-    color: colors.surface,
-    fontWeight: '700',
-    fontSize: 16,
   },
 });

@@ -9,13 +9,13 @@ import {
   View,
 } from 'react-native';
 
+import { colors, spacing } from '@/src/theme';
 import type { LeadNote } from '../../../api/notes.api';
 import AppLoader from '../../../components/common/AppLoader';
 import AppText from '../../../components/common/AppText';
 import AddEditNoteModal from '../../../components/notes/AddEditNoteModal';
 import NoteCard from '../../../components/notes/NoteCard';
 import { useCreateNote, useInfiniteLeadNotes, useUpdateNote } from '../../../queries/notes.query';
-import { colors, spacing } from '@/src/theme';
 
 export default function LeadNotesTab({ id }: { id: string }) {
   const {
@@ -54,14 +54,10 @@ export default function LeadNotesTab({ id }: { id: string }) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <Pressable
-            onLongPress={() => setEditingNote(item)}
-            style={({ pressed }) => [
-              pressed && { opacity: 0.7 }
-            ]}
-          >
-            <NoteCard note={item} />
-          </Pressable>
+          <NoteCard
+            note={item}
+            onEdit={() => setEditingNote(item)}
+          />
         )}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) {
@@ -72,7 +68,10 @@ export default function LeadNotesTab({ id }: { id: string }) {
         ListHeaderComponent={
           <View style={styles.header}>
             <AppText variant="h2">Internal Notes</AppText>
-            <Pressable onPress={() => setOpen(true)}>
+            <Pressable
+              onPress={() => setOpen(true)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            >
               <LinearGradient
                 colors={[colors.gradientStart, colors.gradientEnd]}
                 style={styles.addButton}
@@ -108,21 +107,33 @@ export default function LeadNotesTab({ id }: { id: string }) {
         visible={open || !!editingNote}
         initialContent={editingNote?.content}
         initialImportance={editingNote?.importance}
+        loading={createNote.isPending || updateNote.isPending}
         onClose={() => {
           setOpen(false);
           setEditingNote(null);
         }}
         onSubmit={(payload) => {
           if (editingNote) {
-            updateNote.mutate({
-              noteId: editingNote.id,
-              payload,
-            });
+            updateNote.mutate(
+              {
+                noteId: editingNote.id,
+                payload,
+              },
+              {
+                onSuccess: () => {
+                  setOpen(false);
+                  setEditingNote(null);
+                },
+              }
+            );
           } else {
-            createNote.mutate(payload);
+            createNote.mutate(payload, {
+              onSuccess: () => {
+                setOpen(false);
+                setEditingNote(null);
+              },
+            });
           }
-          setOpen(false);
-          setEditingNote(null);
         }}
       />
     </View>

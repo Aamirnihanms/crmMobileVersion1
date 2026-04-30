@@ -98,12 +98,11 @@ export default function BatchStudentsTab({ batchUid }: BatchStudentsTabProps) {
                    </AppText>
                 </View>
             ) : (
-                <FlashList
+                <FlashList<any>
                     data={students}
                     keyExtractor={(item) => item.uid}
                     renderItem={renderItem}
                     contentContainerStyle={styles.listContent}
-                    estimatedItemSize={120}
                     onEndReached={() => {
                         if (hasNextPage && !isFetchingNextPage) {
                             fetchNextPage();

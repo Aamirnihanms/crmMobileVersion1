@@ -32,11 +32,13 @@ export default function AppInput({
       <View style={[
         styles.inputWrapper,
         error && styles.errorBorder,
+        props.multiline && styles.multilineInputWrapper,
       ]}>
         <TextInput
           {...props}
           style={[
             styles.input,
+            props.multiline && { textAlignVertical: 'top' },
             style,
           ]}
           placeholderTextColor={colors.textMuted}
@@ -78,6 +80,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.surface,
     height: 46,
+  },
+  multilineInputWrapper: {
+    height: undefined,
+    minHeight: 80,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.xs,
   },
   input: {
     flex: 1,

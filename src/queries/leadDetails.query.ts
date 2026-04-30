@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchLeadById } from '../api/leads.api';
+import { fetchLeadById, fetchConvertedLeadById } from '../api/leads.api';
 
 export const useLeadDetails = (
   id?: string,
@@ -8,6 +8,17 @@ export const useLeadDetails = (
   return useQuery({
     queryKey: ['lead', id],
     queryFn: () => fetchLeadById(id as string),
+    enabled: enabled && !!id,
+  });
+};
+
+export const useConvertedLeadDetails = (
+  id?: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: ['converted-lead', id],
+    queryFn: () => fetchConvertedLeadById(id as string),
     enabled: enabled && !!id,
   });
 };

@@ -1,47 +1,57 @@
-import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
 import { colors, spacing } from '@/src/theme';
 import { callNumber, openEmail, openWhatsApp } from '@/src/utils/contactActions';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Switch,
+  View,
+} from 'react-native';
 import { useEnableDisableStudent } from '@/src/queries/students.query';
 
 export default function StudentHeader({ student }: any) {
-  const profilePic = student.profile_pic || student.dashboard_data?.personal_info?.profile_picture;
-  const initials = student.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
+  const profilePic =
+    student.profile_pic ||
+    student.dashboard_data?.personal_info?.profile_picture;
+  const initials =
+    student.full_name
+      ?.split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase() || '?';
 
-  const [isActive, setIsActive] = useState<boolean>(student.user?.is_active ?? true);
+  const [isActive, setIsActive] = useState<boolean>(
+    student.user?.is_active ?? true
+  );
   const enableDisableMutation = useEnableDisableStudent();
 
   const handleToggle = (newValue: boolean) => {
-    const newStatus = newValue ? 'enable' : 'disable';
-
     Alert.alert(
       newValue ? 'Enable Student' : 'Disable Student',
-      newValue
-        ? `Are you sure you want to enable "${student.full_name}"?`
-        : `Are you sure you want to disable "${student.full_name}"?`,
+      `${newValue ? 'Enable' : 'Disable'} "${student.full_name}" portal access?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: newValue ? 'Enable' : 'Disable',
           style: newValue ? 'default' : 'destructive',
           onPress: () => {
-            setIsActive(newValue); // optimistic update
+            setIsActive(newValue);
             enableDisableMutation.mutate(
-              { student_id: student.student_id, status: newStatus },
+              { student_id: student.student_id, status: newValue ? 'enable' : 'disable' },
               {
                 onError: (err: any) => {
-                  setIsActive(!newValue); // revert on error
-                  const msg =
+                  setIsActive(!newValue);
+                  Alert.alert(
+                    'Error',
                     err?.response?.data?.detail ||
-                    err?.response?.data?.error ||
-                    err?.response?.data?.message ||
-                    'Something went wrong. Please try again.';
-                  Alert.alert('Error', msg);
+                      err?.response?.data?.error ||
+                      'Something went wrong.'
+                  );
                 },
               }
             );
@@ -51,17 +61,14 @@ export default function StudentHeader({ student }: any) {
     );
   };
 
-  return (
-    <AppCard style={styles.card}>
-      <LinearGradient
-        colors={[colors.primary, colors.gradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientHeader}
-      />
+  const statusColor = student.status?.color || colors.successBright;
 
-      <View style={styles.content}>
-        <View style={styles.avatarContainer}>
+  return (
+    <View style={styles.card}>
+      {/* ── Top row: avatar + info + toggle ── */}
+      <View style={styles.topRow}>
+        {/* Avatar */}
+        <View style={styles.avatarWrap}>
           {profilePic ? (
             <Image
               source={{ uri: profilePic }}
@@ -70,196 +77,258 @@ export default function StudentHeader({ student }: any) {
               transition={200}
             />
           ) : (
-            <View style={styles.avatar}>
-              <AppText variant="h1" color={colors.primary} style={styles.avatarText}>
-                {initials}
-              </AppText>
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <AppText style={styles.initials}>{initials}</AppText>
             </View>
           )}
-          <View style={[styles.statusDot, { backgroundColor: student.status?.color || colors.successBright }]} />
+          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         </View>
 
-        <View style={styles.mainInfo}>
-          <View style={styles.nameContainer}>
-            <View style={{ flex: 1 }}>
-              <AppText variant="h2" style={styles.name}>{student.full_name}</AppText>
-              <AppText variant="caption" color={colors.textMuted}>Student ID: {student.student_id}</AppText>
-            </View>
-            <View style={styles.toggleWrapper}>
-              {enableDisableMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Switch
-                  value={isActive}
-                  onValueChange={handleToggle}
-                  trackColor={{ false: colors.danger + '40', true: colors.success + '40' }}
-                  thumbColor={isActive ? colors.success : colors.danger}
-                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-                />
-              )}
-            </View>
-          </View>
+        {/* Name + ID + chips */}
+        <View style={styles.infoBlock}>
+          <AppText style={styles.name} numberOfLines={1}>
+            {student.full_name}
+          </AppText>
+          <AppText style={styles.studentId}>{student.student_id}</AppText>
 
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Ionicons name="location-outline" size={14} color={colors.textMuted} />
-              <AppText variant="caption" color={colors.textSecondary} style={styles.statText}>
-                {student.location || 'Not Specified'}
-              </AppText>
-            </View>
-            {student.admission_counselor && (
-              <View style={styles.stat}>
-                <Ionicons name="person-outline" size={14} color={colors.textMuted} />
-                <AppText variant="caption" color={colors.textSecondary} style={styles.statText}>
+          <View style={styles.chipsRow}>
+            {!!student.location && (
+              <View style={styles.chip}>
+                <Ionicons name="location-outline" size={10} color={colors.textMuted} />
+                <AppText style={styles.chipTxt} numberOfLines={1}>
+                  {student.location}
+                </AppText>
+              </View>
+            )}
+            {!!student.admission_counselor && (
+              <View style={styles.chip}>
+                <Ionicons name="person-outline" size={10} color={colors.textMuted} />
+                <AppText style={styles.chipTxt} numberOfLines={1}>
                   {student.admission_counselor.full_name}
                 </AppText>
               </View>
             )}
           </View>
+        </View>
 
-          <View style={styles.actionRow}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionBtn,
-                !student.phone_number && styles.disabledBtn,
-                pressed && styles.pressedBtn,
-              ]}
-              onPress={() => callNumber(student.phone_number)}
-              disabled={!student.phone_number}
-            >
-              <Ionicons name="call-outline" size={20} color={student.phone_number ? colors.primary : colors.textMuted} />
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionBtn,
-                { backgroundColor: colors.whatsapp + '15' },
-                !(student.user?.whatsapp_number || student.phone_number) && styles.disabledBtn,
-                pressed && styles.pressedBtn,
-              ]}
-              onPress={() => openWhatsApp(student.user?.whatsapp_number || student.phone_number)}
-              disabled={!(student.user?.whatsapp_number || student.phone_number)}
-            >
-              <Ionicons name="logo-whatsapp" size={20} color={colors.whatsapp} />
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionBtn,
-                !student.email && styles.disabledBtn,
-                pressed && styles.pressedBtn,
-              ]}
-              onPress={() => openEmail(student.email)}
-              disabled={!student.email}
-            >
-              <Ionicons name="mail-outline" size={20} color={student.email ? colors.primary : colors.textMuted} />
-            </Pressable>
-          </View>
+        {/* Active toggle */}
+        <View style={styles.toggleWrap}>
+          {enableDisableMutation.isPending ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Switch
+              value={isActive}
+              onValueChange={handleToggle}
+              trackColor={{ false: colors.danger + '50', true: colors.success + '50' }}
+              thumbColor={isActive ? colors.success : colors.danger}
+              style={{ transform: [{ scaleX: 0.78 }, { scaleY: 0.78 }] }}
+            />
+          )}
+          <AppText
+            style={[
+              styles.toggleLabel,
+              { color: isActive ? colors.successStrong : colors.dangerStrong },
+            ]}
+          >
+            {isActive ? 'Active' : 'Inactive'}
+          </AppText>
         </View>
       </View>
-    </AppCard>
+
+      {/* ── Divider ── */}
+      <View style={styles.divider} />
+
+      {/* ── Contact buttons ── */}
+      <View style={styles.contactRow}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.contactBtn,
+            pressed && styles.pressed,
+            !student.phone_number && styles.disabled,
+          ]}
+          onPress={() => callNumber(student.phone_number)}
+          disabled={!student.phone_number}
+        >
+          <Ionicons
+            name="call-outline"
+            size={17}
+            color={student.phone_number ? colors.primary : colors.textMuted}
+          />
+          <AppText
+            style={[
+              styles.contactTxt,
+              { color: student.phone_number ? colors.primary : colors.textMuted },
+            ]}
+          >
+            Call
+          </AppText>
+        </Pressable>
+
+        <View style={styles.vDivider} />
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.contactBtn,
+            pressed && styles.pressed,
+            !(student.user?.whatsapp_number || student.phone_number) && styles.disabled,
+          ]}
+          onPress={() =>
+            openWhatsApp(student.user?.whatsapp_number || student.phone_number)
+          }
+          disabled={!(student.user?.whatsapp_number || student.phone_number)}
+        >
+          <Ionicons name="logo-whatsapp" size={17} color={colors.whatsapp} />
+          <AppText style={[styles.contactTxt, { color: colors.whatsapp }]}>
+            WhatsApp
+          </AppText>
+        </Pressable>
+
+        <View style={styles.vDivider} />
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.contactBtn,
+            pressed && styles.pressed,
+            !student.email && styles.disabled,
+          ]}
+          onPress={() => openEmail(student.email)}
+          disabled={!student.email}
+        >
+          <Ionicons
+            name="mail-outline"
+            size={17}
+            color={student.email ? colors.primary : colors.textMuted}
+          />
+          <AppText
+            style={[
+              styles.contactTxt,
+              { color: student.email ? colors.primary : colors.textMuted },
+            ]}
+          >
+            Email
+          </AppText>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: spacing.lg,
-    padding: 0,
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  gradientHeader: {
-    height: 100,
-    width: '100%',
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
   },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    marginTop: -40,
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
+  avatarWrap: {
     position: 'relative',
-    marginBottom: spacing.md,
+    flexShrink: 0,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: colors.surface,
+    width: 54,
+    height: 54,
+    borderRadius: 15,
+  },
+  avatarFallback: {
+    backgroundColor: colors.primary + '18',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 10,
-    borderWidth: 4,
-    borderColor: colors.surface,
   },
-  avatarText: {
+  initials: {
+    fontSize: 20,
     fontWeight: '800',
+    color: colors.primary,
   },
   statusDot: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 3,
+    bottom: 1,
+    right: 1,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
     borderColor: colors.surface,
   },
-  mainInfo: {
+  infoBlock: {
     flex: 1,
   },
-  nameContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  toggleWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   name: {
+    fontSize: 15,
     fontWeight: '800',
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  statsRow: {
+  studentId: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  chipsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: 4,
   },
-  stat: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+    backgroundColor: colors.surfaceSubtle,
   },
-  statText: {
-    marginLeft: 4,
+  chipTxt: {
+    fontSize: 10,
+    color: colors.textMuted,
     fontWeight: '500',
+    maxWidth: 100,
   },
-  actionRow: {
+  toggleWrap: {
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  toggleLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: -2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginHorizontal: spacing.md,
+  },
+  contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.lg,
-    gap: spacing.md,
   },
-  actionBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.primaryLight + '15',
-    justifyContent: 'center',
+  contactBtn: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 10,
   },
-  disabledBtn: {
-    opacity: 0.4,
+  contactTxt: {
+    fontSize: 12,
+    fontWeight: '700',
   },
-  pressedBtn: {
-    opacity: 0.7,
-    transform: [{ scale: 0.95 }],
+  vDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: colors.divider,
   },
+  disabled: { opacity: 0.35 },
+  pressed: { opacity: 0.6, transform: [{ scale: 0.97 }] },
 });

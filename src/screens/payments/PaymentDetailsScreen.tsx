@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -20,12 +21,13 @@ import AppText from '@/src/components/common/AppText';
 import { useDownloadReceipt, usePaymentTransactionDetails } from '@/src/queries/payments.query';
 import { colors, spacing } from '@/src/theme';
 
-function DetailRow({ label, value, icon, isLast = false, onValuePress }: {
+function DetailRow({ label, value, icon, isLast = false, onValuePress, actionLabel }: {
     label: string;
     value: string | null | undefined;
     icon?: keyof typeof Ionicons.glyphMap;
     isLast?: boolean;
     onValuePress?: () => void;
+    actionLabel?: string;
 }) {
     if (!value) return null;
     return (
@@ -34,23 +36,55 @@ function DetailRow({ label, value, icon, isLast = false, onValuePress }: {
                 {icon && <Ionicons name={icon} size={16} color={colors.textMuted} style={{ marginRight: 8 }} />}
                 <AppText variant="caption" color={colors.textMuted} style={{ fontWeight: '600' }}>{label}</AppText>
             </View>
-            <Pressable onPress={onValuePress} disabled={!onValuePress}>
-                <AppText variant="subtitle" style={[styles.detailValue, onValuePress && { color: colors.primary }]}>
-                    {value}
-                </AppText>
-            </Pressable>
+            {actionLabel && onValuePress ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <AppText variant="subtitle" style={styles.detailValue}>
+                        {value}
+                    </AppText>
+                    <Pressable onPress={onValuePress} style={styles.actionBadge}>
+                        <AppText style={styles.actionBadgeText}>{actionLabel}</AppText>
+                        <Ionicons name="chevron-forward" size={12} color={colors.primary} />
+                    </Pressable>
+                </View>
+            ) : (
+                <Pressable onPress={onValuePress} disabled={!onValuePress}>
+                    <AppText variant="subtitle" style={[styles.detailValue, onValuePress && { color: colors.primary }]}>
+                        {value}
+                    </AppText>
+                </Pressable>
+            )}
         </View>
     );
 }
 
 export default function PaymentDetailsScreen() {
     const route = useRoute<any>();
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const { uid } = route.params;
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isViewing, setIsViewing] = useState(false);
 
     const { data: transaction, isLoading, isError, error, refetch } = usePaymentTransactionDetails(uid);
     const downloadMutation = useDownloadReceipt();
+
+    const handleViewReceipt = async () => {
+        if (!transaction) return;
+
+        try {
+            setIsViewing(true);
+            const receipt = await downloadMutation.mutateAsync(transaction.transaction_id);
+
+            if (!receipt.pdf_file) {
+                throw new Error('Receipt PDF URL not found');
+            }
+
+            await WebBrowser.openBrowserAsync(receipt.pdf_file);
+        } catch (err: any) {
+            Alert.alert('View Failed', err.message || 'Unable to view receipt');
+        } finally {
+            setIsViewing(false);
+        }
+    };
 
     const handleDownloadReceipt = async () => {
         if (!transaction) return;
@@ -139,22 +173,39 @@ export default function PaymentDetailsScreen() {
                     </View>
                 </AppCard>
 
-                {/* Download Button - Fixed to only show if NOT failed */}
+                {/* Action Buttons - Fixed to only show if NOT failed */}
                 {!isFailed && (
-                    <Pressable
-                        style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
-                        onPress={handleDownloadReceipt}
-                        disabled={isDownloading}
-                    >
-                        {isDownloading ? (
-                            <ActivityIndicator color={colors.surface} size="small" />
-                        ) : (
-                            <Ionicons name="download-outline" size={20} color={colors.surface} />
-                        )}
-                        <AppText color={colors.surface} style={styles.downloadButtonText}>
-                            {isDownloading ? 'Downloading...' : 'Download Receipt'}
-                        </AppText>
-                    </Pressable>
+                    <View style={styles.actionButtonsRow}>
+                        <Pressable
+                            style={[styles.actionButton, styles.viewButton, isViewing && styles.actionButtonDisabled]}
+                            onPress={handleViewReceipt}
+                            disabled={isViewing || isDownloading}
+                        >
+                            {isViewing ? (
+                                <ActivityIndicator color={colors.primary} size="small" />
+                            ) : (
+                                <Ionicons name="eye-outline" size={20} color={colors.primary} />
+                            )}
+                            <AppText color={colors.primary} style={styles.viewButtonText}>
+                                {isViewing ? 'Opening...' : 'View Receipt'}
+                            </AppText>
+                        </Pressable>
+                        
+                        <Pressable
+                            style={[styles.actionButton, styles.downloadButton, isDownloading && styles.actionButtonDisabled]}
+                            onPress={handleDownloadReceipt}
+                            disabled={isDownloading || isViewing}
+                        >
+                            {isDownloading ? (
+                                <ActivityIndicator color={colors.surface} size="small" />
+                            ) : (
+                                <Ionicons name="download-outline" size={20} color={colors.surface} />
+                            )}
+                            <AppText color={colors.surface} style={styles.downloadButtonText}>
+                                {isDownloading ? 'Downloading...' : 'Download'}
+                            </AppText>
+                        </Pressable>
+                    </View>
                 )}
 
                 {/* Enrollment & Student Details */}
@@ -166,11 +217,14 @@ export default function PaymentDetailsScreen() {
                                 label="Student Name"
                                 value={transaction.enrollment_details?.student_name || 'N/A'}
                                 icon="person-outline"
+                                onValuePress={() => navigation.navigate('Students', { screen: 'StudentDetails', params: { id: transaction.student_id } })}
+                                actionLabel="View Profile"
                             />
                             <DetailRow
                                 label="Student ID"
                                 value={transaction.student_id}
                                 icon="id-card-outline"
+                                onValuePress={() => navigation.navigate('Students', { screen: 'StudentDetails', params: { id: transaction.student_id } })}
                             />
                             <DetailRow
                                 label="Email"
@@ -298,28 +352,48 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         marginBottom: 4,
     },
-    downloadButton: {
+    actionButtonsRow: {
+        flexDirection: 'row',
+        gap: spacing.md,
+        marginBottom: spacing.xl,
+    },
+    actionButton: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.primary,
         paddingVertical: spacing.md,
         borderRadius: 16,
-        marginBottom: spacing.xl,
         gap: spacing.sm,
         elevation: 4,
-        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
     },
-    downloadButtonDisabled: {
+    actionButtonDisabled: {
         opacity: 0.7,
+    },
+    viewButton: {
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        shadowColor: colors.primary,
+    },
+    viewButtonText: {
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    downloadButton: {
+        backgroundColor: colors.primary,
+        shadowColor: colors.primary,
+    },
+    downloadButtonDisabled: {
         backgroundColor: colors.textMuted,
+        shadowColor: colors.textMuted,
     },
     downloadButtonText: {
         fontWeight: '700',
-        fontSize: 16,
+        fontSize: 15,
     },
     sectionTitle: {
         fontWeight: '800',
@@ -348,6 +422,20 @@ const styles = StyleSheet.create({
     detailValue: {
         fontWeight: '700',
         color: colors.textPrimary,
+    },
+    actionBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primary + '15',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 2,
+    },
+    actionBadgeText: {
+        color: colors.primary,
+        fontWeight: '700',
+        fontSize: 12,
     },
     notesCard: {
         padding: spacing.lg,

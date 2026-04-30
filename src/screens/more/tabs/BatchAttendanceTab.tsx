@@ -134,7 +134,6 @@ export default function BatchAttendanceTab({ batchUid }: BatchAttendanceTabProps
                 renderItem={({ item }) => <AttendanceStudentCard student={item} batchId={batchUid} />}
                 ListHeaderComponent={renderHeader}
                 contentContainerStyle={styles.listContent}
-                estimatedItemSize={200}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefetching}

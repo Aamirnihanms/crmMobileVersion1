@@ -11,11 +11,11 @@ export type LeadActivity = {
     color: string;
     icon: string;
   };
-performed_by_details: {
-  full_name: string;
-  email: string;
-} | null;
-performed_by_system: boolean;
+  performed_by_details: {
+    full_name: string;
+    email: string;
+  } | null;
+  performed_by_system: boolean;
 
 };
 

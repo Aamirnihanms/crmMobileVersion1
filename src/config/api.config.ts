@@ -7,4 +7,3 @@ export const API_CONFIG = {
 
   ENV: 'production', // 'development' or 'production'
 };
-7

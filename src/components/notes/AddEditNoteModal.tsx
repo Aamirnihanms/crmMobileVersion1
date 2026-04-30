@@ -2,19 +2,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
-import type { NoteImportance } from '../../api/notes.api';
 import { colors, spacing } from '@/src/theme';
+import type { NoteImportance } from '../../api/notes.api';
 import AppText from '../common/AppText';
+import AppButton from '../common/AppButton';
 
 const IMPORTANCE: NoteImportance[] = [
   'NORMAL',
@@ -28,6 +30,7 @@ export default function AddEditNoteModal({
   initialImportance = 'NORMAL',
   onClose,
   onSubmit,
+  loading,
 }: {
   visible: boolean;
   initialContent?: string;
@@ -37,6 +40,7 @@ export default function AddEditNoteModal({
     content: string;
     importance: NoteImportance;
   }) => void;
+  loading?: boolean;
 }) {
   const [content, setContent] = React.useState(initialContent);
   const [importance, setImportance] = React.useState<NoteImportance>(initialImportance);
@@ -47,14 +51,17 @@ export default function AddEditNoteModal({
   }, [initialContent, initialImportance]);
 
   const handleSave = () => {
-    if (!content.trim()) return;
+    if (!content.trim()) {
+      Alert.alert('Required Field', 'Please enter note content.');
+      return;
+    }
     onSubmit({ content, importance });
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.overlay}
       >
         <Pressable style={styles.dismissArea} onPress={onClose} />
@@ -110,16 +117,12 @@ export default function AddEditNoteModal({
             </View>
 
             <View style={styles.footer}>
-              <Pressable onPress={handleSave} style={{ flex: 1 }}>
-                <LinearGradient
-                  colors={[colors.gradientStart, colors.gradientEnd]}
-                  style={styles.saveBtn}
-                >
-                  <AppText style={styles.saveBtnText}>
-                    {initialContent ? 'Update Note' : 'Add Note'}
-                  </AppText>
-                </LinearGradient>
-              </Pressable>
+              <AppButton
+                title={initialContent ? 'Update Note' : 'Add Note'}
+                onPress={handleSave}
+                loading={loading}
+                style={{ height: 56, borderRadius: 16 }}
+              />
             </View>
           </ScrollView>
         </View>
@@ -177,7 +180,9 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.primaryLight + '10',
     borderRadius: 16,
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
     minHeight: 120,
     textAlignVertical: 'top',
     fontSize: 16,
@@ -207,21 +212,5 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: spacing.md,
     marginBottom: spacing.xl,
-  },
-  saveBtn: {
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  saveBtnText: {
-    color: colors.surface,
-    fontWeight: '700',
-    fontSize: 16,
   },
 });

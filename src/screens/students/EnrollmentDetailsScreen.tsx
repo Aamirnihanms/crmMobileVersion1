@@ -11,7 +11,8 @@ import AppInput from '@/src/components/common/AppInput';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
-import { useDropEnrollment, useEnrollmentDetails, useMarkInstallmentPaid, useMarkInstallmentUnpaid, useRevertEmi, useUpdateInstallment } from '@/src/queries/enrollment.query';
+import { useDropEnrollment, useEditEnrollment, useEnrollmentDetails, useMarkInstallmentPaid, useMarkInstallmentUnpaid, useRevertEmi, useUpdateInstallment } from '@/src/queries/enrollment.query';
+import { useCounselors } from '@/src/queries/masters/counselors.query';
 import { colors, spacing } from '@/src/theme';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 
@@ -33,12 +34,23 @@ export default function EnrollmentDetailsScreen() {
   const markUnpaidMutation = useMarkInstallmentUnpaid();
   const updateMutation = useUpdateInstallment();
   const dropMutation = useDropEnrollment();
+  const editEnrollmentMutation = useEditEnrollment();
+
+  const { data: counselors } = useCounselors();
+
+  const ATTENDANCE_MODES = [
+    { label: 'Online', value: '1' },
+    { label: 'Offline', value: '2' },
+    { label: 'Hybrid', value: '3' },
+  ];
+
 
   // Modal States
   const [payModalVisible, setPayModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [unpaidModalVisible, setUnpaidModalVisible] = useState(false);
   const [dropModalVisible, setDropModalVisible] = useState(false);
+  const [enrollEditModalVisible, setEnrollEditModalVisible] = useState(false);
 
   const [selectedInstallmentId, setSelectedInstallmentId] = useState<string | null>(null);
 
@@ -55,6 +67,12 @@ export default function EnrollmentDetailsScreen() {
   const [dropDate, setDropDate] = useState(new Date().toISOString().split('T')[0]);
   const [dropNotes, setDropNotes] = useState('');
   const [confirmDropChecked, setConfirmDropChecked] = useState(false);
+
+  // Enrollment Edit States
+  const [editCounselorUid, setEditCounselorUid] = useState('');
+  const [editAttendanceModeUid, setEditAttendanceModeUid] = useState('');
+  const [editCertificateDataCollected, setEditCertificateDataCollected] = useState(false);
+  const [editRemarks, setEditRemarks] = useState('');
 
   if (isLoading) return <AppLoader />;
 
@@ -210,6 +228,43 @@ export default function EnrollmentDetailsScreen() {
     });
   };
 
+  const handleOpenEnrollEdit = () => {
+    // Pre-populate with current values from enrollment data
+    setEditCounselorUid(data?.admission_counselor_uid || '');
+    setEditAttendanceModeUid(data?.attendance_mode?.id?.toString() || '');
+    setEditCertificateDataCollected(data?.certificate_data_collected ?? false);
+    setEditRemarks('');
+    setEnrollEditModalVisible(true);
+  };
+
+  const handleConfirmEnrollEdit = () => {
+    if (!editCounselorUid) {
+      Alert.alert('Validation', 'Please select an admission counselor.');
+      return;
+    }
+    if (!editAttendanceModeUid) {
+      Alert.alert('Validation', 'Please select an attendance mode.');
+      return;
+    }
+    editEnrollmentMutation.mutate({
+      uid: params.id,
+      payload: {
+        admission_counselor_uid: editCounselorUid,
+        attendance_mode_uid: editAttendanceModeUid,
+        certificate_data_collected: editCertificateDataCollected,
+        remarks: editRemarks.trim() || undefined,
+      },
+    }, {
+      onSuccess: () => {
+        Alert.alert('Success', 'Enrollment updated successfully');
+        setEnrollEditModalVisible(false);
+      },
+      onError: (error: any) => {
+        Alert.alert('Error', error?.response?.data?.message || 'Failed to update enrollment');
+      },
+    });
+  };
+
   const handleSharePaymentLink = () => {
     const link = `https://student.luminartechnolab.com/payment-link/${data.uid}`;
     Share.share({
@@ -278,15 +333,26 @@ export default function EnrollmentDetailsScreen() {
 
         <View style={styles.sectionHeader}>
           <AppText variant="h3" style={styles.sectionTitle}>Course & Student</AppText>
-          {data.status_object?.value !== 'removed' && data.status_object?.value !== 'dropped' && (
-            <TouchableOpacity
-              style={styles.dropHeaderBtn}
-              onPress={() => setDropModalVisible(true)}
-            >
-              <Ionicons name="close-circle-outline" size={14} color={colors.danger} />
-              <AppText variant="caption" style={{ color: colors.danger, fontWeight: '700' }}>Drop Enrollment</AppText>
-            </TouchableOpacity>
-          )}
+          <View style={styles.sectionHeaderActions}>
+            {data.status_object?.value !== 'removed' && data.status_object?.value !== 'dropped' && (
+              <TouchableOpacity
+                style={styles.editHeaderBtn}
+                onPress={handleOpenEnrollEdit}
+              >
+                <Ionicons name="create-outline" size={14} color={colors.info} />
+                <AppText variant="caption" style={{ color: colors.info, fontWeight: '700' }}>Edit</AppText>
+              </TouchableOpacity>
+            )}
+            {data.status_object?.value !== 'removed' && data.status_object?.value !== 'dropped' && (
+              <TouchableOpacity
+                style={styles.dropHeaderBtn}
+                onPress={() => setDropModalVisible(true)}
+              >
+                <Ionicons name="close-circle-outline" size={14} color={colors.danger} />
+                <AppText variant="caption" style={{ color: colors.danger, fontWeight: '700' }}>Drop</AppText>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <AppCard style={styles.detailsCard}>
           <InfoRow icon="school-outline" label="Course" value={data.batch?.course_name} />
@@ -299,8 +365,8 @@ export default function EnrollmentDetailsScreen() {
         <AppCard style={styles.financialCard}>
           <View style={styles.feeGrid}>
             <View style={styles.feeItem}>
-              <AppText variant="caption" color={colors.textMuted}>Net Fees</AppText>
-              <AppText variant="h3">₹{data.net_fees}</AppText>
+              <AppText variant="caption" color={colors.textMuted}>Total Fees after Discount</AppText>
+              <AppText variant="h3">₹{Number(data.original_course_fees) - Number(data.total_discount_amount) || data.net_fees}</AppText>
             </View>
             <View style={styles.feeItem}>
               <AppText variant="caption" color={colors.textMuted}>Payment Mode</AppText>
@@ -373,7 +439,7 @@ export default function EnrollmentDetailsScreen() {
           </View>
         </AppCard>
 
-        {data.emi_installments && data.emi_installments.length > 0 && (
+        {data.status_object?.value !== 'removed' && data.status_object?.value !== 'dropped' && data.emi_installments && data.emi_installments.length > 0 && (
           <>
             <AppText variant="h3" style={styles.sectionTitle}>EMI Installments</AppText>
             <AppCard style={styles.listCard}>
@@ -584,6 +650,87 @@ export default function EnrollmentDetailsScreen() {
                   loading={dropMutation.isPending}
                   style={{ flex: 1, backgroundColor: colors.danger, borderColor: colors.danger }}
                   disabled={!confirmDropChecked}
+                />
+              </View>
+            </AppCard>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Edit Enrollment Modal */}
+      <Modal visible={enrollEditModalVisible} transparent animationType="slide">
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <AppCard style={styles.modalContent}>
+              {/* Header */}
+              <View style={styles.editEnrollHeader}>
+                <View style={[styles.bigIcon, { backgroundColor: colors.info + '15', width: 44, height: 44, borderRadius: 14 }]}>
+                  <Ionicons name="create-outline" size={22} color={colors.info} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText variant="h3" style={{ fontWeight: '800', color: colors.textPrimary }}>Edit Enrollment</AppText>
+                  <AppText variant="caption" color={colors.textMuted}>Update counselor, attendance &amp; certificate info</AppText>
+                </View>
+              </View>
+
+              {/* Counselor Dropdown */}
+              <AppSelect
+                label="Admission Counselor *"
+                options={(counselors || []).map((c: any) => ({
+                  label: c.full_name,
+                  value: c.uid ?? c.id?.toString(),
+                }))}
+                value={editCounselorUid}
+                onSelect={setEditCounselorUid}
+              />
+
+              {/* Attendance Mode */}
+              <AppSelect
+                label="Attendance Mode *"
+                options={ATTENDANCE_MODES}
+                value={editAttendanceModeUid}
+                onSelect={setEditAttendanceModeUid}
+              />
+
+              {/* Certificate Data Collected Toggle */}
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleLabelGroup}>
+                  <Ionicons name="ribbon-outline" size={18} color={colors.primary} />
+                  <View>
+                    <AppText variant="body" style={{ fontWeight: '700' }}>Certificate Data Collected</AppText>
+                    <AppText variant="caption" color={colors.textMuted}>Has student's certificate data been gathered?</AppText>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[styles.toggleButton, editCertificateDataCollected && styles.toggleButtonActive]}
+                  onPress={() => setEditCertificateDataCollected(!editCertificateDataCollected)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.toggleThumb, editCertificateDataCollected && styles.toggleThumbActive]} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Remarks (optional) */}
+              <AppInput
+                label="Remarks (Optional)"
+                value={editRemarks}
+                onChangeText={setEditRemarks}
+                multiline
+                placeholder="Add any remarks..."
+              />
+
+              <View style={styles.modalButtons}>
+                <AppButton
+                  title="Cancel"
+                  variant="outline"
+                  onPress={() => setEnrollEditModalVisible(false)}
+                  style={{ flex: 1, marginRight: spacing.md }}
+                />
+                <AppButton
+                  title="Update"
+                  onPress={handleConfirmEnrollEdit}
+                  loading={editEnrollmentMutation.isPending}
+                  style={{ flex: 1.2 }}
                 />
               </View>
             </AppCard>
@@ -870,5 +1017,70 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger + '10',
     borderWidth: 1,
     borderColor: colors.danger + '20',
+  },
+  editHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.info + '10',
+    borderWidth: 1,
+    borderColor: colors.info + '25',
+  },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  editEnrollHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 14,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    marginVertical: spacing.sm,
+  },
+  toggleLabelGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  toggleButton: {
+    width: 48,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surfaceSubtle,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: colors.divider,
+  },
+  toggleButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.textMuted,
+    alignSelf: 'flex-start',
+  },
+  toggleThumbActive: {
+    backgroundColor: '#fff',
+    alignSelf: 'flex-end',
   },
 });

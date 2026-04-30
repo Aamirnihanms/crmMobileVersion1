@@ -13,6 +13,12 @@ import ProfileScreen from '../screens/more/ProfileScreen';
 import LeadDetailsScreen from '../screens/leads/LeadDetailsScreen';
 import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen';
 import StudentDetailsScreen from '../screens/students/StudentDetailsScreen';
+import EditStudentScreen from '../screens/students/EditStudentScreen';
+import AddDiscountScreen from '../screens/students/AddDiscountScreen';
+import NewEnrollmentScreen from '../screens/students/NewEnrollmentScreen';
+import ConvertedLeadHistoryScreen from '../screens/students/ConvertedLeadHistoryScreen';
+import SetPaymentModeScreen from '../screens/students/SetPaymentModeScreen';
+import BatchChangeScreen from '../screens/students/BatchChangeScreen';
 
 export type MoreStackParamList = {
   MoreList: undefined;
@@ -20,9 +26,16 @@ export type MoreStackParamList = {
   EditProfile: { user: any };
   BatchList: undefined;
   BatchDetail: { uid: string };
+  BatchSessionDetail: { uid: string; batchUid: string };
   ChangePassword: undefined;
   StudentDetails: { id: string; is_active?: boolean };
-  EnrollmentDetails: { id: string };
+  EnrollmentDetails: { id: string; studentId: string };
+  EditStudent: { id: string };
+  AddDiscount: { enrollmentId: string; studentId: string };
+  NewEnrollment: { studentId: string; studentName?: string };
+  ConvertedLeadHistory: { leadId: string };
+  SetPaymentMode: { enrollmentId: string };
+  BatchChange: { enrollmentId: string; studentId: string };
   BatchChangeRequestList: undefined;
   BatchChangeRequestDetail: { uid: string };
   BatchCreate: undefined;
@@ -88,6 +101,11 @@ export default function MoreStack() {
         name="BatchDetail"
         getComponent={() => require('../screens/more/BatchDetailScreen').default}
         options={{ title: 'Batch Details' }}
+      />
+      <Stack.Screen
+        name="BatchSessionDetail"
+        getComponent={() => require('../screens/more/BatchSessionDetailScreen').default}
+        options={{ title: 'Session Details' }}
       />
       <Stack.Screen
         name="StudentDetails"
@@ -178,6 +196,36 @@ export default function MoreStack() {
         name="RejoinStudent"
         getComponent={() => require('../screens/more/RejoinStudentScreen').default}
         options={{ title: 'Rejoin Student' }}
+      />
+      <Stack.Screen
+        name="EditStudent"
+        component={EditStudentScreen}
+        options={{ title: 'Edit Student' }}
+      />
+      <Stack.Screen
+        name="AddDiscount"
+        component={AddDiscountScreen}
+        options={{ title: 'Add Discount' }}
+      />
+      <Stack.Screen
+        name="NewEnrollment"
+        component={NewEnrollmentScreen}
+        options={{ title: 'New Enrollment' }}
+      />
+      <Stack.Screen
+        name="ConvertedLeadHistory"
+        component={ConvertedLeadHistoryScreen}
+        options={{ title: 'Lead History' }}
+      />
+      <Stack.Screen
+        name="SetPaymentMode"
+        component={SetPaymentModeScreen}
+        options={{ title: 'Set Payment Mode' }}
+      />
+      <Stack.Screen
+        name="BatchChange"
+        component={BatchChangeScreen}
+        options={{ title: 'Batch Change Request' }}
       />
     </Stack.Navigator>
 

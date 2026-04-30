@@ -4,19 +4,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  View,
+  View
 } from 'react-native';
 
+import type { BatchesFilters } from '@/src/api/batches.api';
 import {
   fetchCounselorsPage,
   fetchCoursesPage,
   fetchLocationsPage,
 } from '@/src/api/masters/paginatedMasters.api';
-import type { BatchesFilters } from '@/src/api/batches.api';
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppText from '@/src/components/common/AppText';
 

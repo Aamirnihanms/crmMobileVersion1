@@ -11,7 +11,6 @@ import {
     View,
 } from 'react-native';
 
-import AppButton from '../../../components/common/AppButton';
 import AppCard from '../../../components/common/AppCard';
 import AppText from '../../../components/common/AppText';
 import { MoreStackParamList } from '../../../navigation/MoreStack';
@@ -80,13 +79,13 @@ export default function GalleryOverviewTab({ uid }: { uid: string }) {
                                 </View>
                             </View>
                             <View style={styles.headerActions}>
-                                <Pressable 
+                                <Pressable
                                     onPress={() => navigation.navigate('CreateGallery', { gallery })}
                                     style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.7 }]}
                                 >
                                     <Ionicons name="create-outline" size={20} color={colors.primary} />
                                 </Pressable>
-                                <Pressable 
+                                <Pressable
                                     onPress={handleDelete}
                                     style={({ pressed }) => [styles.iconBtn, { backgroundColor: colors.danger + '10' }, pressed && { opacity: 0.7 }]}
                                     disabled={deleteGalleryMutation.isPending}

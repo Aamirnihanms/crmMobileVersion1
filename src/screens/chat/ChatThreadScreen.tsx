@@ -22,6 +22,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  ImageBackground,
   Keyboard,
   Linking,
   Modal,
@@ -305,9 +306,11 @@ const shouldShowMessageText = (message: ThreadMessage) => {
   const text = message.text.trim();
   if (!text) return false;
 
+  const isUrl = text.startsWith('http://') || text.startsWith('https://');
+
   if (message.messageType === 'image') {
     const normalized = text.toLowerCase();
-    return normalized !== 'image' && normalized !== 'image attachment';
+    return !isUrl && normalized !== 'image' && normalized !== 'image attachment';
   }
 
   if (message.messageType === 'audio') {
@@ -318,7 +321,7 @@ const shouldShowMessageText = (message: ThreadMessage) => {
     const normalized = text.toLowerCase();
     const fileName = (message.fileName || '').trim().toLowerCase();
     if (normalized === fileName) return false;
-    return normalized !== 'attachment' && normalized !== 'file attachment';
+    return !isUrl && normalized !== 'attachment' && normalized !== 'file attachment';
   }
 
   return true;
@@ -1249,22 +1252,6 @@ export default function ChatThreadScreen() {
     });
   }, [queryMessages]);
 
-  useEffect(() => {
-    if (!chatListItems.length) return;
-
-    if (!hasInitiallyPositionedRef.current) {
-      requestAnimationFrame(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-        hasInitiallyPositionedRef.current = true;
-      });
-      return;
-    }
-
-    if (isAtBottomRef.current) {
-      flatListRef.current?.scrollToEnd({ animated: false });
-    }
-  }, [chatListItems]);
-
   const latestMessagePage = useMemo(
     () =>
       Array.isArray(messagesQueryData?.pages?.[0]?.messages)
@@ -1295,6 +1282,22 @@ export default function ChatThreadScreen() {
 
     return items;
   }, [messages]);
+
+  useEffect(() => {
+    if (!chatListItems.length) return;
+
+    if (!hasInitiallyPositionedRef.current) {
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+        hasInitiallyPositionedRef.current = true;
+      });
+      return;
+    }
+
+    if (isAtBottomRef.current) {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }
+  }, [chatListItems]);
 
   useEffect(() => {
     if (!latestMessagePage.length) return;
@@ -2650,12 +2653,12 @@ export default function ChatThreadScreen() {
         </Pressable>
 
         <View style={styles.headerRight}>
-          <Pressable style={styles.headerIcon}>
+          {/* <Pressable style={styles.headerIcon}>
             <Ionicons name="call-outline" size={20} color={colors.surface} />
           </Pressable>
           <Pressable style={styles.headerIcon}>
             <Ionicons name="ellipsis-vertical" size={20} color={colors.surface} />
-          </Pressable>
+          </Pressable> */}
         </View>
       </LinearGradient>
 
@@ -2802,40 +2805,46 @@ export default function ChatThreadScreen() {
         messageUid={selectedMessage?.id || ''}
       />
 
-      <FlashList
-        ref={flatListRef}
-        data={chatListItems}
-        keyExtractor={keyExtractor}
+      <ImageBackground
+        source={require('../../../assets/images/chatbg.png')}
         style={styles.messagesArea}
-        contentContainerStyle={styles.messagesList}
-        maintainVisibleContentPosition={{
-          startRenderingFromBottom: true,
-          autoscrollToBottomThreshold: 0.05,
-          animateAutoScrollToBottom: false,
-        }}
-        keyboardDismissMode={
-          Platform.OS === 'ios' ? 'interactive' : 'on-drag'
-        }
-        keyboardShouldPersistTaps={Platform.OS === 'ios' ? 'never' : 'handled'}
-        removeClippedSubviews={Platform.OS === 'android'}
-        refreshControl={
-          <RefreshControl
-            refreshing={messagesRefetching || fetchingOlderMessages}
-            onRefresh={() => {
-              if (hasOlderMessages && !fetchingOlderMessages) {
-                void fetchOlderMessages();
-              } else {
-                void refetchMessages();
-              }
-            }}
-          />
-        }
-        renderItem={renderMessageItem}
-        ListHeaderComponent={renderMessagesFooter}
-        ListEmptyComponent={renderEmptyState}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      />
+        resizeMode="cover"
+      >
+        <FlashList
+          ref={flatListRef}
+          data={chatListItems}
+          keyExtractor={keyExtractor}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.messagesList}
+          maintainVisibleContentPosition={{
+            startRenderingFromBottom: true,
+            autoscrollToBottomThreshold: 0.05,
+            animateAutoScrollToBottom: false,
+          }}
+          keyboardDismissMode={
+            Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+          }
+          keyboardShouldPersistTaps={Platform.OS === 'ios' ? 'never' : 'handled'}
+          removeClippedSubviews={Platform.OS === 'android'}
+          refreshControl={
+            <RefreshControl
+              refreshing={messagesRefetching || fetchingOlderMessages}
+              onRefresh={() => {
+                if (hasOlderMessages && !fetchingOlderMessages) {
+                  void fetchOlderMessages();
+                } else {
+                  void refetchMessages();
+                }
+              }}
+            />
+          }
+          renderItem={renderMessageItem}
+          ListHeaderComponent={renderMessagesFooter}
+          ListEmptyComponent={renderEmptyState}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        />
+      </ImageBackground>
 
       <View
         style={[
@@ -3061,7 +3070,7 @@ const styles = StyleSheet.create({
   },
   messagesArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   messagesList: {
     padding: spacing.lg,

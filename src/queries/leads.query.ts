@@ -20,7 +20,7 @@ export const useInfiniteLeads = (
     initialPageParam: 1,
 
     queryFn: ({ pageParam }) =>
-      fetchLeads(pageParam, 5, search, filters),
+      fetchLeads(pageParam, 25, search, filters),
 
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.next) return undefined;

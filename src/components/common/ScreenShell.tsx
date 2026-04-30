@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { Platform, ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
@@ -39,7 +40,7 @@ export default function ScreenShell({
 
   const body = keyboardAware ? (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
       style={styles.flex}
     >
       {content}

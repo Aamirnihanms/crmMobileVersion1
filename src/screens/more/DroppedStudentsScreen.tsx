@@ -118,7 +118,6 @@ export default function DroppedStudentsScreen() {
                             colors={[colors.primary]}
                         />
                     }
-                    estimatedItemSize={160}
                 />
             )}
         </View>

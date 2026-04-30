@@ -74,7 +74,7 @@ export type RemindersPageResponse = {
 
 export const fetchLeads = async (
   page: number,
-  pageSize = 5,
+  pageSize = 25,
   search = '',
   filters?: LeadsFilters
 ): Promise<LeadsPageResponse> => {
@@ -201,6 +201,13 @@ export const fetchLeadById = async (
   id: string
 ): Promise<LeadDetail> => {
   const res = await http.get<LeadDetailResponse>(`/leads/${id}/`);
+  return res.data.lead;
+};
+
+export const fetchConvertedLeadById = async (
+  id: string
+): Promise<LeadDetail> => {
+  const res = await http.get<LeadDetailResponse>(`/converted-leads/${id}/`);
   return res.data.lead;
 };
 

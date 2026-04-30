@@ -2,6 +2,7 @@ import { colors } from '@/src/theme';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AddDiscountScreen from '../screens/students/AddDiscountScreen';
 import BatchChangeScreen from '../screens/students/BatchChangeScreen';
+import ConvertedLeadHistoryScreen from '../screens/students/ConvertedLeadHistoryScreen';
 import EditStudentScreen from '../screens/students/EditStudentScreen';
 import EnrollmentDetailsScreen from '../screens/students/EnrollmentDetailsScreen';
 import NewEnrollmentScreen from '../screens/students/NewEnrollmentScreen';
@@ -22,6 +23,7 @@ export type StudentsStackParamList = {
   BatchChange: { enrollmentId: string; studentId: string };
   NewEnrollment: { studentId: string; studentName?: string };
   RejoinStudent: { student: any };
+  ConvertedLeadHistory: { leadId: string };
 };
 
 
@@ -86,6 +88,11 @@ export default function StudentsStack() {
         name="RejoinStudent"
         getComponent={() => require('../screens/more/RejoinStudentScreen').default}
         options={{ title: 'Rejoin Student' }}
+      />
+      <Stack.Screen
+        name="ConvertedLeadHistory"
+        component={ConvertedLeadHistoryScreen}
+        options={{ title: 'Lead History' }}
       />
     </Stack.Navigator>
 

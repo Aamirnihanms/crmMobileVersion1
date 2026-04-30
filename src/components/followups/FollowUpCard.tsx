@@ -8,9 +8,11 @@ import AppText from '../common/AppText';
 export default function FollowUpCard({
   followup,
   onUpdateStatus,
+  isViewOnly = false,
 }: {
   followup: FollowUp;
-  onUpdateStatus: () => void;
+  onUpdateStatus?: () => void;
+  isViewOnly?: boolean;
 }) {
   const isPending = followup.status === 'pending';
   const isCompleted = followup.status === 'completed';
@@ -55,15 +57,15 @@ export default function FollowUpCard({
         <View style={styles.authorRow}>
           <View style={styles.avatarMini}>
             <AppText variant="caption" color={colors.primary} style={{ fontSize: 8, fontWeight: '700' }}>
-              {followup.created_by.full_name[0]}
+              {followup.created_by?.full_name?.[0] || '?'}
             </AppText>
           </View>
           <AppText variant="caption" color={colors.textSecondary}>
-            By {followup.created_by.full_name}
+            By {followup.created_by?.full_name || 'Unknown User'}
           </AppText>
         </View>
 
-        {isPending && (
+        {!isViewOnly && isPending && onUpdateStatus && (
           <Pressable onPress={onUpdateStatus} style={styles.updateBtn}>
             <AppText variant="caption" color={colors.primary} style={{ fontWeight: '700' }}>
               Update Status

@@ -178,7 +178,6 @@ export default function BatchChangeRequestListScreen() {
                             colors={[colors.primary]}
                         />
                     }
-                    estimatedItemSize={160}
                 />
             )}
         </View>

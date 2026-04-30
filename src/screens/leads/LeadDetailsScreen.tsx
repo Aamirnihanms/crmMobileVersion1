@@ -16,13 +16,15 @@ import { useLeadDetails } from '../../queries/leadDetails.query';
 import LeadHeader from '@/src/components/leads/LeadHeader';
 import LeadDetailsTabs from '@/src/navigation/LeadDetailsTabs';
 
-// ✅ IMPORT CONVERT MODAL
 import ConvertLeadModalPro from '@/src/components/leads/modals/ConvertLeadModal';
+import LeadConvertLinkModal from '@/src/components/leads/modals/LeadConvertLinkModal';
 
 
 import { useConvertLeadToStudent } from '@/src/queries/students.query';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing } from '@/src/theme';
+import { useEffect } from 'react';
+import { getUserIdFromToken } from '@/src/utils/token';
 
 type LeadDetailsRouteProp =
   RouteProp<LeadsStackParamList, 'LeadDetails'>;
@@ -45,6 +47,16 @@ export default function LeadDetailsScreen() {
 
   // ✅ Modal State
   const [openConvert, setOpenConvert] = useState(false);
+  const [openConvertLink, setOpenConvertLink] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await getUserIdFromToken();
+      setCurrentUserId(id);
+    };
+    void fetchUserId();
+  }, []);
 
 
 
@@ -125,6 +137,11 @@ export default function LeadDetailsScreen() {
             ? () => setOpenConvert(true)
             : undefined
         }
+        onConvertLinkPress={
+          canConvertToAdmission
+            ? () => setOpenConvertLink(true)
+            : undefined
+        }
         onEditPress={
           data.is_editable
             ? () => navigation.navigate('CreateLead', { id })
@@ -146,6 +163,16 @@ export default function LeadDetailsScreen() {
           onSubmit={handleConvertSubmit}
           loading={convertMutation.isPending}
           error={convertMutation.error}
+        />
+      ) : null}
+
+      {/* ✅ CONVERT LINK MODAL */}
+      {openConvertLink && currentUserId !== null ? (
+        <LeadConvertLinkModal
+          visible={openConvertLink}
+          onClose={() => setOpenConvertLink(false)}
+          leadId={id}
+          userId={currentUserId}
         />
       ) : null}
     </View>

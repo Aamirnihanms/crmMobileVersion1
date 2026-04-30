@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { LeadNote } from '../../api/notes.api';
 import { colors, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
-export default function NoteCard({ note }: { note: LeadNote }) {
-  const initials = note.created_by_details.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
+export default function NoteCard({ note, onEdit }: { note: LeadNote; onEdit?: () => void }) {
+  const initials = note.created_by_details?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
 
   return (
     <AppCard style={styles.card}>
@@ -19,14 +19,24 @@ export default function NoteCard({ note }: { note: LeadNote }) {
           </View>
           <View>
             <AppText variant="subtitle" style={styles.authorName}>
-              {note.created_by_details.full_name}
+              {note.created_by_details?.full_name || 'Unknown User'}
             </AppText>
             <AppText variant="caption" color={colors.textMuted}>
               {note.time_since_created}
             </AppText>
           </View>
         </View>
-        <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMuted} />
+        {onEdit && (
+          <Pressable 
+            onPress={onEdit}
+            style={({ pressed }) => [
+              styles.editButton,
+              pressed && { opacity: 0.7 }
+            ]}
+          >
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
+          </Pressable>
+        )}
       </View>
 
       <AppText style={styles.content} color={colors.textPrimary}>
@@ -64,8 +74,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  editButton: {
+    padding: 4,
+    borderRadius: 8,
+    backgroundColor: colors.primaryLight + '10',
   },
   authorRow: {
     flexDirection: 'row',

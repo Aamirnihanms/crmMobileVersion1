@@ -91,7 +91,7 @@ export default function AttendanceEditModal({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior="padding"
         style={styles.overlay}
       >
         <Pressable style={styles.dismissArea} onPress={onClose} />

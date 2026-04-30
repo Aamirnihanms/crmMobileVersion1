@@ -3,18 +3,20 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { colors, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
+import AppButton from '../common/AppButton';
 
 type Importance = 'NORMAL' | 'IMPORTANT' | 'URGENT';
 
@@ -22,6 +24,7 @@ export default function AddFollowUpModal({
   visible,
   onClose,
   onSubmit,
+  loading,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -30,6 +33,7 @@ export default function AddFollowUpModal({
     next_follow_up_date: string;
     importance: Importance;
   }) => void;
+  loading?: boolean;
 }) {
   const [notes, setNotes] = React.useState('');
   const [importance, setImportance] = React.useState<Importance>('NORMAL');
@@ -38,7 +42,10 @@ export default function AddFollowUpModal({
   const [showTimePicker, setShowTimePicker] = React.useState(false);
 
   const handleSave = () => {
-    if (!notes.trim()) return;
+    if (!notes.trim()) {
+      Alert.alert('Required Field', 'Please enter follow-up notes.');
+      return;
+    }
     onSubmit({
       notes,
       importance,
@@ -52,7 +59,7 @@ export default function AddFollowUpModal({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.overlay}
       >
         <Pressable style={styles.dismissArea} onPress={onClose} />
@@ -167,14 +174,12 @@ export default function AddFollowUpModal({
             </View>
 
             <View style={styles.footer}>
-              <Pressable onPress={handleSave} style={{ flex: 1 }}>
-                <LinearGradient
-                  colors={[colors.gradientStart, colors.gradientEnd]}
-                  style={styles.saveBtn}
-                >
-                  <AppText style={styles.saveBtnText}>Save Follow-up</AppText>
-                </LinearGradient>
-              </Pressable>
+              <AppButton
+                title="Save Follow-up"
+                onPress={handleSave}
+                loading={loading}
+                style={{ height: 56, borderRadius: 16 }}
+              />
             </View>
           </ScrollView>
         </View>
@@ -232,7 +237,9 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.primaryLight + '10',
     borderRadius: 16,
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
     minHeight: 100,
     textAlignVertical: 'top',
     fontSize: 16,
@@ -284,21 +291,5 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: spacing.md,
     marginBottom: spacing.xl,
-  },
-  saveBtn: {
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  saveBtnText: {
-    color: colors.surface,
-    fontWeight: '700',
-    fontSize: 16,
   },
 });

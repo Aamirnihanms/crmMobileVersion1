@@ -9,12 +9,14 @@ import AppText from '../common/AppText';
 type Props = {
   lead: any;
   onConvertPress?: () => void;
+  onConvertLinkPress?: () => void;
   onEditPress?: () => void;
 };
 
 export default function LeadHeader({
   lead,
   onConvertPress,
+  onConvertLinkPress,
   onEditPress,
 }: Props) {
   const statusColor = lead.lead_status_details?.color || colors.primary;
@@ -85,6 +87,12 @@ export default function LeadHeader({
             onPress={onConvertPress}
             disabled={!onConvertPress}
           />
+          <ActionCard
+            icon="link-outline"
+            label="Convert Link"
+            onPress={onConvertLinkPress}
+            disabled={!onConvertLinkPress}
+          />
         </View>
       </View>
     </View>
@@ -105,7 +113,13 @@ function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: 
       <View style={[styles.actionIconContainer, { backgroundColor: color + (disabled ? '10' : '15') }]}>
         <Ionicons name={icon} size={20} color={disabled ? colors.textMuted : color} />
       </View>
-      <AppText variant="caption" style={[styles.actionLabel, disabled && { color: colors.textMuted }]}>
+      <AppText 
+        variant="caption" 
+        numberOfLines={1} 
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[styles.actionLabel, disabled && { color: colors.textMuted }]}
+      >
         {label}
       </AppText>
     </Pressable>
@@ -174,13 +188,14 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   actionCard: {
     flex: 1,
     backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.black,
@@ -206,6 +221,6 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontWeight: '600',
-    fontSize: 11,
+    fontSize: 10,
   },
 });

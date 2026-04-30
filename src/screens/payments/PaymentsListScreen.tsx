@@ -18,7 +18,7 @@ import { useInfinitePaymentTransactions } from '@/src/queries/payments.query';
 import { colors, spacing } from '@/src/theme';
 
 import { PaymentsStackParamList } from '@/src/navigation/PaymentsStack';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { usePaymentsFilters } from '@/src/hooks/usePaymentsFilters';
 import PaymentsFilterModal from '@/src/components/payments/PaymentsFilterModal';
@@ -82,10 +82,27 @@ function PaymentItem({
 
 export default function PaymentsListScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<PaymentsStackParamList>>();
+    const isFocused = useIsFocused();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterVisible, setFilterVisible] = useState(false);
     const { filters, setAllFilters } = usePaymentsFilters();
+    const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+    useEffect(() => {
+        if (isFocused) {
+            void refetch();
+        }
+    }, [isFocused, refetch]);
+
+    const onRefresh = useCallback(async () => {
+        try {
+            setIsManualRefreshing(true);
+            await refetch();
+        } finally {
+            setIsManualRefreshing(false);
+        }
+    }, [refetch]);
 
     const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
@@ -215,8 +232,8 @@ export default function PaymentsListScreen() {
                 }
                 refreshControl={
                     <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={refetch}
+                        refreshing={isManualRefreshing}
+                        onRefresh={onRefresh}
                         tintColor={colors.primary}
                         colors={[colors.primary]}
                     />

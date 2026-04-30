@@ -17,7 +17,7 @@ import AppText from '../../components/common/AppText';
 
 import { useInfiniteLeads } from '../../queries/leads.query';
 
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { LeadsStackParamList } from '../../navigation/LeadsStack';
 
@@ -50,6 +50,7 @@ export default function LeadsListScreen() {
     useNavigation<
       NativeStackNavigationProp<LeadsStackParamList>
     >();
+  const isFocused = useIsFocused();
 
   /* ---------------- QUERY ---------------- */
   const {
@@ -78,6 +79,22 @@ export default function LeadsListScreen() {
   };
 
   /* ---------------- STATES ---------------- */
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (isFocused) {
+      void refetch();
+    }
+  }, [isFocused, refetch]);
+
+  const onRefresh = useCallback(async () => {
+    try {
+      setIsManualRefreshing(true);
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refetch]);
 
   const renderItem = useCallback(({ item }: { item: any }) => (
     <LeadCard
@@ -186,8 +203,8 @@ export default function LeadsListScreen() {
           }
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
+              refreshing={isManualRefreshing}
+              onRefresh={onRefresh}
               tintColor={colors.primary}
               colors={[colors.primary]}
             />

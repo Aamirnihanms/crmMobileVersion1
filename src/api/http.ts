@@ -1,7 +1,9 @@
 import axios from 'axios';
+import { Alert } from 'react-native';
 import { useAuthStore } from '../store/auth.store';
 import { getToken } from '../utils/token';
 import { API_CONFIG } from '../config/api.config';
+import { getErrorMessage } from '../utils/error';
 
 export const http = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -49,17 +51,31 @@ http.interceptors.response.use(
     return response;
   },
   async (error) => {
-    const status = error.response?.data?.status;
-    const errorMessage = error.response?.data?.error;
+    const status = error.response?.status;
+    const data = error.response?.data;
+    const errorMessage = getErrorMessage(error);
 
-    if (status === 'expired' || errorMessage?.includes('expired')) {
+    // Handle session expiration
+    if (status === 401 || data?.status === 'expired' || data?.error?.includes('expired')) {
       console.warn('⚠️ Session expired. Logging out...');
       await useAuthStore.getState().logout();
+      // Only show alert if it's not a background fetch or if you want it everywhere
+      // Usually, 401 logout is enough, but an alert can clarify why.
+      return Promise.reject(error);
+    }
+
+    // Global Error Alert
+    // We skip alerts for certain conditions if needed
+    const isSilent = error.config?.silent; 
+    const isGet = error.config?.method?.toLowerCase() === 'get';
+    
+    if (!isSilent && !isGet) {
+      Alert.alert('Action Failed', errorMessage);
     }
 
     console.error(
       `❌ API Error [${error.config?.method?.toUpperCase()} ${error.config?.url}]:`,
-      error.response?.data || error.message
+      data || error.message
     );
     return Promise.reject(error);
   }

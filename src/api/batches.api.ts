@@ -194,3 +194,64 @@ export const updateBatch = async (uid: string, payload: any): Promise<{ status: 
   const res = await http.put(`/batch/${uid}/`, payload);
   return res.data;
 };
+
+export const deleteBatch = async (uid: string): Promise<{ status: string; message?: string }> => {
+  console.log('➡️ DELETE batch:', uid);
+  const res = await http.delete(`/batch/${uid}/`);
+  return res.data;
+};
+
+export const markBatchCompleted = async (uid: string): Promise<{ status: string; message?: string }> => {
+  console.log('➡️ POST mark batch completed:', uid);
+  const res = await http.post(`/batch/${uid}/mark-completed/`);
+  return res.data;
+};
+
+export type BatchSession = {
+    uid: string;
+    batch: string;
+    batch_uid: string;
+    batch_name: string;
+    name: string;
+    minimum_attendance_duration: number;
+    duration_display: string;
+    description: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type BatchSessionsResponse = {
+    status: string;
+    sessions: BatchSession[];
+    pagination: {
+        total_count: number;
+        current_page: number;
+        total_pages: number;
+        page_size: number;
+    };
+};
+
+export const fetchBatchSessions = async (batchId: string): Promise<BatchSessionsResponse> => {
+  const res = await http.get(`/batch/sessions/`, { params: { batch_id: batchId } });
+  return res.data;
+};
+
+export const createBatchSession = async (payload: { batch: string; description: string; minimum_attendance_duration: number; name: string }): Promise<any> => {
+  const res = await http.post('/batch/sessions/create/', payload);
+  return res.data;
+};
+
+export const fetchBatchSessionDetail = async (uid: string): Promise<any> => {
+  const res = await http.get(`/batch/sessions/${uid}/`);
+  return res.data;
+};
+
+export const updateBatchSession = async (uid: string, payload: { description: string; minimum_attendance_duration: number; name: string }): Promise<any> => {
+  const res = await http.patch(`/batch/sessions/${uid}/update/`, payload);
+  return res.data;
+};
+
+export const deleteBatchSession = async (uid: string): Promise<any> => {
+  const res = await http.delete(`/batch/sessions/${uid}/delete/`);
+  return res.data;
+};

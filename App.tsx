@@ -143,7 +143,7 @@ const getChatParamsFromNotification = (
   if (!chatId) return null;
 
   const rawType = getStringValue(data?.type);
-  if (rawType && rawType !== 'chat_message') return null;
+  if (rawType && !rawType.startsWith('chat_')) return null;
 
   const chatType = resolveChatType(getStringValue(data?.chat_type));
 

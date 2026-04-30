@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import type { LeadsFilters } from '@/src/api/leads.api';
 import {
   fetchCounselorsPage,
   fetchCoursesPage,
@@ -16,7 +17,6 @@ import {
   fetchLeadStatusesPage,
   fetchQualificationsPage,
 } from '@/src/api/masters/paginatedMasters.api';
-import type { LeadsFilters } from '@/src/api/leads.api';
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppText from '@/src/components/common/AppText';
 

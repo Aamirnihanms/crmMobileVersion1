@@ -30,7 +30,7 @@ export default function EditProfileScreen() {
 
   const [fullName, setFullName] = useState(user.full_name || '');
   const [email, setEmail] = useState(user.email || '');
-  
+
   // Parse phone and country code
   const getInitialCC = (code: string | null, phone: string | null) => {
     if (code) {

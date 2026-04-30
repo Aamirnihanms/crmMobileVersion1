@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { colors, spacing } from '@/src/theme';
 import type { FollowUp } from '../../../api/followups.api';
 import AppLoader from '../../../components/common/AppLoader';
 import AppText from '../../../components/common/AppText';
@@ -16,7 +17,6 @@ import AddFollowUpModal from '../../../components/followups/AddFollowUpModal';
 import FollowUpCard from '../../../components/followups/FollowUpCard';
 import UpdateFollowUpStatusModal from '../../../components/followups/UpdateFollowUpStatusModal';
 import { useAddFollowUp, useInfiniteLeadFollowUps, useUpdateFollowUpStatus } from '../../../queries/followups.query';
-import { colors, spacing } from '@/src/theme';
 
 export default function LeadFollowUpsTab({ id }: { id: string }) {
   const {
@@ -69,7 +69,10 @@ export default function LeadFollowUpsTab({ id }: { id: string }) {
         ListHeaderComponent={
           <View style={styles.header}>
             <AppText variant="h2">Follow-ups</AppText>
-            <Pressable onPress={() => setOpen(true)}>
+            <Pressable
+              onPress={() => setOpen(true)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            >
               <LinearGradient
                 colors={[colors.gradientStart, colors.gradientEnd]}
                 style={styles.addButton}
@@ -104,14 +107,19 @@ export default function LeadFollowUpsTab({ id }: { id: string }) {
       <AddFollowUpModal
         visible={open}
         onClose={() => setOpen(false)}
+        loading={addFollowUp.isPending}
         onSubmit={(data) => {
-          addFollowUp.mutate({
-            notes: data.notes,
-            next_follow_up_date: data.next_follow_up_date,
-            importance: data.importance,
-            status: 'pending',
-          });
-          setOpen(false);
+          addFollowUp.mutate(
+            {
+              notes: data.notes,
+              next_follow_up_date: data.next_follow_up_date,
+              importance: data.importance,
+              status: 'pending',
+            },
+            {
+              onSuccess: () => setOpen(false),
+            }
+          );
         }}
       />
 
@@ -121,12 +129,17 @@ export default function LeadFollowUpsTab({ id }: { id: string }) {
           followup={selectedFollowUp}
           leadId={id}
           onClose={() => setSelectedFollowUp(null)}
+          loading={updateStatus.isPending}
           onSubmit={(payload) => {
-            updateStatus.mutate({
-              followupId: selectedFollowUp.id,
-              payload,
-            });
-            setSelectedFollowUp(null);
+            updateStatus.mutate(
+              {
+                followupId: selectedFollowUp.id,
+                payload,
+              },
+              {
+                onSuccess: () => setSelectedFollowUp(null),
+              }
+            );
           }}
         />
       )}

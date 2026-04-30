@@ -62,13 +62,85 @@ export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirm
         onConfirmManual(payload);
     };
 
+    const FinancialSummary = () => {
+        if (!enrollment) return null;
+
+        const originalCourseFees = Number(enrollment.original_course_fees) || enrollment.batch?.fee_structure?.course_fees || 0;
+        const admissionFees = Number(enrollment.original_admission_fees) || enrollment.batch?.fee_structure?.admission_fees || 0;
+        const totalDiscountAmount = Number(enrollment.total_discount_amount) || 0;
+        const fullPaymentDiscount = Number(enrollment.original_course_fees_discount) || 0;
+        
+        const totalFeesAfterDiscount = originalCourseFees - totalDiscountAmount;
+        const totalPaid = Number(enrollment.total_amount_paid) || 0;
+        const pendingAmount = Number(enrollment.total_pending_amount) || 0;
+        
+        const amountToPay = Math.max(0, pendingAmount - fullPaymentDiscount);
+
+        return (
+            <View style={styles.summaryCard}>
+                <View style={styles.summaryHeader}>
+                    <Ionicons name="calculator-outline" size={18} color={colors.primary} />
+                    <AppText variant="subtitle" style={styles.summaryTitle}>Financial Details</AppText>
+                </View>
+                
+                <View style={styles.summaryRow}>
+                    <AppText variant="caption" color={colors.textMuted}>Course Fees</AppText>
+                    <AppText variant="body" style={{ fontWeight: '600' }}>₹{originalCourseFees}</AppText>
+                </View>
+                
+                <View style={styles.summaryRow}>
+                    <AppText variant="caption" color={colors.textMuted}>Admission Fees</AppText>
+                    <AppText variant="body" style={{ fontWeight: '600' }}>₹{admissionFees}</AppText>
+                </View>
+
+                {totalDiscountAmount > 0 && (
+                    <View style={styles.summaryRow}>
+                        <AppText variant="caption" color={colors.textMuted}>Total Discounts Applied</AppText>
+                        <AppText variant="body" color={colors.danger} style={{ fontWeight: '600' }}>- ₹{totalDiscountAmount}</AppText>
+                    </View>
+                )}
+
+                <View style={styles.divider} />
+
+                <View style={styles.summaryRow}>
+                    <AppText variant="caption" style={{ fontWeight: '700' }}>Total Fees after Discount</AppText>
+                    <AppText variant="body" style={{ fontWeight: '700' }}>₹{totalFeesAfterDiscount}</AppText>
+                </View>
+
+                <View style={styles.summaryRow}>
+                    <AppText variant="caption" color={colors.textMuted}>Total Paid</AppText>
+                    <AppText variant="body" color={colors.successStrong} style={{ fontWeight: '600' }}>₹{totalPaid}</AppText>
+                </View>
+
+                <View style={styles.summaryRow}>
+                    <AppText variant="caption" color={colors.textMuted}>Balance Amount</AppText>
+                    <AppText variant="body" style={{ fontWeight: '600' }}>₹{pendingAmount}</AppText>
+                </View>
+
+                {fullPaymentDiscount > 0 && (
+                    <View style={[styles.summaryRow, { marginTop: 4 }]}>
+                        <AppText variant="caption" color={colors.primary} style={{ fontWeight: '700' }}>Full Payment Discount</AppText>
+                        <AppText variant="body" color={colors.primary} style={{ fontWeight: '800' }}>- ₹{fullPaymentDiscount}</AppText>
+                    </View>
+                )}
+
+                <View style={[styles.summaryRow, styles.finalRow]}>
+                    <AppText variant="body" style={styles.finalLabel}>Amount to Pay</AppText>
+                    <AppText variant="h3" color={colors.primary} style={{ fontWeight: '800' }}>₹{amountToPay}</AppText>
+                </View>
+            </View>
+        );
+    };
+
     if (subStep === 'selection') {
         return (
-            <View style={styles.container}>
+            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                 <AppText variant="h3" style={styles.title}>Full Payment Options</AppText>
                 <AppText variant="body" color={colors.textMuted} style={styles.subtitle}>
                     How would you like to process this payment?
                 </AppText>
+
+                <FinancialSummary />
 
                 <TouchableOpacity style={styles.optionCard} onPress={() => setSubStep('link')}>
                     <View style={[styles.iconBox, { backgroundColor: colors.info + '15' }]}>
@@ -91,7 +163,7 @@ export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirm
                     </View>
                     <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
                 </TouchableOpacity>
-            </View>
+            </ScrollView>
         );
     }
 
@@ -139,6 +211,8 @@ export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirm
             <AppText variant="body" color={colors.textMuted} style={styles.subtitle}>
                 Enter the details of the payment received
             </AppText>
+
+            <FinancialSummary />
 
             <AppSelect
                 label="Payment Method"
@@ -226,5 +300,50 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: colors.textSecondary,
         fontFamily: 'monospace',
+    },
+    summaryCard: {
+        backgroundColor: colors.surface,
+        padding: spacing.lg,
+        borderRadius: 24,
+        marginBottom: spacing.xl,
+        borderWidth: 1,
+        borderColor: colors.surfaceSubtle,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+    },
+    summaryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: spacing.lg,
+    },
+    summaryTitle: {
+        fontWeight: '800',
+        color: colors.textPrimary,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: colors.surfaceSubtle,
+        marginVertical: spacing.md,
+    },
+    finalRow: {
+        marginTop: spacing.md,
+        paddingTop: spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: colors.surfaceSubtle,
+        borderStyle: 'dashed',
+    },
+    finalLabel: {
+        fontWeight: '700',
+        fontSize: 16,
     },
 });
