@@ -107,6 +107,21 @@ export default function StudentEnrollmentsSection({
                 </View>
               </View>
 
+              <View style={styles.batchDetailsRow}>
+                <View style={styles.batchDetailItem}>
+                  <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    {e.batch?.start_date ? new Date(e.batch.start_date).toLocaleDateString() : 'TBD'} - {e.batch?.end_date ? new Date(e.batch.end_date).toLocaleDateString() : 'TBD'}
+                  </AppText>
+                </View>
+                <View style={styles.batchDetailItem}>
+                  <Ionicons name="time-outline" size={14} color={colors.textMuted} />
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    {e.batch?.time ? e.batch.time : 'TBD'}
+                  </AppText>
+                </View>
+              </View>
+
               <View style={styles.divider} />
 
               <View style={styles.cardFooter}>
@@ -194,6 +209,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  batchDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  batchDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   divider: {
     height: 1,
