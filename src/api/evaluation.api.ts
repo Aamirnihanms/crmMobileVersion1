@@ -130,3 +130,57 @@ export const fetchMarkSheet = async (attemptUid: string): Promise<any> => {
     const res = await http.get(`/evaluation/attempts/${attemptUid}/mark-sheet/`);
     return res.data;
 };
+
+export const saveEvaluationDraft = async (attemptUid: string, payload: any): Promise<any> => {
+    const res = await http.patch(`/evaluation/attempts/${attemptUid}/scores/`, payload);
+    return res.data;
+};
+
+export const submitEvaluation = async (attemptUid: string): Promise<any> => {
+    const res = await http.post(`/evaluation/attempts/${attemptUid}/submit/`);
+    return res.data;
+};
+
+export const publishEvaluation = async (attemptUid: string): Promise<any> => {
+    const res = await http.post(`/evaluation/attempts/${attemptUid}/publish/`);
+    return res.data;
+};
+
+/* ---------- EXAM SESSION CREATE ---------- */
+
+export const fetchTemplatesByCourse = async (courseId: number): Promise<any[]> => {
+    const res = await http.get('/evaluation/templates/', { params: { is_active: true, course_id: courseId } });
+    return res.data.data || [];
+};
+
+export const fetchTemplateWithModules = async (templateUid: string): Promise<any> => {
+    const res = await http.get(`/evaluation/templates/${templateUid}/`);
+    return res.data.data;
+};
+
+export const fetchExamTypes = async (): Promise<any[]> => {
+    const res = await http.get('/evaluation/exam-types/');
+    return res.data.data || [];
+};
+
+export type CreateExamSessionPayload = {
+    batch_uid: string;
+    exam_name: string;
+    exam_type_id: number;
+    generate_attempts: boolean;
+    module_uid?: string;
+    scheduled_date: string;
+    template_uid: string;
+    exam_notes?: string;
+    student_uids?: string[];
+};
+
+export const createExamSession = async (payload: CreateExamSessionPayload): Promise<any> => {
+    const res = await http.post('/evaluation/exam-sessions/create/', payload);
+    return res.data;
+};
+
+export const fetchBatchStudents = async (batchUid: string): Promise<any[]> => {
+    const res = await http.get('/students/', { params: { batch: batchUid, page_size: 200 } });
+    return res.data?.data?.students || [];
+};

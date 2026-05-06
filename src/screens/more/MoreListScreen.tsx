@@ -204,13 +204,6 @@ export default function MoreListScreen() {
                         sublabel="Schedule and manage exams"
                         onPress={() => navigation.navigate('ExamSessions')}
                         color={colors.warning}
-                    />
-                    <MenuItem
-                        icon="create-outline"
-                        label="Marking"
-                        sublabel="Grade student performance"
-                        onPress={() => navigation.navigate('Marking')}
-                        color={colors.success}
                         isLast
                     />
                 </AppCard>

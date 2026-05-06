@@ -526,60 +526,66 @@ export default function EnrollmentDetailsScreen() {
 
       {/* Pay Modal */}
       <Modal visible={payModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <AppCard style={styles.modalContent}>
-            <AppText variant="h3" style={{ marginBottom: spacing.md }}>Mark as Paid</AppText>
-            <AppSelect
-              label="Payment Method"
-              options={[
-                { label: 'Cash', value: 'cash' },
-                { label: 'UPI', value: 'upi' },
-                { label: 'Bank Transfer', value: 'bank' },
-              ]}
-              value={payMethod}
-              onSelect={setPayMethod}
-            />
-            <AppInput label="Notes" value={payNotes} onChangeText={setPayNotes} multiline />
-            <View style={styles.modalButtons}>
-              <AppButton title="Cancel" variant="outline" onPress={() => setPayModalVisible(false)} style={{ flex: 1, marginRight: spacing.md }} />
-              <AppButton title="Confirm" onPress={handleConfirmPay} loading={markPaidMutation.isPending} style={{ flex: 1 }} />
-            </View>
-          </AppCard>
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <AppCard style={styles.modalContent}>
+              <AppText variant="h3" style={{ marginBottom: spacing.md }}>Mark as Paid</AppText>
+              <AppSelect
+                label="Payment Method"
+                options={[
+                  { label: 'Cash', value: 'cash' },
+                  { label: 'UPI', value: 'upi' },
+                  { label: 'Bank Transfer', value: 'bank' },
+                ]}
+                value={payMethod}
+                onSelect={setPayMethod}
+              />
+              <AppInput label="Notes" value={payNotes} onChangeText={setPayNotes} multiline />
+              <View style={styles.modalButtons}>
+                <AppButton title="Cancel" variant="outline" onPress={() => setPayModalVisible(false)} style={{ flex: 1, marginRight: spacing.md }} />
+                <AppButton title="Confirm" onPress={handleConfirmPay} loading={markPaidMutation.isPending} style={{ flex: 1 }} />
+              </View>
+            </AppCard>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Unpaid Modal */}
       <Modal visible={unpaidModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <AppCard style={styles.modalContent}>
-            <AppText variant="h3" style={{ marginBottom: spacing.md }}>Mark as Unpaid</AppText>
-            <AppText variant="caption" color={colors.textMuted} style={{ marginBottom: spacing.md }}>
-              Describe why this installment is being marked as unpaid. This action will reset the installment status.
-            </AppText>
-            <AppInput label="Notes / Reason" value={unpaidNotes} onChangeText={setUnpaidNotes} multiline placeholder="Enter reason here..." />
-            <View style={styles.modalButtons}>
-              <AppButton title="Cancel" variant="outline" onPress={() => setUnpaidModalVisible(false)} style={{ flex: 1, marginRight: spacing.md }} />
-              <AppButton title="Confirm" onPress={handleConfirmUnpaid} loading={markUnpaidMutation.isPending} style={{ flex: 1, backgroundColor: colors.danger, borderColor: colors.danger }} />
-            </View>
-          </AppCard>
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <AppCard style={styles.modalContent}>
+              <AppText variant="h3" style={{ marginBottom: spacing.md }}>Mark as Unpaid</AppText>
+              <AppText variant="caption" color={colors.textMuted} style={{ marginBottom: spacing.md }}>
+                Describe why this installment is being marked as unpaid. This action will reset the installment status.
+              </AppText>
+              <AppInput label="Notes / Reason" value={unpaidNotes} onChangeText={setUnpaidNotes} multiline placeholder="Enter reason here..." />
+              <View style={styles.modalButtons}>
+                <AppButton title="Cancel" variant="outline" onPress={() => setUnpaidModalVisible(false)} style={{ flex: 1, marginRight: spacing.md }} />
+                <AppButton title="Confirm" onPress={handleConfirmUnpaid} loading={markUnpaidMutation.isPending} style={{ flex: 1, backgroundColor: colors.danger, borderColor: colors.danger }} />
+              </View>
+            </AppCard>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
 
       {/* Edit Modal */}
       <Modal visible={editModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <AppCard style={styles.modalContent}>
-            <AppText variant="h3" style={{ marginBottom: spacing.md }}>Edit Installment</AppText>
-            <AppInput label="New Amount" value={editAmount} onChangeText={setEditAmount} keyboardType="numeric" />
-            <AppInput label="New Due Date (YYYY-MM-DD)" value={editDate} onChangeText={setEditDate} />
-            <AppInput label="Notes" value={editNotes} onChangeText={setEditNotes} multiline />
-            <View style={styles.modalButtons}>
-              <AppButton title="Cancel" variant="outline" onPress={() => setEditModalVisible(false)} style={{ flex: 1, marginRight: spacing.md }} />
-              <AppButton title="Update" onPress={handleConfirmEdit} loading={updateMutation.isPending} style={{ flex: 1 }} />
-            </View>
-          </AppCard>
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <AppCard style={styles.modalContent}>
+              <AppText variant="h3" style={{ marginBottom: spacing.md }}>Edit Installment</AppText>
+              <AppInput label="New Amount" value={editAmount} onChangeText={setEditAmount} keyboardType="numeric" />
+              <AppInput label="New Due Date (YYYY-MM-DD)" value={editDate} onChangeText={setEditDate} />
+              <AppInput label="Notes" value={editNotes} onChangeText={setEditNotes} multiline />
+              <View style={styles.modalButtons}>
+                <AppButton title="Cancel" variant="outline" onPress={() => setEditModalVisible(false)} style={{ flex: 1, marginRight: spacing.md }} />
+                <AppButton title="Update" onPress={handleConfirmEdit} loading={updateMutation.isPending} style={{ flex: 1 }} />
+              </View>
+            </AppCard>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Drop Modal */}

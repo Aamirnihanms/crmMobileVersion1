@@ -86,6 +86,11 @@ export default function BatchChangeRequestCard({ request, onPress }: BatchChange
                         </AppText>
                     </View>
                     <View style={styles.timeInfo}>
+                        <Ionicons name="person-outline" size={12} color={colors.textMuted} />
+                        <AppText variant="caption" color={colors.textMuted} numberOfLines={1} style={{ maxWidth: 100 }}>
+                            {request.request_info.requested_by || 'System'}
+                        </AppText>
+                        <AppText variant="caption" color={colors.textMuted}>•</AppText>
                         <Ionicons name="time-outline" size={12} color={colors.textMuted} />
                         <AppText variant="caption" color={colors.textMuted}>
                             {new Date(request.request_info.requested_at).toLocaleDateString()}

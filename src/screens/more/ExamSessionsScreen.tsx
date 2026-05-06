@@ -14,6 +14,7 @@ import BatchesFilterModal from '@/src/components/batches/BatchesFilterModal';
 import BatchCard from '@/src/components/cards/BatchCard';
 import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
+import CreateExamSessionSheet from '@/src/components/evaluation/CreateExamSessionSheet';
 import { useBatchesFilters } from '@/src/hooks/useBatchesFilters';
 import { useInfiniteBatches } from '@/src/queries/batches.query';
 import { useInfiniteExamSessions } from '@/src/queries/evaluation.query';
@@ -26,6 +27,7 @@ export default function ExamSessionsScreen() {
 
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [showCreate, setShowCreate] = useState(false);
 
     /* ---------------- BATCH FILTERS ---------------- */
     const { filters, setAllFilters } = useBatchesFilters();
@@ -215,6 +217,20 @@ export default function ExamSessionsScreen() {
                     ) : null
                 }
             />
+
+            {/* FAB */}
+            <Pressable
+                style={({ pressed }) => [styles.fab, { opacity: pressed ? 0.85 : 1 }]}
+                onPress={() => setShowCreate(true)}
+            >
+                <Ionicons name="add" size={28} color={colors.surface} />
+            </Pressable>
+
+            <CreateExamSessionSheet
+                visible={showCreate}
+                onClose={() => setShowCreate(false)}
+                batch={selectedBatch}
+            />
         </View>
     );
 }
@@ -257,7 +273,23 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: spacing.lg,
-        paddingBottom: 100,
+        paddingBottom: 120,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 28,
+        right: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 6,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
     },
     empty: {
         paddingTop: 100,

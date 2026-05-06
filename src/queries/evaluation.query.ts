@@ -22,7 +22,16 @@ import {
     deleteEvaluationCriteria,
     fetchExamSessions,
     fetchExamAttempts,
-    fetchMarkSheet
+    fetchMarkSheet,
+    saveEvaluationDraft,
+    submitEvaluation,
+    publishEvaluation,
+    fetchTemplatesByCourse,
+    fetchTemplateWithModules,
+    fetchExamTypes,
+    createExamSession,
+    fetchBatchStudents,
+    CreateExamSessionPayload,
 } from '../api/evaluation.api';
 
 export const useEvaluationTemplates = () => {
@@ -245,5 +254,81 @@ export const useMarkSheet = (attemptUid: string) => {
         queryKey: ['mark-sheet', attemptUid],
         queryFn: () => fetchMarkSheet(attemptUid),
         enabled: !!attemptUid,
+    });
+};
+
+export const useSaveEvaluationDraft = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ attemptUid, payload }: { attemptUid: string; payload: any }) => 
+            saveEvaluationDraft(attemptUid, payload),
+        onSuccess: (_, { attemptUid }) => {
+            queryClient.invalidateQueries({ queryKey: ['mark-sheet', attemptUid] });
+        },
+    });
+};
+
+export const useSubmitEvaluation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (attemptUid: string) => submitEvaluation(attemptUid),
+        onSuccess: (_, attemptUid) => {
+            queryClient.invalidateQueries({ queryKey: ['mark-sheet', attemptUid] });
+            queryClient.invalidateQueries({ queryKey: ['exam-attempts'] });
+        },
+    });
+};
+
+export const usePublishEvaluation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (attemptUid: string) => publishEvaluation(attemptUid),
+        onSuccess: (_, attemptUid) => {
+            queryClient.invalidateQueries({ queryKey: ['mark-sheet', attemptUid] });
+            queryClient.invalidateQueries({ queryKey: ['exam-attempts'] });
+        },
+    });
+};
+
+/* ---------- EXAM SESSION CREATE HOOKS ---------- */
+
+export const useTemplatesByCourse = (courseId: number) => {
+    return useQuery({
+        queryKey: ['templates-by-course', courseId],
+        queryFn: () => fetchTemplatesByCourse(courseId),
+        enabled: !!courseId,
+    });
+};
+
+export const useTemplateWithModules = (templateUid: string) => {
+    return useQuery({
+        queryKey: ['template-modules', templateUid],
+        queryFn: () => fetchTemplateWithModules(templateUid),
+        enabled: !!templateUid,
+    });
+};
+
+export const useExamTypes = () => {
+    return useQuery({
+        queryKey: ['exam-types'],
+        queryFn: fetchExamTypes,
+    });
+};
+
+export const useBatchStudents = (batchUid: string) => {
+    return useQuery({
+        queryKey: ['batch-students', batchUid],
+        queryFn: () => fetchBatchStudents(batchUid),
+        enabled: !!batchUid,
+    });
+};
+
+export const useCreateExamSession = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: CreateExamSessionPayload) => createExamSession(payload),
+        onSuccess: (_, vars) => {
+            queryClient.invalidateQueries({ queryKey: ['exam-sessions', vars.batch_uid] });
+        },
     });
 };

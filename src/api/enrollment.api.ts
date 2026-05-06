@@ -167,33 +167,9 @@ export const markInstallmentPaid = async (id: string, payload: { notes: string, 
   return res.data;
 };
 
-const isEndpointFallbackError = (error: any) => {
-  const status = error?.response?.status;
-  return status === 404 || status === 405;
-};
-
 export const updateInstallment = async (id: string, payload: { new_amount: number, new_due_date: string, notes: string, redistribute_remaining: boolean }) => {
-  let lastError: unknown;
-
-  // Try canonical DRF detail endpoint first, then support legacy custom edit action.
-  const requesters = [
-    () => http.patch(`/enrollments/emi/installments/${id}/`, payload),
-    () => http.put(`/enrollments/emi/installments/${id}/edit/`, payload),
-  ];
-
-  for (const request of requesters) {
-    try {
-      const res = await request();
-      return res.data;
-    } catch (error) {
-      lastError = error;
-      if (!isEndpointFallbackError(error)) {
-        throw error;
-      }
-    }
-  }
-
-  throw lastError;
+  const res = await http.put(`/enrollments/emi/installments/${id}/edit/`, payload);
+  return res.data;
 };
 
 export const markInstallmentUnpaid = async (id: string, payload: { notes: string }) => {
