@@ -17,7 +17,7 @@ export type Counselor = {
 
 
 export const fetchCounselors = async (): Promise<Counselor[]> => {
-  const res = await http.get('/users', {
+  const res = await http.get('/users/', {
     params: {
       page_size: 200, // fetch enough for dropdown
     },

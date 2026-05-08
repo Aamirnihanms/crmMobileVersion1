@@ -4,7 +4,7 @@ export type LeadNote = {
   id: string;
   lead: string;
   content: string;
-  importance:  'NORMAL' | 'IMPORTANT' | 'URGENT';
+  importance: 'NORMAL' | 'IMPORTANT' | 'URGENT';
   created_at: string;
   updated_at: string;
   is_edited: boolean;
@@ -30,7 +30,7 @@ export const fetchLeadNotes = async (
   leadId: string,
   page: number
 ): Promise<LeadNotesPageResponse> => {
-  const res = await http.get(`/leads/${leadId}/notes`, {
+  const res = await http.get(`/leads/${leadId}/notes/`, {
     params: { page },
   });
 
