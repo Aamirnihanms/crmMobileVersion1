@@ -1,20 +1,115 @@
 import { colors, spacing } from '@/src/theme';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import AppCard from './../common/AppCard';
 import AppInput from './../common/AppInput';
 import AppText from './../common/AppText';
 import PhoneInputWithCode, { CountryCode } from './../common/PhoneInputWithCode';
+import { checkPhoneExists, checkEmailExists } from '@/src/api/leads.api';
 
 type Props = {
   form: any;
   setForm: (data: any) => void;
+  onPhoneStatusChange?: (isChecking: boolean, hasError: boolean) => void;
+  onEmailStatusChange?: (isChecking: boolean, hasError: boolean) => void;
+  originalPhone?: string;
+  originalEmail?: string;
 };
 
 export default function LeadBasicInfoSection({
   form,
   setForm,
+  onPhoneStatusChange,
+  onEmailStatusChange,
+  originalPhone,
+  originalEmail,
 }: Props) {
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+  useEffect(() => {
+    const checkPhone = async () => {
+      if (!form.phone_number || form.phone_number.length < 10) {
+        setPhoneError(null);
+        return;
+      }
+
+      const countryCode = (form.phone_country_code?.code || '+91').replace('+', '');
+      const fullNumber = `${countryCode}${form.phone_number}`;
+
+      if (originalPhone && fullNumber === originalPhone) {
+        setPhoneError(null);
+        return;
+      }
+
+      setIsCheckingPhone(true);
+      try {
+        const res = await checkPhoneExists(fullNumber);
+        if (res?.exists) {
+          setPhoneError(`This number already exists in ${res.found_in.join(', ')}. Please use a different number.`);
+        } else {
+          setPhoneError(null);
+        }
+      } catch (error) {
+        console.log('Phone check error:', error);
+        setPhoneError(null);
+      } finally {
+        setIsCheckingPhone(false);
+      }
+    };
+
+    const timeout = setTimeout(checkPhone, 800);
+    return () => clearTimeout(timeout);
+  }, [form.phone_number, form.phone_country_code]);
+
+  useEffect(() => {
+    if (onPhoneStatusChange) {
+      onPhoneStatusChange(isCheckingPhone, phoneError !== null);
+    }
+  }, [isCheckingPhone, phoneError, onPhoneStatusChange]);
+
+  useEffect(() => {
+    const checkEmail = async () => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!form.email || !emailRegex.test(form.email)) {
+        setEmailError(null);
+        return;
+      }
+
+      if (originalEmail && form.email === originalEmail) {
+        setEmailError(null);
+        return;
+      }
+
+      setIsCheckingEmail(true);
+      try {
+        const res = await checkEmailExists(form.email);
+        if (res?.exists) {
+          setEmailError(`This email already exists in ${res.found_in.join(', ')}. Please use a different email.`);
+        } else {
+          setEmailError(null);
+        }
+      } catch (error) {
+        console.log('Email check error:', error);
+        setEmailError(null);
+      } finally {
+        setIsCheckingEmail(false);
+      }
+    };
+
+    const timeout = setTimeout(checkEmail, 800);
+    return () => clearTimeout(timeout);
+  }, [form.email]);
+
+  useEffect(() => {
+    if (onEmailStatusChange) {
+      onEmailStatusChange(isCheckingEmail, emailError !== null);
+    }
+  }, [isCheckingEmail, emailError, onEmailStatusChange]);
+
   return (
     <View style={styles.container}>
       <AppText variant="h3" style={styles.title}>Basic Information</AppText>
@@ -37,8 +132,18 @@ export default function LeadBasicInfoSection({
           onChangeCountryCode={(c: CountryCode) =>
             setForm({ ...form, phone_country_code: c })
           }
-          containerStyle={styles.inputContainer}
+          containerStyle={phoneError || isCheckingPhone ? { marginBottom: spacing.xs } : styles.inputContainer}
         />
+        {isCheckingPhone && (
+          <AppText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.lg, marginLeft: 4 }}>
+            Checking number...
+          </AppText>
+        )}
+        {phoneError && !isCheckingPhone && (
+          <AppText variant="caption" color={colors.danger} style={{ marginBottom: spacing.lg, marginLeft: 4 }}>
+            {phoneError}
+          </AppText>
+        )}
 
         <PhoneInputWithCode
           label="WhatsApp Number"
@@ -58,8 +163,18 @@ export default function LeadBasicInfoSection({
           keyboardType="email-address"
           value={form.email}
           onChangeText={(v) => setForm({ ...form, email: v })}
-          containerStyle={{ marginBottom: 0 }}
+          containerStyle={emailError || isCheckingEmail ? { marginBottom: spacing.xs } : { marginBottom: 0 }}
         />
+        {isCheckingEmail && (
+          <AppText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.lg, marginLeft: 4 }}>
+            Checking email...
+          </AppText>
+        )}
+        {emailError && !isCheckingEmail && (
+          <AppText variant="caption" color={colors.danger} style={{ marginBottom: spacing.lg, marginLeft: 4 }}>
+            {emailError}
+          </AppText>
+        )}
       </AppCard>
     </View>
   );

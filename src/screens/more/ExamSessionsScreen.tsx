@@ -174,12 +174,17 @@ export default function ExamSessionsScreen() {
                         <RefreshControl refreshing={isRefetchingBatches} onRefresh={refetchBatches} />
                     }
                     ListEmptyComponent={
-                        !isLoadingBatches ? (
+                        isLoadingBatches ? (
+                            <View style={styles.empty}>
+                                <ActivityIndicator size="large" color={colors.primary} />
+                                <AppText color={colors.textMuted} style={{ marginTop: 16 }}>Loading batches...</AppText>
+                            </View>
+                        ) : (
                             <View style={styles.empty}>
                                 <Ionicons name="search-outline" size={48} color={colors.textMuted} />
                                 <AppText color={colors.textMuted} style={{ marginTop: 8 }}>No batches found</AppText>
                             </View>
-                        ) : null
+                        )
                     }
                 />
 

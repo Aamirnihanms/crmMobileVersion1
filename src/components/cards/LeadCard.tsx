@@ -23,6 +23,7 @@ export type Lead = {
   counselor_details?: {
     full_name: string;
   } | null;
+  created_at?: string;
 };
 
 type LeadCardProps = {
@@ -65,10 +66,20 @@ const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
               </View>
             </View>
             <View style={styles.detailsRow}>
-              <Ionicons name="call-outline" size={14} color={colors.textMuted} />
-              <AppText variant="caption" color={colors.textSecondary} style={styles.detailText}>
-                {lead.phone_number}
-              </AppText>
+              <View style={styles.detailItem}>
+                <Ionicons name="call-outline" size={14} color={colors.textMuted} />
+                <AppText variant="caption" color={colors.textSecondary} style={styles.detailText}>
+                  {lead.phone_number}
+                </AppText>
+              </View>
+              {lead.created_at && (
+                <View style={styles.detailItem}>
+                  <Ionicons name="calendar-outline" size={13} color={colors.textMuted} />
+                  <AppText variant="caption" color={colors.textSecondary} style={styles.detailText}>
+                    {new Date(lead.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </AppText>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -107,6 +118,7 @@ const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
     prevProps.lead.id === nextProps.lead.id &&
     prevProps.lead.name === nextProps.lead.name &&
     prevProps.lead.phone_number === nextProps.lead.phone_number &&
+    prevProps.lead.created_at === nextProps.lead.created_at &&
     prevProps.lead.lead_status_details.value === nextProps.lead.lead_status_details.value &&
     prevProps.lead.lead_status_details.color === nextProps.lead.lead_status_details.color &&
     prevProps.lead.course_details?.course_name === nextProps.lead.course_details?.course_name &&
@@ -171,6 +183,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

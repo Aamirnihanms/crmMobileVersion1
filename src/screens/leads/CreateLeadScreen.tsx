@@ -128,6 +128,12 @@ export default function CreateLeadScreen() {
   const [isFollowUpModalVisible, setIsFollowUpModalVisible] = useState(false);
   const [tempFollowUpData, setTempFollowUpData] = useState<any>(null);
 
+  const [isPhoneInvalid, setIsPhoneInvalid] = useState(false);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+
+  const [isEmailInvalid, setIsEmailInvalid] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
   useEffect(() => {
     hydratedRef.current = false;
     initialStatusIdRef.current = null;
@@ -189,6 +195,16 @@ export default function CreateLeadScreen() {
   }, [isEditMode, editLead]);
 
   const handleSubmit = () => {
+    if (isPhoneInvalid) {
+      Alert.alert('Validation Error', 'Phone number already exists. Please use a different number.');
+      return;
+    }
+    if (isEmailInvalid) {
+      Alert.alert('Validation Error', 'Email already exists. Please use a different email.');
+      return;
+    }
+    if (isCheckingPhone || isCheckingEmail) return;
+
     const mutationPending =
       createLeadMutation.isPending ||
       updateLeadMutation.isPending ||
@@ -197,7 +213,7 @@ export default function CreateLeadScreen() {
 
     if (mutationPending) return;
 
-    const error = validateLead(form);
+    const error = validateLead(form, isEditMode);
 
     if (error) {
       Alert.alert('Validation Error', error);
@@ -353,13 +369,23 @@ export default function CreateLeadScreen() {
     );
   }
 
-  const mutationPending =
+  const isMutating =
     createLeadMutation.isPending ||
     updateLeadMutation.isPending ||
     createNoteMutation.isPending ||
     addFollowUpMutation.isPending;
 
+  const isFormDisabled =
+    isMutating ||
+    isCheckingPhone ||
+    isPhoneInvalid ||
+    isCheckingEmail ||
+    isEmailInvalid;
+
   const editLeadAny = editLead as any;
+  const originalPhone = isEditMode && editLeadAny?.phone_number ? editLeadAny.phone_number.replace('+', '') : undefined;
+  const originalEmail = isEditMode && editLeadAny?.email ? editLeadAny.email : undefined;
+
   const initialCourseDetails = editLeadAny?.course_details ?? null;
   const initialEducationOption =
     editLeadAny?.education_level_details?.id
@@ -424,6 +450,16 @@ export default function CreateLeadScreen() {
           <LeadBasicInfoSection
             form={form}
             setForm={setForm}
+            onPhoneStatusChange={(isChecking, hasError) => {
+              setIsCheckingPhone(isChecking);
+              setIsPhoneInvalid(hasError);
+            }}
+            onEmailStatusChange={(isChecking, hasError) => {
+              setIsCheckingEmail(isChecking);
+              setIsEmailInvalid(hasError);
+            }}
+            originalPhone={originalPhone}
+            originalEmail={originalEmail}
           />
 
           <LeadContactSection
@@ -452,15 +488,15 @@ export default function CreateLeadScreen() {
       <View style={styles.footer}>
         <Pressable
           onPress={handleSubmit}
-          disabled={mutationPending}
+          disabled={isFormDisabled}
           style={{ width: '100%' }}
         >
           <LinearGradient
             colors={[colors.gradientStart, colors.gradientEnd]}
-            style={[styles.saveBtn, mutationPending && { opacity: 0.7 }]}
+            style={[styles.saveBtn, isFormDisabled && { opacity: 0.7 }]}
           >
             <AppText style={styles.saveBtnText}>
-              {mutationPending
+              {isMutating
                 ? isEditMode
                   ? 'Updating...'
                   : 'Creating...'

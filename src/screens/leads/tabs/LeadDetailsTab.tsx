@@ -17,7 +17,7 @@ export default function LeadDetailsTab({ id }: { id: string }) {
       <View style={styles.iconContainer}>
         <Ionicons name={icon} size={18} color={colors.primary} />
       </View>
-      <View>
+      <View style={{ flex: 1 }}>
         <AppText variant="caption" color={colors.textMuted}>{label}</AppText>
         <AppText style={styles.infoValue}>{value || '—'}</AppText>
       </View>

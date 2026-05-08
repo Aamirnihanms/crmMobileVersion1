@@ -22,6 +22,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getChatList, type ApiChat, type ChatType } from './src/api/chat.api';
 import NoNetworkScreen from './src/components/global/NoNetworkScreen';
 import { useNetworkStatus } from './src/hooks/useNetworkStatus';
+import { useUpdateCheck } from './src/hooks/useUpdateCheck';
 import { getFCMToken, requestUserPermission } from './src/lib/firebaseHelper';
 import { configureNotificationChannel, showForegroundNotification } from './src/lib/notificationHelper';
 import { queryClient } from './src/lib/queryClient';
@@ -202,6 +203,7 @@ const appTheme = {
 };
 
 export default function App() {
+  useUpdateCheck();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const { isOffline, checkNetwork } = useNetworkStatus();
   const pendingChatRef = useRef<ChatThreadParams | null>(null);

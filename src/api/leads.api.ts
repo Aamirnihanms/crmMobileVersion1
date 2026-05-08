@@ -252,3 +252,17 @@ export const updateLead = async (
     throw error;
   }
 };
+
+export const checkPhoneExists = async (phoneNumber: string) => {
+  const res = await http.post('/check-phone/', {
+    phone_number: phoneNumber,
+  });
+  return res.data;
+};
+
+export const checkEmailExists = async (email: string) => {
+  const res = await http.post('/check-email/', {
+    email,
+  });
+  return res.data;
+};
