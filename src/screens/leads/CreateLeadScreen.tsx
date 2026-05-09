@@ -281,11 +281,14 @@ export default function CreateLeadScreen() {
   const handleFollowUpSubmit = (data: any) => {
     setTempFollowUpData(data);
     setIsFollowUpModalVisible(false);
-    setIsNoteModalVisible(true);
+    // Proceed directly to update without asking for notes
+    performUpdateSequence(null, data);
   };
 
-  const handleUpdateLeadWithNote = (notePayload: { content: string; importance: any }) => {
-    setIsNoteModalVisible(false);
+  const performUpdateSequence = (
+    notePayload: { content: string; importance: any } | null,
+    followUpData: any | null
+  ) => {
     const payload = buildLeadPayload(form);
 
     const onFinish = (data: any) => {
@@ -322,39 +325,47 @@ export default function CreateLeadScreen() {
       Alert.alert('Error', displayMessage);
     };
 
-    // SEQUENCE: Note -> FollowUp (if any) -> Lead Update
-    createNoteMutation.mutate(notePayload, {
-      onSuccess: () => {
-        if (tempFollowUpData) {
-          addFollowUpMutation.mutate(tempFollowUpData, {
-            onSuccess: () => {
-              updateLeadMutation.mutate(
-                { id: editLeadId!, payload },
-                { onSuccess: onFinish, onError }
-              );
-            },
-            onError: (err: any) => {
-              console.log('❌ Follow-up creation failed:', err?.response?.data);
-              Alert.alert('Partial Success', 'Note saved, but follow-up failed. Updating lead anyway...');
-              updateLeadMutation.mutate(
-                { id: editLeadId!, payload },
-                { onSuccess: onFinish, onError }
-              );
-            }
-          });
-        } else {
-          updateLeadMutation.mutate(
-            { id: editLeadId!, payload },
-            { onSuccess: onFinish, onError }
-          );
-        }
-      },
-      onError: (err: any) => {
-        const errorData = err?.response?.data;
-        console.log(`❌ Create Note Error:`, errorData);
-        Alert.alert('Error', 'Failed to save note. Edit cancelled.');
+    const updateLead = () => {
+      updateLeadMutation.mutate(
+        { id: editLeadId!, payload },
+        { onSuccess: onFinish, onError }
+      );
+    };
+
+    const addFollowUp = () => {
+      if (followUpData) {
+        addFollowUpMutation.mutate(followUpData, {
+          onSuccess: updateLead,
+          onError: (err: any) => {
+            console.log('❌ Follow-up creation failed:', err?.response?.data);
+            Alert.alert('Partial Success', 'Follow-up failed. Updating lead anyway...');
+            updateLead();
+          }
+        });
+      } else {
+        updateLead();
       }
-    });
+    };
+
+    if (notePayload) {
+      // Note -> FollowUp -> Lead Update
+      createNoteMutation.mutate(notePayload, {
+        onSuccess: addFollowUp,
+        onError: (err: any) => {
+          const errorData = err?.response?.data;
+          console.log(`❌ Create Note Error:`, errorData);
+          Alert.alert('Error', 'Failed to save note. Edit cancelled.');
+        }
+      });
+    } else {
+      // FollowUp -> Lead Update
+      addFollowUp();
+    }
+  };
+
+  const handleUpdateLeadWithNote = (notePayload: { content: string; importance: any }) => {
+    setIsNoteModalVisible(false);
+    performUpdateSequence(notePayload, tempFollowUpData);
   };
 
   if (isEditMode && isEditLeadLoading) {

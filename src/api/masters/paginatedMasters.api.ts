@@ -1,13 +1,13 @@
 import type { Batch } from '@/src/api/batches.api';
 import { http } from '@/src/api/http';
+import type { Course } from '@/src/types/course';
 import type { LeadSource } from '@/src/types/leadSource';
 import type { LeadStatus } from '@/src/types/leadStatus';
 import type { Qualification } from '@/src/types/qualification';
-import type { Course } from '@/src/types/course';
 import type { Specialization } from './specializations.api';
 
-import type { MasterLocation } from './locations.api';
 import type { Counselor } from './counselors.api';
+import type { MasterLocation } from './locations.api';
 
 export type MasterPageParams = {
   page: number;
@@ -133,7 +133,7 @@ export const fetchCounselorsPage = async (
   params: MasterPageParams
 ) => {
   const result = await fetchMasterPage<Counselor>(
-    '/users',
+    '/users/',
     ['users'],
     params
   );

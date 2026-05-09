@@ -1045,26 +1045,7 @@ export default function MessagesListScreen() {
         const index = prev.findIndex((chat) => chat.id === chatUid);
         if (index === -1) {
           isNewChat = true;
-          
-          const chatType = (event.chat_type as 'individual' | 'group' | 'batch') || (rawMessage.chat_type as 'individual' | 'group' | 'batch') || 'individual';
-          const chatName = 
-            chatType === 'group' ? (event.group_name as string) || (rawMessage.group_name as string) || sender.full_name || sender.name || 'New Group' :
-            chatType === 'batch' ? (event.batch_name as string) || (rawMessage.batch_name as string) || sender.full_name || sender.name || 'New Batch' :
-            sender.full_name || sender.name || 'New chat';
-
-          const fallback: ChatPreview = {
-            id: chatUid,
-            name: chatName,
-            lastMessage: summary,
-            time: nextTime,
-            unread: shouldIncrementUnread ? 1 : 0,
-            avatarColor: getAvatarColor(chatType),
-            participantId: sender.id,
-            chatType: chatType,
-            online: Boolean(sender.is_active),
-            isArchived: false,
-          };
-          return [fallback, ...prev];
+          return prev;
         }
 
         const current = prev[index];
