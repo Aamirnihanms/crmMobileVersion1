@@ -1,15 +1,17 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 // How long (ms) the offline state must be stable before we show the
 // NoNetworkScreen. This prevents a false-positive flash on iOS when the
 // app resumes from the background — NetInfo briefly emits
 // isInternetReachable=false while it re-checks connectivity.
-const OFFLINE_DEBOUNCE_MS = 1500;
+const OFFLINE_DEBOUNCE_MS = 3000;
 
 export function useNetworkStatus() {
   const [isOffline, setIsOffline] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAppState = useRef<AppStateStatus>(AppState.currentState);
 
   const checkNetwork = useCallback(async () => {
     const state = await NetInfo.fetch();
@@ -22,7 +24,7 @@ export function useNetworkStatus() {
   }, []);
 
   useEffect(() => {
-    const removeNetInfoSubscription = NetInfo.addEventListener((state) => {
+    const handleNetInfoChange = (state: any) => {
       // isInternetReachable=null means NetInfo hasn't finished its reachability
       // check yet (common right after the app resumes from the background on iOS).
       // Treat null as "online" so we never flash the NoNetworkScreen prematurely.
@@ -46,10 +48,39 @@ export function useNetworkStatus() {
           setIsOffline(true);
         }, OFFLINE_DEBOUNCE_MS);
       }
-    });
+    };
+
+    const removeNetInfoSubscription = NetInfo.addEventListener(handleNetInfoChange);
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (
+        lastAppState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        // App is resuming from background — briefly give it a "clean slate"
+        // to re-verify connectivity before we allow an offline screen to show.
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+          debounceTimerRef.current = null;
+        }
+
+        const state = await NetInfo.fetch();
+        const offline =
+          state.isConnected === false ||
+          (state.isInternetReachable !== null && state.isInternetReachable === false);
+
+        if (!offline) {
+          setIsOffline(false);
+        }
+      }
+      lastAppState.current = nextAppState;
+    };
+
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
 
     return () => {
       removeNetInfoSubscription();
+      appStateSubscription.remove();
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }

@@ -29,6 +29,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -67,6 +68,7 @@ import {
   useInfiniteChatMessages,
 } from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
+import { useChatStore } from '@/src/store/chat.store';
 import { colors, spacing } from '@/src/theme';
 import { getToken } from '@/src/utils/token';
 
@@ -952,6 +954,24 @@ const MessageRow = memo(function MessageRow({
   areThreadMessagesEqual(prev.item, next.item)
 );
 
+const mapPendingUploadToThreadMessage = (upload: any): ThreadMessage => ({
+  id: upload.tempId,
+  clientId: upload.tempId,
+  mine: true,
+  text: upload.caption || '',
+  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+  status: upload.status === 'failed' ? 'failed' : 'sending',
+  messageType: upload.attachment.isImage ? 'image' : 'file',
+  fileUrl: upload.attachment.uri,
+  fileName: upload.attachment.name,
+  raw: {
+    uid: upload.tempId,
+    content: upload.caption || '',
+    message_type: upload.attachment.isImage ? 'image' : 'file',
+    created_at: new Date().toISOString(),
+  } as any,
+});
+
 export default function ChatThreadScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<DashboardStackParamList>>();
   const isFocused = useIsFocused();
@@ -1006,8 +1026,13 @@ export default function ChatThreadScreen() {
   const [forwardModalVisible, setForwardModalVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ThreadMessage | null>(null);
   const [readInfoVisible, setReadInfoVisible] = useState(false);
-  const [pendingAttachment, setPendingAttachment] =
-    useState<PendingAttachment | null>(null);
+  const [pendingAttachments, setPendingAttachments] =
+    useState<PendingAttachment[]>([]);
+  const { pendingUploads, addUpload, processUpload } = useChatStore();
+  const uploadsForThisChat = useMemo(
+    () => Object.values(pendingUploads).filter((u) => u.chatId === chatId),
+    [pendingUploads, chatId]
+  );
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null);
   const [attachmentPopupVisible, setAttachmentPopupVisible] = useState(false);
@@ -1184,7 +1209,7 @@ export default function ChatThreadScreen() {
     setMessages([]);
     setInput('');
     setReplyingTo(null);
-    setPendingAttachment(null);
+    setPendingAttachments([]);
     setEditingMessage(null);
   }, [chatId]);
 
@@ -1212,27 +1237,31 @@ export default function ChatThreadScreen() {
   }, []);
 
   useEffect(() => {
+    const globalOptimistic = uploadsForThisChat.map(mapPendingUploadToThreadMessage);
+
     if (!queryMessages.length) {
-      setMessages((prev) =>
-        prev.filter(
+      setMessages((prev) => {
+        const localOptimistic = prev.filter(
           (message) =>
             message.status === 'sending' || message.status === 'failed'
-        )
-      );
+        );
+        // Combine local text optimistic with global attachment optimistic
+        return [...localOptimistic, ...globalOptimistic].sort(
+          (a, b) => getThreadMessageSortValue(a) - getThreadMessageSortValue(b)
+        );
+      });
       return;
     }
 
     setMessages((prev) => {
       const previousMap = new Map(prev.map((msg) => [msg.id, msg]));
 
-      // 1. Map server messages and mark them as removed from the 'previousMap'
       const mergedFromServer = queryMessages.map((serverMsg) => {
         const localMsg = previousMap.get(serverMsg.id);
         previousMap.delete(serverMsg.id);
 
         if (!localMsg) return serverMsg;
 
-        // Maintain local-only state like 'read' during server sync
         return {
           ...serverMsg,
           clientId: localMsg.clientId,
@@ -1240,17 +1269,16 @@ export default function ChatThreadScreen() {
         };
       });
 
-      // 2. Filter remaining local messages for those that are still 'sending' or 'failed'
-      const optimisticOnly = [...previousMap.values()].filter(
+      const localOptimistic = [...previousMap.values()].filter(
         (msg) => msg.status === 'sending' || msg.status === 'failed'
       );
 
-      // 3. Combine and sort ascending (oldest first, newest last)
-      return [...mergedFromServer, ...optimisticOnly].sort(
+      // Merge server, local text optimistic, and global attachment optimistic
+      return [...mergedFromServer, ...localOptimistic, ...globalOptimistic].sort(
         (a, b) => getThreadMessageSortValue(a) - getThreadMessageSortValue(b)
       );
     });
-  }, [queryMessages]);
+  }, [queryMessages, uploadsForThisChat]);
 
   const latestMessagePage = useMemo(
     () =>
@@ -1635,23 +1663,22 @@ export default function ChatThreadScreen() {
   const handlePickDocument = useCallback(async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        multiple: false,
+        multiple: true,
         copyToCacheDirectory: true,
         type: '*/*',
       });
 
       if (result.canceled || !result.assets?.length) return;
 
-      const file = result.assets[0];
-      const mimeType = file.mimeType || 'application/octet-stream';
-
-      setPendingAttachment({
+      const newAttachments: PendingAttachment[] = result.assets.map((file) => ({
         uri: file.uri,
         name: file.name,
-        mimeType,
+        mimeType: file.mimeType || 'application/octet-stream',
         size: file.size,
-        isImage: false, // Always treat as document if picked via document picker
-      });
+        isImage: false,
+      }));
+
+      setPendingAttachments((prev) => [...prev, ...newAttachments]);
     } catch {
       Alert.alert('Attachment', 'Unable to pick file.');
     }
@@ -1669,21 +1696,25 @@ export default function ChatThreadScreen() {
         mediaTypes: ['images', 'videos'],
         allowsEditing: false,
         quality: 0.8,
+        allowsMultipleSelection: true,
+        selectionLimit: 10,
       });
 
       if (result.canceled || !result.assets?.length) return;
 
-      const asset = result.assets[0];
-      const isVideo = asset.type === 'video' || Boolean(asset.mimeType && asset.mimeType.startsWith('video/'));
-
-      setPendingAttachment({
-        uri: asset.uri,
-        name: asset.fileName || `${isVideo ? 'video' : 'image'}-${Date.now()}${isVideo ? '.mp4' : '.jpg'}`,
-        mimeType: asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg'),
-        size: asset.fileSize,
-        isImage: !isVideo,
-        isVideo,
+      const newAttachments: PendingAttachment[] = result.assets.map((asset) => {
+        const isVideo = asset.type === 'video' || Boolean(asset.mimeType && asset.mimeType.startsWith('video/'));
+        return {
+          uri: asset.uri,
+          name: asset.fileName || `${isVideo ? 'video' : 'image'}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}${isVideo ? '.mp4' : '.jpg'}`,
+          mimeType: asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg'),
+          size: asset.fileSize,
+          isImage: !isVideo,
+          isVideo,
+        };
       });
+
+      setPendingAttachments((prev) => [...prev, ...newAttachments]);
     } catch {
       Alert.alert('Attachment', 'Unable to pick image from gallery.');
     }
@@ -1706,14 +1737,16 @@ export default function ChatThreadScreen() {
       if (result.canceled || !result.assets?.length) return;
 
       const asset = result.assets[0];
-      setPendingAttachment({
+      const newAttachment: PendingAttachment = {
         uri: asset.uri,
         name: asset.fileName || `camera-${Date.now()}.jpg`,
         mimeType: asset.mimeType || 'image/jpeg',
         size: asset.fileSize,
         isImage: true,
         isVideo: false,
-      });
+      };
+
+      setPendingAttachments((prev) => [...prev, newAttachment]);
     } catch {
       Alert.alert('Attachment', 'Unable to use camera.');
     }
@@ -1736,14 +1769,16 @@ export default function ChatThreadScreen() {
       if (result.canceled || !result.assets?.length) return;
 
       const asset = result.assets[0];
-      setPendingAttachment({
+      const newAttachment: PendingAttachment = {
         uri: asset.uri,
         name: asset.fileName || `video-${Date.now()}.mp4`,
         mimeType: asset.mimeType || 'video/mp4',
         size: asset.fileSize,
         isImage: false,
         isVideo: true,
-      });
+      };
+
+      setPendingAttachments((prev) => [...prev, newAttachment]);
     } catch {
       Alert.alert('Attachment', 'Unable to use camera for video.');
     }
@@ -1768,14 +1803,16 @@ export default function ChatThreadScreen() {
       if (result.canceled || !result.assets?.length) return;
 
       const asset = result.assets[0];
-      setPendingAttachment({
+      const newAttachment: PendingAttachment = {
         uri: asset.uri,
         name: asset.fileName || `video-${Date.now()}.mp4`,
         mimeType: asset.mimeType || 'video/mp4',
         size: asset.fileSize,
         isImage: false,
         isVideo: true,
-      });
+      };
+
+      setPendingAttachments((prev) => [...prev, newAttachment]);
     } catch {
       Alert.alert('Attachment', 'Unable to pick video from gallery.');
     }
@@ -1796,163 +1833,45 @@ export default function ChatThreadScreen() {
   }, [handlePickGallery, handlePickCamera, handlePickVideo, handlePickVideoLibrary, handlePickDocument]);
 
   const sendAttachmentMessage = useCallback(async () => {
-    if (!pendingAttachment || sending) return;
+    if (pendingAttachments.length === 0 || sending) return;
 
-    const caption = input.trim();
-    const tempId = `temp-file-${Date.now()}`;
-    const messageType = pendingAttachment.isImage ? 'image' : 'file';
+    const attachmentsToSend = [...pendingAttachments];
+    setPendingAttachments([]);
+    setAttachmentPopupVisible(false);
 
-    const optimistic: ThreadMessage = {
-      clientId: tempId,
-      id: tempId,
-      mine: true,
-      text: caption || (pendingAttachment.isImage ? 'Image' : 'Attachment'),
-      time: formatTime(new Date().toISOString()),
-      status: 'sending',
-      messageType,
-      fileUrl: pendingAttachment.uri,
-      fileName: pendingAttachment.name,
-      replyPreview: replyingTo
-        ? {
-          id: replyingTo.id,
-          senderName: replyingTo.mine ? 'You' : (replyingTo.senderName || name),
-          text: replyComposerText,
-          messageType: replyingTo.messageType,
-        }
-        : null,
-      raw: {
-        uid: tempId,
-        content: caption || (pendingAttachment.isImage ? 'Image' : 'Attachment'),
-        message_type: messageType,
-        file_name: pendingAttachment.name,
-        file_url: pendingAttachment.uri,
-      },
-    };
+    const firstCaption = input.trim();
+    const firstReplyId = replyingTo?.id;
 
-    setMessages((prev) => [...prev, optimistic]);
-    setDownloadProgress((prev) => ({ ...prev, [tempId]: 0 }));
     setInput('');
     setReplyingTo(null);
-    setPendingAttachment(null);
 
-    try {
-      setSending(true);
+    for (let i = 0; i < attachmentsToSend.length; i++) {
+      const att = attachmentsToSend[i];
+      const tempId = `temp-file-${Date.now()}-${i}`;
 
-      const presigned = await generatePresignedUploadUrl({
-        file_name: pendingAttachment.name,
-        folder: 'chat',
+      addUpload({
+        chatId,
+        tempId,
+        attachment: att,
+        caption: i === 0 ? firstCaption : undefined,
+        replyToId: i === 0 ? firstReplyId : undefined,
       });
 
-      if (!presigned?.success) {
-        throw new Error('Unable to generate upload URL');
-      }
-
-      const uploadFile: PresignedUploadFile = {
-        uri: pendingAttachment.uri,
-        name: pendingAttachment.name,
-        type: pendingAttachment.mimeType,
-      };
-      let fallbackTotal =
-        typeof pendingAttachment.size === 'number' &&
-          Number.isFinite(pendingAttachment.size) &&
-          pendingAttachment.size > 0
-          ? pendingAttachment.size
-          : undefined;
-      if (!fallbackTotal) {
-        try {
-          const localInfo = await FileSystem.getInfoAsync(pendingAttachment.uri);
-          const size = (localInfo as { size?: unknown })?.size;
-          if (typeof size === 'number' && Number.isFinite(size) && size > 0) {
-            fallbackTotal = size;
-          }
-        } catch {
-          fallbackTotal = undefined;
-        }
-      }
-
-      await uploadFileToPresignedPost(presigned, uploadFile, (event) => {
-        setDownloadProgress((prev) => {
-          const previous = prev[tempId];
-          const progressValue = getUploadProgressValue(event, {
-            fallbackTotal,
-            previous: typeof previous === 'number' ? previous : undefined,
-          });
-          return { ...prev, [tempId]: progressValue };
-        });
-      });
-
-      const uploadedUrl = getUploadedFileUrl(presigned);
-      if (!uploadedUrl) {
-        throw new Error('Uploaded URL missing');
-      }
-
-      const payload: Record<string, unknown> = {
-        content:
-          caption ||
-          (pendingAttachment.isImage ? 'Image attachment' : 'File attachment'),
-        message_type: messageType,
-        file_url: uploadedUrl,
-        file: uploadedUrl,
-        attachment_url: uploadedUrl,
-        file_name: pendingAttachment.name,
-        original_filename: pendingAttachment.name,
-        s3_key: presigned.s3_key,
-        content_type: pendingAttachment.mimeType,
-      };
-
-      if (optimistic.replyPreview?.id) {
-        payload.reply_to = optimistic.replyPreview.id;
-      }
-
-      const response = await createMessage(chatId, payload);
-
-      const confirmed = response?.message as ApiMessage | undefined;
-
-      if (confirmed?.uid) {
-        syncMessageToCache(confirmed);
-        upsertServerMessage(confirmed, { tempId });
-      } else {
-        setMessages((prev) =>
-          prev.map((message) =>
-            message.id === tempId
-              ? {
-                ...message,
-                status: 'delivered',
-                fileUrl: uploadedUrl,
-              }
-              : message
-          )
-        );
-      }
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ??
-        err?.response?.data?.message ??
-        err?.message ??
-        'Failed to send attachment';
-
-      setMessages((prev) =>
-        prev.map((item) =>
-          item.id === tempId ? { ...item, status: 'failed' } : item
-        )
-      );
-      Alert.alert('Attachment failed', message);
-    } finally {
-      setSending(false);
-      setDownloadProgress((prev) => {
-        const next = { ...prev };
-        delete next[tempId];
-        return next;
+      void processUpload(tempId, {
+        onSuccess: (confirmed) => {
+          syncMessageToCache(confirmed);
+          upsertServerMessage(confirmed, { tempId });
+        },
       });
     }
   }, [
-    chatId,
-    input,
-    name,
-    pendingAttachment,
-    replyComposerText,
-    replyingTo,
+    pendingAttachments,
     sending,
+    input,
+    replyingTo,
+    addUpload,
+    chatId,
+    processUpload,
     syncMessageToCache,
     upsertServerMessage,
   ]);
@@ -2388,7 +2307,7 @@ export default function ChatThreadScreen() {
     setEditingMessage(selectedMessage);
     setInput(selectedMessage.text || '');
     setReplyingTo(null);
-    setPendingAttachment(null);
+    setPendingAttachments([]);
     setMessageMenuVisible(false);
     setSelectedMessage(null);
   }, [selectedMessage]);
@@ -2486,7 +2405,7 @@ export default function ChatThreadScreen() {
       void handleSaveEditedMessage();
       return;
     }
-    if (pendingAttachment) {
+    if (pendingAttachments.length > 0) {
       void sendAttachmentMessage();
       return;
     }
@@ -2494,7 +2413,7 @@ export default function ChatThreadScreen() {
   }, [
     editingMessage,
     handleSaveEditedMessage,
-    pendingAttachment,
+    pendingAttachments,
     sendAttachmentMessage,
     sendTextMessage,
   ]);
@@ -2545,14 +2464,12 @@ export default function ChatThreadScreen() {
 
     const idProgress = downloadProgress[item.id];
     const clientProgress = item.clientId ? downloadProgress[item.clientId] : undefined;
-    const progress = idProgress ?? clientProgress;
+    const progress = idProgress ?? clientProgress ?? (item as any).progress;
 
     let progressDirection: 'upload' | 'download' | undefined;
-    if (idProgress !== undefined) {
+    if (progress !== undefined) {
       const isTempId = item.id.startsWith('temp-');
       progressDirection = isTempId || item.status === 'sending' ? 'upload' : 'download';
-    } else if (clientProgress !== undefined) {
-      progressDirection = 'upload';
     }
 
     return (
@@ -2603,7 +2520,7 @@ export default function ChatThreadScreen() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const isMicButton = !editingMessage && input.trim() === '' && !pendingAttachment;
+  const isMicButton = !editingMessage && input.trim() === '' && pendingAttachments.length === 0;
   const canEditSelectedMessage = isEditableMessage(selectedMessage);
 
   return (
@@ -2930,34 +2847,39 @@ export default function ChatThreadScreen() {
               </View>
             ) : null}
 
-            {pendingAttachment ? (
-              <View style={styles.pendingAttachmentBar}>
-                <Ionicons
-                  name={
-                    pendingAttachment.isImage
-                      ? 'image-outline'
-                      : pendingAttachment.isVideo
-                        ? 'videocam-outline'
-                        : 'document-outline'
-                  }
-                  size={15}
-                  color={colors.textSecondary}
-                />
-                <AppText
-                  variant="caption"
-                  color={colors.textSecondary}
-                  numberOfLines={1}
-                  style={styles.pendingAttachmentText}
+            {pendingAttachments.length > 0 ? (
+              <View style={styles.pendingAttachmentsContainer}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.pendingAttachmentsList}
                 >
-                  {pendingAttachment.name}
-                </AppText>
-                <Pressable onPress={() => setPendingAttachment(null)}>
-                  <Ionicons
-                    name="close"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
+                  {pendingAttachments.map((att, index) => (
+                    <View key={`${att.uri}-${index}`} style={styles.pendingAttachmentItem}>
+                      {att.isImage ? (
+                        <ExpoImage
+                          source={{ uri: att.uri }}
+                          style={styles.pendingAttachmentPreview}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View style={styles.pendingAttachmentIconWrap}>
+                          <Ionicons
+                            name={att.isVideo ? 'videocam-outline' : 'document-outline'}
+                            size={20}
+                            color={colors.textSecondary}
+                          />
+                        </View>
+                      )}
+                      <Pressable
+                        style={styles.removeAttachmentButton}
+                        onPress={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== index))}
+                      >
+                        <Ionicons name="close-circle" size={18} color={colors.danger} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
               </View>
             ) : null}
 
@@ -2968,7 +2890,7 @@ export default function ChatThreadScreen() {
                 placeholder={
                   editingMessage
                     ? 'Edit message'
-                    : pendingAttachment
+                    : pendingAttachments.length > 0
                       ? 'Add a caption (optional)'
                       : 'Type a message'
                 }
@@ -3324,22 +3246,42 @@ const styles = StyleSheet.create({
   replyingTextWrap: {
     flex: 1,
   },
-  pendingAttachmentBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: spacing.sm,
+  pendingAttachmentsContainer: {
     paddingVertical: spacing.sm,
-    marginBottom: spacing.xs,
-    gap: spacing.sm,
     backgroundColor: colors.surface,
   },
-  pendingAttachmentText: {
-    flex: 1,
-    fontWeight: '500',
-    fontSize: 13,
+  pendingAttachmentsList: {
+    paddingHorizontal: spacing.md,
+    paddingTop: 8,
+    gap: spacing.sm,
+  },
+  pendingAttachmentItem: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.surfaceAlt,
+    position: 'relative',
+    marginRight: spacing.sm,
+    overflow: 'visible',
+  },
+  pendingAttachmentPreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  pendingAttachmentIconWrap: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeAttachmentButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    zIndex: 1,
   },
   sendButton: {
     width: 44,
