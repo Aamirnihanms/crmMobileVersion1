@@ -125,28 +125,7 @@ export default function StudentsListScreen() {
     />
   ), [navigation]);
 
-  if (isLoading) return <AppLoader />;
 
-  if (isError) {
-    const errorDetail = (error as any)?.response?.data?.detail;
-    const errorMessage = (error as any)?.response?.data?.error;
-    const fallbackMessage = (error as Error)?.message || 'Failed to load students';
-
-    // Display detail if available, otherwise specific error, otherwise generic message
-    const displayMessage = errorDetail || errorMessage || fallbackMessage;
-
-    return (
-      <View style={styles.center}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
-        <AppText color={colors.danger} style={styles.errorText}>
-          {displayMessage}
-        </AppText>
-        <Pressable onPress={refetch} style={styles.retryBtn}>
-          <AppText color={colors.primary}>Try Again</AppText>
-        </Pressable>
-      </View>
-    );
-  }
 
   const students =
     data?.pages.flatMap((page) => page.students) ?? [];
@@ -184,7 +163,21 @@ export default function StudentsListScreen() {
         </View>
       </View>
 
-      {!students.length && !isLoading ? (
+      {isLoading ? (
+        <View style={styles.center}>
+          <AppLoader />
+        </View>
+      ) : isError ? (
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+          <AppText color={colors.danger} style={styles.errorText}>
+            {((error as any)?.response?.data?.detail) || ((error as any)?.response?.data?.error) || ((error as Error)?.message || 'Failed to load students')}
+          </AppText>
+          <Pressable onPress={refetch} style={styles.retryBtn}>
+            <AppText color={colors.primary}>Try Again</AppText>
+          </Pressable>
+        </View>
+      ) : !students.length ? (
         <View style={styles.center}>
           <View style={styles.emptyIconCircle}>
             <Ionicons name="school-outline" size={40} color={colors.primary} />

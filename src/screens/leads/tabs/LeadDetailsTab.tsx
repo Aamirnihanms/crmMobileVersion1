@@ -24,6 +24,17 @@ export default function LeadDetailsTab({ id }: { id: string }) {
     </View>
   );
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '—';
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -40,7 +51,28 @@ export default function LeadDetailsTab({ id }: { id: string }) {
       </AppCard>
 
       <AppCard style={styles.card}>
-        <AppText variant="subtitle" style={styles.sectionTitle}>Assignment</AppText>
+        <AppText variant="subtitle" style={styles.sectionTitle}>Guardian Info</AppText>
+        <View style={styles.grid}>
+          <InfoItem icon="person-circle-outline" label="Parent Name" value={data.parent_name} />
+          <InfoItem icon="call-outline" label="Parent Phone" value={data.parent_phone_number} />
+        </View>
+      </AppCard>
+
+      <AppCard style={styles.card}>
+        <AppText variant="subtitle" style={styles.sectionTitle}>Academic Details</AppText>
+        <View style={styles.grid}>
+          <InfoItem 
+            icon="school-outline" 
+            label="Qualification" 
+            value={data.qualification_details?.name || data.education_level_details?.name} 
+          />
+          <InfoItem icon="business-outline" label="College/Institution" value={data.college} />
+          <InfoItem icon="calendar-outline" label="Pass Out Year" value={data.pass_out_year} />
+        </View>
+      </AppCard>
+
+      <AppCard style={styles.card}>
+        <AppText variant="subtitle" style={styles.sectionTitle}>Assignment & Meta</AppText>
         <View style={styles.grid}>
           <InfoItem
             icon="person-outline"
@@ -48,23 +80,41 @@ export default function LeadDetailsTab({ id }: { id: string }) {
             value={data.counselor_details?.full_name}
           />
           <InfoItem
-            icon="business-outline"
+            icon="share-social-outline"
             label="Source"
             value={data.lead_source_details?.label}
+          />
+          <InfoItem
+            icon="time-outline"
+            label="Created At"
+            value={formatDate(data.created_at)}
           />
         </View>
       </AppCard>
 
-      {data.course_details && (
-        <AppCard style={styles.card}>
-          <AppText variant="subtitle" style={styles.sectionTitle}>Course Interest</AppText>
+      <AppCard style={styles.card}>
+        <AppText variant="subtitle" style={styles.sectionTitle}>Course Interest</AppText>
+        <View style={styles.grid}>
           <InfoItem
             icon="book-outline"
             label="Course"
-            value={data.course_details.course_name}
+            value={data.course_details?.course_name}
           />
-        </AppCard>
-      )}
+        </View>
+      </AppCard>
+
+      <AppCard style={styles.card}>
+        <AppText variant="subtitle" style={styles.sectionTitle}>Location & Address</AppText>
+        <View style={styles.grid}>
+          <InfoItem 
+            icon="location-outline" 
+            label="Preferred Location" 
+            value={data.preferred_location_details?.name} 
+          />
+          <InfoItem icon="map-outline" label="City" value={data.city} />
+          <InfoItem icon="home-outline" label="Address" value={data.address} />
+        </View>
+      </AppCard>
     </ScrollView>
   );
 }

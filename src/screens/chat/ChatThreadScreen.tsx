@@ -1028,6 +1028,7 @@ export default function ChatThreadScreen() {
   const [readInfoVisible, setReadInfoVisible] = useState(false);
   const [pendingAttachments, setPendingAttachments] =
     useState<PendingAttachment[]>([]);
+  const [isPicking, setIsPicking] = useState(false);
   const { pendingUploads, addUpload, processUpload } = useChatStore();
   const uploadsForThisChat = useMemo(
     () => Object.values(pendingUploads).filter((u) => u.chatId === chatId),
@@ -1238,12 +1239,14 @@ export default function ChatThreadScreen() {
 
   useEffect(() => {
     const globalOptimistic = uploadsForThisChat.map(mapPendingUploadToThreadMessage);
+    const globalOptimisticIds = new Set(globalOptimistic.map((m) => m.id));
 
     if (!queryMessages.length) {
       setMessages((prev) => {
         const localOptimistic = prev.filter(
           (message) =>
-            message.status === 'sending' || message.status === 'failed'
+            (message.status === 'sending' || message.status === 'failed') &&
+            !globalOptimisticIds.has(message.id)
         );
         // Combine local text optimistic with global attachment optimistic
         return [...localOptimistic, ...globalOptimistic].sort(
@@ -1270,7 +1273,9 @@ export default function ChatThreadScreen() {
       });
 
       const localOptimistic = [...previousMap.values()].filter(
-        (msg) => msg.status === 'sending' || msg.status === 'failed'
+        (msg) =>
+          (msg.status === 'sending' || msg.status === 'failed') &&
+          !globalOptimisticIds.has(msg.id)
       );
 
       // Merge server, local text optimistic, and global attachment optimistic
@@ -1661,6 +1666,7 @@ export default function ChatThreadScreen() {
   ]);
 
   const handlePickDocument = useCallback(async () => {
+    setIsPicking(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         multiple: true,
@@ -1681,10 +1687,13 @@ export default function ChatThreadScreen() {
       setPendingAttachments((prev) => [...prev, ...newAttachments]);
     } catch {
       Alert.alert('Attachment', 'Unable to pick file.');
+    } finally {
+      setIsPicking(false);
     }
   }, []);
 
   const handlePickGallery = useCallback(async () => {
+    setIsPicking(true);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -1717,10 +1726,13 @@ export default function ChatThreadScreen() {
       setPendingAttachments((prev) => [...prev, ...newAttachments]);
     } catch {
       Alert.alert('Attachment', 'Unable to pick image from gallery.');
+    } finally {
+      setIsPicking(false);
     }
   }, []);
 
   const handlePickCamera = useCallback(async () => {
+    setIsPicking(true);
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -1749,10 +1761,13 @@ export default function ChatThreadScreen() {
       setPendingAttachments((prev) => [...prev, newAttachment]);
     } catch {
       Alert.alert('Attachment', 'Unable to use camera.');
+    } finally {
+      setIsPicking(false);
     }
   }, []);
 
   const handlePickVideo = useCallback(async () => {
+    setIsPicking(true);
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -1781,12 +1796,15 @@ export default function ChatThreadScreen() {
       setPendingAttachments((prev) => [...prev, newAttachment]);
     } catch {
       Alert.alert('Attachment', 'Unable to use camera for video.');
+    } finally {
+      setIsPicking(false);
     }
   }, []);
 
 
 
   const handlePickVideoLibrary = useCallback(async () => {
+    setIsPicking(true);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -1815,10 +1833,14 @@ export default function ChatThreadScreen() {
       setPendingAttachments((prev) => [...prev, newAttachment]);
     } catch {
       Alert.alert('Attachment', 'Unable to pick video from gallery.');
+    } finally {
+      setIsPicking(false);
     }
   }, []);
 
   const handleSelectAttachmentAction = useCallback((type: AttachmentActionType) => {
+    setAttachmentPopupVisible(false);
+    setCameraPopupVisible(false);
     if (type === 'gallery') {
       void handlePickGallery();
     } else if (type === 'camera') {
@@ -2847,7 +2869,7 @@ export default function ChatThreadScreen() {
               </View>
             ) : null}
 
-            {pendingAttachments.length > 0 ? (
+            {(pendingAttachments.length > 0 || isPicking) ? (
               <View style={styles.pendingAttachmentsContainer}>
                 <ScrollView
                   horizontal
@@ -2879,6 +2901,11 @@ export default function ChatThreadScreen() {
                       </Pressable>
                     </View>
                   ))}
+                  {isPicking && (
+                    <View style={styles.pickingLoaderItem}>
+                      <ActivityIndicator color={colors.primary} size="small" />
+                    </View>
+                  )}
                 </ScrollView>
               </View>
             ) : null}
@@ -3263,6 +3290,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: spacing.sm,
     overflow: 'visible',
+  },
+  pickingLoaderItem: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    marginRight: spacing.sm,
   },
   pendingAttachmentPreview: {
     width: '100%',

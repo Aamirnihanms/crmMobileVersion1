@@ -9,5 +9,11 @@ export const validateLead = (form: any, isEditMode: boolean = false) => {
   if (!form.lead_status) return 'Select lead status';
   if (!form.lead_source) return 'Select lead source';
 
+  const fullPhone = `${form.phone_country_code?.code || ''}${form.phone_number}`;
+  const fullParentPhone = `${form.parent_phone_country_code?.code || ''}${form.parent_phone_number}`;
+  if (form.parent_phone_number && fullPhone === fullParentPhone) {
+    return 'Lead phone number and parent phone number must be different';
+  }
+
   return null;
 };

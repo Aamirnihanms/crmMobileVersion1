@@ -1,6 +1,6 @@
 import { colors, spacing } from '@/src/theme';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import AppCard from './../common/AppCard';
 import AppInput from './../common/AppInput';
 import AppText from './../common/AppText';
@@ -145,8 +145,30 @@ export default function LeadBasicInfoSection({
           </AppText>
         )}
 
+        <View style={styles.labelRow}>
+          <AppText
+            variant="caption"
+            color={colors.textSecondary}
+            style={[styles.label, { marginBottom: 0 }]}
+          >
+            WhatsApp Number
+          </AppText>
+          <Pressable
+            onPress={() => {
+              setForm({
+                ...form,
+                whatsapp_number: form.phone_number,
+                whatsapp_country_code: form.phone_country_code,
+              });
+            }}
+            hitSlop={8}
+          >
+            <AppText variant="caption" color={colors.primary} style={styles.sameAsText}>
+              Same as Phone
+            </AppText>
+          </Pressable>
+        </View>
         <PhoneInputWithCode
-          label="WhatsApp Number"
           placeholder="Same as phone or different"
           value={form.whatsapp_number}
           countryCode={form.whatsapp_country_code}
@@ -195,5 +217,21 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: spacing.lg,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    paddingRight: 4,
+  },
+  label: {
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  sameAsText: {
+    fontWeight: '700',
+    fontSize: 12,
+    textDecorationLine: 'underline',
   },
 });

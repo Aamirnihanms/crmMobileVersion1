@@ -37,8 +37,21 @@ export default function LeadContactSection({
           onChangeCountryCode={(c: CountryCode) =>
             setForm({ ...form, parent_phone_country_code: c })
           }
-          containerStyle={styles.inputContainer}
+          containerStyle={
+            form.parent_phone_number &&
+            `${form.phone_country_code?.code || ''}${form.phone_number}` ===
+              `${form.parent_phone_country_code?.code || ''}${form.parent_phone_number}`
+              ? { marginBottom: spacing.xs }
+              : styles.inputContainer
+          }
         />
+        {form.parent_phone_number &&
+          `${form.phone_country_code?.code || ''}${form.phone_number}` ===
+            `${form.parent_phone_country_code?.code || ''}${form.parent_phone_number}` && (
+            <AppText variant="caption" color={colors.danger} style={{ marginBottom: spacing.lg, marginLeft: 4 }}>
+              Lead phone and parent phone must be different
+            </AppText>
+          )}
 
         <AppInput
           label="City"

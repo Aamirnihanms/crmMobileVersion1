@@ -173,6 +173,15 @@ export type LeadDetail = {
   counselor_details: CounselorDetails | null;
   course_details: CourseDetails | null;
 
+  parent_name?: string | null;
+  parent_phone_number?: string | null;
+  qualification_details?: { id: number; name: string } | null;
+  education_level_details?: { id: number; name: string } | null;
+  college?: string | null;
+  pass_out_year?: string | null;
+  preferred_location_details?: { id: number; name: string } | null;
+  address?: string | null;
+
   followup_count: number;
   pending_followups: number;
   completed_followups: number;
@@ -193,6 +202,8 @@ export type LeadsFilters = {
   qualification?: string;
   lead_status?: string;
   lead_source?: string;
+  date_from?: string;
+  date_to?: string;
 };
 
 

@@ -18,6 +18,7 @@ import {
   fetchQualificationsPage,
 } from '@/src/api/masters/paginatedMasters.api';
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
+import AppDatePicker from '@/src/components/common/AppDatePicker';
 import AppText from '@/src/components/common/AppText';
 
 import { colors, spacing } from '@/src/theme';
@@ -152,6 +153,22 @@ export default function LeadsFilterModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <View style={{ flexDirection: 'row', gap: spacing.md }}>
+              <AppDatePicker
+                label="Created From"
+                value={localFilters.date_from || ''}
+                onChange={(date) => updateLocalFilter('date_from', date)}
+                containerStyle={{ flex: 1 }}
+              />
+              <AppDatePicker
+                label="Created To"
+                value={localFilters.date_to || ''}
+                onChange={(date) => updateLocalFilter('date_to', date)}
+                containerStyle={{ flex: 1 }}
+                minimumDate={localFilters.date_from ? new Date(localFilters.date_from) : undefined}
+              />
+            </View>
+
             <AppMultiSelect
               label="Course"
               value={localFilters.course ? localFilters.course.split(',') : []}

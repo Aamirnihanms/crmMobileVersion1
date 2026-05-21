@@ -1,4 +1,5 @@
 import AppButton from '@/src/components/common/AppButton';
+import AppCard from '@/src/components/common/AppCard';
 import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
 import ScreenShell from '@/src/components/common/ScreenShell';
@@ -16,6 +17,10 @@ export default function ChangePasswordScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
 
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+
     const { mutate: changePassword, isPending } = useChangePassword();
 
     const handleUpdate = () => {
@@ -31,8 +36,14 @@ export default function ChangePasswordScreen() {
             return;
         }
 
-        if (newPassword.length < 6) {
-            setError('Password must be at least 6 characters long');
+        if (newPassword.length < 8) {
+            setError('Password must be at least 8 characters long');
+            return;
+        }
+
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            setError('Password must contain at least one uppercase letter, one lowercase letter, and one digit');
             return;
         }
 
@@ -58,7 +69,6 @@ export default function ChangePasswordScreen() {
                         if (errors.non_field_errors && Array.isArray(errors.non_field_errors)) {
                             message = errors.non_field_errors[0];
                         } else {
-                            // Collect other field errors
                             const fieldErrors = Object.keys(errors)
                                 .map(key => `${key}: ${errors[key].join(', ')}`)
                                 .join('\n');
@@ -78,55 +88,107 @@ export default function ChangePasswordScreen() {
 
     return (
         <ScreenShell>
-            <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent} 
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.header}>
-                    <AppText variant="h2" style={styles.title}>Secure Your Account</AppText>
+                    <View style={styles.iconCircle}>
+                        <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
+                    </View>
+                    <AppText variant="h2" style={styles.title}>Update Password</AppText>
                     <AppText color={colors.textSecondary} style={styles.subtitle}>
-                        Change your password regularly to keep your account safe.
+                        Create a strong, unique password to keep your account secure and protected.
                     </AppText>
                 </View>
 
                 {error && (
                     <View style={styles.errorBanner}>
-                        <Ionicons name="alert-circle" size={20} color={colors.danger} />
-                        <AppText style={styles.errorText} color={colors.danger}>{error}</AppText>
-                        <Pressable onPress={() => setError(null)}>
+                        <View style={styles.errorBannerContent}>
+                            <Ionicons name="alert-circle" size={22} color={colors.danger} />
+                            <AppText style={styles.errorText} color={colors.danger}>{error}</AppText>
+                        </View>
+                        <Pressable onPress={() => setError(null)} hitSlop={10}>
                             <Ionicons name="close" size={20} color={colors.textMuted} />
                         </Pressable>
                     </View>
                 )}
 
-                <View style={styles.form}>
+                <AppCard style={styles.card}>
                     <AppInput
                         label="Current Password"
-                        placeholder="Enter current password"
-                        secureTextEntry
+                        placeholder="••••••••"
+                        secureTextEntry={!showCurrent}
                         value={currentPassword}
                         onChangeText={setCurrentPassword}
-                    />
-                    <View style={{ height: spacing.xs }} />
-                    <AppInput
-                        label="New Password"
-                        placeholder="Enter new password"
-                        secureTextEntry
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                    />
-                    <View style={{ height: spacing.xs }} />
-                    <AppInput
-                        label="Confirm New Password"
-                        placeholder="Confirm new password"
-                        secureTextEntry
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
+                        leftElement={
+                            <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
+                        }
+                        rightElement={
+                            <Pressable onPress={() => setShowCurrent(!showCurrent)} hitSlop={10}>
+                                <Ionicons 
+                                    name={showCurrent ? "eye-off-outline" : "eye-outline"} 
+                                    size={20} 
+                                    color={colors.textMuted} 
+                                />
+                            </Pressable>
+                        }
                     />
 
+                    <AppInput
+                        label="New Password"
+                        placeholder="••••••••"
+                        secureTextEntry={!showNew}
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        leftElement={
+                            <Ionicons name="key-outline" size={20} color={colors.textMuted} />
+                        }
+                        rightElement={
+                            <Pressable onPress={() => setShowNew(!showNew)} hitSlop={10}>
+                                <Ionicons 
+                                    name={showNew ? "eye-off-outline" : "eye-outline"} 
+                                    size={20} 
+                                    color={colors.textMuted} 
+                                />
+                            </Pressable>
+                        }
+                    />
+
+                    <AppInput
+                        label="Confirm New Password"
+                        placeholder="••••••••"
+                        secureTextEntry={!showConfirm}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        containerStyle={{ marginBottom: 0 }}
+                        leftElement={
+                            <Ionicons name="checkmark-circle-outline" size={20} color={colors.textMuted} />
+                        }
+                        rightElement={
+                            <Pressable onPress={() => setShowConfirm(!showConfirm)} hitSlop={10}>
+                                <Ionicons 
+                                    name={showConfirm ? "eye-off-outline" : "eye-outline"} 
+                                    size={20} 
+                                    color={colors.textMuted} 
+                                />
+                            </Pressable>
+                        }
+                    />
+                </AppCard>
+
+                <View style={styles.footer}>
                     <AppButton
-                        title="Update Password"
+                        title="Save New Password"
                         onPress={handleUpdate}
                         loading={isPending}
                         style={styles.button}
                     />
+                    <AppText variant="caption" color={colors.textMuted} style={styles.securityHint}>
+                        <Ionicons name="information-circle-outline" size={12} color={colors.textMuted} />
+                        {" "}Must be 8+ characters with uppercase, lowercase, and a digit.
+                    </AppText>
                 </View>
             </ScrollView>
         </ScreenShell>
@@ -134,40 +196,72 @@ export default function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        paddingHorizontal: spacing.xl,
+    scrollContent: {
+        paddingHorizontal: spacing.lg,
         paddingTop: spacing.xl,
+        paddingBottom: spacing.xxl,
     },
     header: {
-        marginBottom: spacing.xxl,
+        alignItems: 'center',
+        marginBottom: spacing.xl,
+        paddingHorizontal: spacing.md,
+    },
+    iconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: colors.primary + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: spacing.lg,
     },
     title: {
         fontWeight: '800',
         marginBottom: spacing.xs,
+        textAlign: 'center',
     },
     subtitle: {
+        textAlign: 'center',
         lineHeight: 20,
-    },
-    form: {
-        // gap: spacing.sm,
+        fontSize: 14,
     },
     errorBanner: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         padding: spacing.md,
-        backgroundColor: colors.danger + '15',
-        borderRadius: 12,
-        marginBottom: spacing.lg,
+        backgroundColor: colors.danger + '10',
+        borderRadius: 16,
+        marginBottom: spacing.xl,
         borderWidth: 1,
-        borderColor: colors.danger + '30',
+        borderColor: colors.danger + '20',
+    },
+    errorBannerContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     errorText: {
         flex: 1,
         marginLeft: spacing.sm,
         fontSize: 13,
-        fontWeight: '500',
+        fontWeight: '600',
+    },
+    card: {
+        padding: spacing.xl,
+        marginBottom: spacing.xl,
+        borderWidth: 1,
+        borderColor: colors.border + '50',
+    },
+    footer: {
+        marginTop: spacing.sm,
     },
     button: {
-        marginTop: spacing.xl,
+        borderRadius: 14,
+        height: 52,
+    },
+    securityHint: {
+        textAlign: 'center',
+        marginTop: spacing.lg,
+        fontSize: 12,
     },
 });
