@@ -15,6 +15,7 @@ import {
   fetchBatchesPage,
 } from '@/src/api/masters/paginatedMasters.api';
 import type { PaymentFilters } from '@/src/api/payments.api';
+import AppDatePicker from '@/src/components/common/AppDatePicker';
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
@@ -32,6 +33,13 @@ const PAYMENT_STATUS_OPTIONS = [
     { label: 'Completed', value: 'completed' },
     { label: 'Pending', value: 'pending' },
     { label: 'Failed', value: 'failed' },
+];
+
+const PAYMENT_PERIOD_OPTIONS = [
+    { label: 'Today', value: 'today' },
+    { label: 'Yesterday', value: 'yesterday' },
+    { label: 'This Week', value: 'week' },
+    { label: 'This Month', value: 'month' },
 ];
 
 export default function PaymentsFilterModal({
@@ -115,7 +123,50 @@ export default function PaymentsFilterModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            
+            <View style={{ flexDirection: 'row', gap: spacing.md }}>
+              <AppDatePicker
+                label="Date From"
+                value={localFilters.date_from || ''}
+                onChange={(date) => {
+                  updateLocalFilter('date_from', date);
+                  updateLocalFilter('period', null);
+                  updateLocalFilter('time_period', null);
+                }}
+                containerStyle={{ flex: 1 }}
+              />
+              <AppDatePicker
+                label="Date To"
+                value={localFilters.date_to || ''}
+                onChange={(date) => {
+                  updateLocalFilter('date_to', date);
+                  updateLocalFilter('period', null);
+                  updateLocalFilter('time_period', null);
+                }}
+                containerStyle={{ flex: 1 }}
+                minimumDate={localFilters.date_from ? new Date(localFilters.date_from) : undefined}
+              />
+            </View>
+
+            <AppSelect
+              label="Time Period"
+              value={localFilters.time_period === 'yesterday' ? 'yesterday' : (localFilters.period || undefined)}
+              options={PAYMENT_PERIOD_OPTIONS}
+              onSelect={(v) => {
+                const val = v ? String(v) : null;
+                if (val === 'yesterday') {
+                  updateLocalFilter('time_period', 'yesterday');
+                  updateLocalFilter('period', null);
+                } else {
+                  updateLocalFilter('period', val);
+                  updateLocalFilter('time_period', null);
+                }
+                if (val) {
+                  updateLocalFilter('date_from', null);
+                  updateLocalFilter('date_to', null);
+                }
+              }}
+            />
+
             <AppSelect
               label="Course"
               value={localFilters.course || undefined}

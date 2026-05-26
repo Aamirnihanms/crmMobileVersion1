@@ -27,6 +27,7 @@ type ChatListInfiniteOptions = {
   chatType?: ChatType;
   pageSize?: number;
   enabled?: boolean;
+  category?: 'student' | 'users' | 'batch' | 'group' | 'all';
 };
 
 export const useInfiniteChatList = ({
@@ -36,6 +37,7 @@ export const useInfiniteChatList = ({
   chatType,
   pageSize = 30,
   enabled = true,
+  category,
 }: ChatListInfiniteOptions = {}) => {
   return useInfiniteQuery({
     queryKey: [
@@ -45,6 +47,7 @@ export const useInfiniteChatList = ({
       Boolean(unreadOnly),
       chatType || 'all',
       pageSize,
+      category || 'all',
     ],
     initialPageParam: 1,
     enabled,
@@ -57,6 +60,9 @@ export const useInfiniteChatList = ({
       if (archivedOnly) params.archived_only = true;
       if (unreadOnly) params.unread_only = true;
       if (chatType) params.chat_type = chatType;
+      if (category && category !== 'all') {
+        params.category = category;
+      }
 
       return getChatList(params);
     },

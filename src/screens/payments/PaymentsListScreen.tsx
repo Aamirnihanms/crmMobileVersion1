@@ -17,11 +17,11 @@ import AppText from '@/src/components/common/AppText';
 import { useInfinitePaymentTransactions } from '@/src/queries/payments.query';
 import { colors, spacing } from '@/src/theme';
 
+import PaymentsFilterModal from '@/src/components/payments/PaymentsFilterModal';
+import { usePaymentsFilters } from '@/src/hooks/usePaymentsFilters';
 import { PaymentsStackParamList } from '@/src/navigation/PaymentsStack';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { usePaymentsFilters } from '@/src/hooks/usePaymentsFilters';
-import PaymentsFilterModal from '@/src/components/payments/PaymentsFilterModal';
 
 function PaymentItem({
     transaction,
@@ -89,21 +89,6 @@ export default function PaymentsListScreen() {
     const { filters, setAllFilters } = usePaymentsFilters();
     const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
-    useEffect(() => {
-        if (isFocused) {
-            void refetch();
-        }
-    }, [isFocused, refetch]);
-
-    const onRefresh = useCallback(async () => {
-        try {
-            setIsManualRefreshing(true);
-            await refetch();
-        } finally {
-            setIsManualRefreshing(false);
-        }
-    }, [refetch]);
-
     const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
     useEffect(() => {
@@ -125,6 +110,21 @@ export default function PaymentsListScreen() {
         isRefetching,
     } = useInfinitePaymentTransactions(debouncedSearch, filters);
 
+    useEffect(() => {
+        if (isFocused) {
+            void refetch();
+        }
+    }, [isFocused, refetch]);
+
+    const onRefresh = useCallback(async () => {
+        try {
+            setIsManualRefreshing(true);
+            await refetch();
+        } finally {
+            setIsManualRefreshing(false);
+        }
+    }, [refetch]);
+
     const transactions = data?.pages.flatMap((page) => page.results) ?? [];
     const totalCount = data?.pages[0]?.access_control?.total_accessible_transactions ?? 0;
 
@@ -135,10 +135,6 @@ export default function PaymentsListScreen() {
             onPress={() => navigation.navigate('PaymentDetails', { uid: item.uid })}
         />
     ), [transactions.length, navigation]);
-
-    if (isLoading && !isRefetching) {
-        return <AppLoader />;
-    }
 
     return (
         <View style={styles.screen}>
@@ -174,72 +170,88 @@ export default function PaymentsListScreen() {
                 </View>
             </View>
 
-            <FlashList
-                data={transactions}
-                keyExtractor={(item) => item.uid}
-                renderItem={renderItem}
-                onEndReached={() => {
-                    if (hasNextPage && !isFetchingNextPage) {
-                        fetchNextPage();
-                    }
-                }}
-                onEndReachedThreshold={0.5}
-                ListHeaderComponent={
-                    <View style={styles.listHeader}>
-                        <AppCard style={styles.summaryCard}>
-                            <LinearGradient
-                                colors={[colors.gradientStart, colors.gradientEnd]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.summaryGradient}
-                            />
-                            <View style={styles.summaryContent}>
-                                <View style={styles.summaryRow}>
-                                    <View>
-                                        <AppText variant="caption" color="rgba(255,255,255,0.7)" style={{ fontWeight: '600' }}>
-                                            Total Transactions
-                                        </AppText>
-                                        <AppText variant="h1" color={colors.surface} style={{ fontWeight: '800', fontSize: 28 }}>
-                                            {totalCount}
-                                        </AppText>
-                                    </View>
-                                    <View style={styles.summaryIcon}>
-                                        <Ionicons name="receipt" size={24} color={colors.surface} />
+            {isError ? (
+                <View style={styles.center}>
+                    <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+                    <AppText color={colors.danger} style={{ marginTop: spacing.md, textAlign: 'center', paddingHorizontal: spacing.xl, fontWeight: '600' }}>
+                        {((error as any)?.response?.data?.detail) || ((error as any)?.response?.data?.error) || ((error as Error)?.message || 'Failed to load transactions')}
+                    </AppText>
+                    <Pressable onPress={() => refetch()} style={{ marginTop: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: 12, backgroundColor: colors.primaryLight + '15' }}>
+                        <AppText color={colors.primary}>Try Again</AppText>
+                    </Pressable>
+                </View>
+            ) : (
+                <FlashList
+                    data={transactions}
+                    keyExtractor={(item) => item.uid}
+                    renderItem={renderItem}
+                    onEndReached={() => {
+                        if (hasNextPage && !isFetchingNextPage) {
+                            fetchNextPage();
+                        }
+                    }}
+                    onEndReachedThreshold={0.5}
+                    ListHeaderComponent={
+                        <View style={styles.listHeader}>
+                            <AppCard style={styles.summaryCard}>
+                                <LinearGradient
+                                    colors={[colors.gradientStart, colors.gradientEnd]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.summaryGradient}
+                                />
+                                <View style={styles.summaryContent}>
+                                    <View style={styles.summaryRow}>
+                                        <View>
+                                            <AppText variant="caption" color="rgba(255,255,255,0.7)" style={{ fontWeight: '600' }}>
+                                                Total Transactions
+                                            </AppText>
+                                            <AppText variant="h1" color={colors.surface} style={{ fontWeight: '800', fontSize: 28 }}>
+                                                {totalCount}
+                                            </AppText>
+                                        </View>
+                                        <View style={styles.summaryIcon}>
+                                            <Ionicons name="receipt" size={24} color={colors.surface} />
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
-                        </AppCard>
+                            </AppCard>
 
-                        <View style={styles.sectionHeader}>
-                            <AppText variant="h3" style={styles.sectionTitle}>Transactions</AppText>
+                            <View style={styles.sectionHeader}>
+                                <AppText variant="h3" style={styles.sectionTitle}>Transactions</AppText>
+                            </View>
                         </View>
-                    </View>
-                }
-                ListFooterComponent={
-                    isFetchingNextPage ? (
-                        <View style={{ paddingVertical: spacing.md }}>
-                            <AppLoader />
-                        </View>
-                    ) : <View style={{ height: spacing.xl }} />
-                }
-                ListEmptyComponent={
-                    !isLoading ? (
-                        <View style={styles.center}>
-                            <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
-                            <AppText color={colors.textMuted} style={{ marginTop: spacing.md }}>No transactions found</AppText>
-                        </View>
-                    ) : null
-                }
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isManualRefreshing}
-                        onRefresh={onRefresh}
-                        tintColor={colors.primary}
-                        colors={[colors.primary]}
-                    />
-                }
-                contentContainerStyle={styles.listContent}
-            />
+                    }
+                    ListFooterComponent={
+                        isFetchingNextPage ? (
+                            <View style={{ paddingVertical: spacing.md }}>
+                                <AppLoader />
+                            </View>
+                        ) : <View style={{ height: spacing.xl }} />
+                    }
+                    ListEmptyComponent={
+                        isLoading && !isRefetching ? (
+                            <View style={styles.center}>
+                                <AppLoader />
+                            </View>
+                        ) : (
+                            <View style={styles.center}>
+                                <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
+                                <AppText color={colors.textMuted} style={{ marginTop: spacing.md }}>No transactions found</AppText>
+                            </View>
+                        )
+                    }
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isManualRefreshing}
+                            onRefresh={onRefresh}
+                            tintColor={colors.primary}
+                            colors={[colors.primary]}
+                        />
+                    }
+                    contentContainerStyle={styles.listContent}
+                />
+            )}
             <PaymentsFilterModal
                 visible={filterVisible}
                 onClose={() => setFilterVisible(false)}

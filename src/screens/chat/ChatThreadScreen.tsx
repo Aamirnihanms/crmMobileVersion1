@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
 import { AudioModule, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, type AudioRecorder } from 'expo-audio';
+import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
@@ -1026,6 +1027,30 @@ export default function ChatThreadScreen() {
   const [forwardModalVisible, setForwardModalVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ThreadMessage | null>(null);
   const [readInfoVisible, setReadInfoVisible] = useState(false);
+
+  const [menuScale] = useState(() => new Animated.Value(0.85));
+  const [menuOpacity] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    if (messageMenuVisible) {
+      Animated.parallel([
+        Animated.spring(menuScale, {
+          toValue: 1,
+          tension: 90,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.timing(menuOpacity, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      menuScale.setValue(0.85);
+      menuOpacity.setValue(0);
+    }
+  }, [messageMenuVisible, menuScale, menuOpacity]);
   const [pendingAttachments, setPendingAttachments] =
     useState<PendingAttachment[]>([]);
   const [isPicking, setIsPicking] = useState(false);
@@ -2311,6 +2336,9 @@ export default function ChatThreadScreen() {
   const keyExtractor = useCallback((item: ChatListItem) => item.id, []);
 
   const handleMessageLongPress = useCallback((message: ThreadMessage) => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
     setSelectedMessage(message);
     setMessageMenuVisible(true);
   }, []);
@@ -2603,49 +2631,315 @@ export default function ChatThreadScreen() {
 
       <Modal
         transparent
-        visible={messageMenuVisible}
+        visible={messageMenuVisible && !!selectedMessage}
         animationType="fade"
         onRequestClose={() => setMessageMenuVisible(false)}
       >
-        <Pressable
-          style={styles.menuOverlay}
-          onPress={() => setMessageMenuVisible(false)}
-        >
-          <View style={styles.menuContent}>
-            <Pressable style={styles.menuItem} onPress={handleMenuReply}>
-              <Ionicons name="arrow-undo-outline" size={20} color={colors.textPrimary} />
-              <AppText style={styles.menuItemText}>Reply</AppText>
-            </Pressable>
-            <View style={styles.menuDivider} />
-            <Pressable style={styles.menuItem} onPress={handleMenuForward}>
-              <Ionicons name="arrow-redo-outline" size={20} color={colors.textPrimary} />
-              <AppText style={styles.menuItemText}>Forward</AppText>
-            </Pressable>
-            {selectedMessage?.mine && (
-              <>
-                {canEditSelectedMessage ? (
-                  <>
-                    <View style={styles.menuDivider} />
-                    <Pressable style={styles.menuItem} onPress={handleMenuEdit}>
-                      <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
-                      <AppText style={styles.menuItemText}>Edit</AppText>
+        {selectedMessage ? (
+          <Pressable
+            style={styles.iosMenuOverlay}
+            onPress={() => setMessageMenuVisible(false)}
+          >
+            <BlurView intensity={55} tint="dark" style={StyleSheet.absoluteFill}>
+              <View style={[styles.iosModalSafeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                <Pressable
+                  style={styles.iosModalPressableArea}
+                  onPress={() => setMessageMenuVisible(false)}
+                >
+                  <Animated.View
+                    style={[
+                      styles.iosModalInnerContainer,
+                      {
+                        opacity: menuOpacity,
+                        transform: [{ scale: menuScale }],
+                      },
+                    ]}
+                  >
+                    {/* 1. Highlighted standalone bubble */}
+                    <Pressable
+                      style={[
+                        styles.bubbleRow,
+                        selectedMessage.mine && styles.mineRow,
+                        { paddingHorizontal: spacing.lg, width: '100%' },
+                      ]}
+                      onPress={(e) => e.stopPropagation()}
+                    >
+                      <View
+                        style={[
+                          styles.bubble,
+                          selectedMessage.mine ? styles.myBubble : styles.theirBubble,
+                          selectedMessage.messageType === 'image' &&
+                            !shouldShowMessageText(selectedMessage) &&
+                            !selectedMessage.replyPreview
+                            ? styles.imageOnlyBubble
+                            : null,
+                          {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 6 },
+                            shadowOpacity: 0.22,
+                            shadowRadius: 12,
+                            elevation: 10,
+                          },
+                        ]}
+                      >
+                        {selectedMessage.replyPreview &&
+                          !isMessageDeleted(selectedMessage.raw) ? (
+                          <View
+                            style={[
+                              styles.replyPreviewBox,
+                              {
+                                borderLeftColor: selectedMessage.mine
+                                  ? colors.surfaceAlpha53
+                                  : colors.primary,
+                              },
+                            ]}
+                          >
+                            <AppText
+                              variant="caption"
+                              color={
+                                selectedMessage.mine ? colors.surface : colors.primary
+                              }
+                              numberOfLines={1}
+                              style={{ fontWeight: '700' }}
+                            >
+                              {selectedMessage.replyPreview.senderName}
+                            </AppText>
+                            <AppText
+                              variant="caption"
+                              color={
+                                selectedMessage.mine
+                                  ? colors.surfaceAlpha93
+                                  : colors.textSecondary
+                              }
+                              numberOfLines={1}
+                            >
+                              {selectedMessage.replyPreview.messageType === 'image'
+                                ? 'Image'
+                                : isFileLikeMessageType(
+                                  selectedMessage.replyPreview.messageType
+                                )
+                                  ? 'Attachment'
+                                  : selectedMessage.replyPreview.text}
+                            </AppText>
+                          </View>
+                        ) : null}
+
+                        {!isMessageDeleted(selectedMessage.raw) &&
+                          selectedMessage.messageType === 'audio' &&
+                          selectedMessage.fileUrl ? (
+                          <AudioPlayer
+                            uri={selectedMessage.fileUrl}
+                            mine={selectedMessage.mine}
+                            progress={undefined}
+                          />
+                        ) : !isMessageDeleted(selectedMessage.raw) &&
+                          (selectedMessage.messageType === 'image' ||
+                            isFileLikeMessageType(selectedMessage.messageType)) ? (
+                          <View>
+                            {selectedMessage.messageType === 'image' &&
+                              selectedMessage.fileUrl ? (
+                              <View style={styles.imageBubbleWrap}>
+                                <ExpoImage
+                                  source={{ uri: selectedMessage.fileUrl }}
+                                  style={styles.imageBubble}
+                                  contentFit="cover"
+                                  cachePolicy="memory-disk"
+                                />
+                              </View>
+                            ) : (
+                              <View
+                                style={[
+                                  styles.fileCard,
+                                  selectedMessage.mine && {
+                                    backgroundColor: colors.surfaceAlpha91,
+                                    borderColor: colors.surface,
+                                  },
+                                ]}
+                              >
+                                <Ionicons
+                                  name="document-attach-outline"
+                                  size={16}
+                                  color={
+                                    selectedMessage.mine
+                                      ? colors.primary
+                                      : colors.textSecondary
+                                  }
+                                />
+                                <View style={styles.fileTextWrap}>
+                                  <AppText
+                                    style={styles.fileName}
+                                    color={colors.textPrimary}
+                                    numberOfLines={1}
+                                    ellipsizeMode="middle"
+                                    variant="caption"
+                                  >
+                                    {truncateFileName(
+                                      getDisplayFileName(selectedMessage)
+                                    )}
+                                  </AppText>
+                                </View>
+                              </View>
+                            )}
+                          </View>
+                        ) : null}
+
+                        {shouldShowMessageText(selectedMessage) ? (
+                          <ParsedMessageText mine={selectedMessage.mine}>
+                            {selectedMessage.text}
+                          </ParsedMessageText>
+                        ) : null}
+
+                        <View style={styles.metaRow}>
+                          {selectedMessage.raw?.is_edited &&
+                            !isMessageDeleted(selectedMessage.raw) ? (
+                            <AppText
+                              variant="caption"
+                              color={
+                                selectedMessage.mine
+                                  ? colors.surfaceAlpha80
+                                  : colors.textMuted
+                              }
+                              style={styles.editedLabel}
+                            >
+                              edited
+                            </AppText>
+                          ) : null}
+                          <AppText
+                            variant="caption"
+                            color={
+                              selectedMessage.mine
+                                ? colors.surfaceAlpha80
+                                : colors.textMuted
+                            }
+                            style={{ fontSize: 10 }}
+                          >
+                            {selectedMessage.time}
+                          </AppText>
+                          {selectedMessage.mine ? (
+                            <Ionicons
+                              name={
+                                selectedMessage.status === 'sending'
+                                  ? 'time-outline'
+                                  : selectedMessage.status === 'failed'
+                                    ? 'alert-circle-outline'
+                                    : 'checkmark-done'
+                              }
+                              size={12}
+                              color={
+                                selectedMessage.status === 'failed'
+                                  ? colors.dangerSoft
+                                  : selectedMessage.status === 'read'
+                                    ? colors.surface
+                                    : colors.surfaceAlpha80
+                              }
+                            />
+                          ) : null}
+                        </View>
+                      </View>
                     </Pressable>
-                  </>
-                ) : null}
-                <View style={styles.menuDivider} />
-                <Pressable style={styles.menuItem} onPress={handleShowReadInfo}>
-                  <Ionicons name="information-circle-outline" size={20} color={colors.textPrimary} />
-                  <AppText style={styles.menuItemText}>Info</AppText>
+
+                    {/* 2. Sleek iOS context menu options card */}
+                    <Pressable
+                      style={[
+                        styles.iosMenuCard,
+                        selectedMessage.mine
+                          ? styles.iosMenuCardMine
+                          : styles.iosMenuCardTheirs,
+                      ]}
+                      onPress={(e) => e.stopPropagation()}
+                    >
+                      <Pressable
+                        style={styles.iosMenuItem}
+                        onPress={handleMenuReply}
+                      >
+                        <AppText style={styles.iosMenuItemText}>Reply</AppText>
+                        <Ionicons
+                          name="arrow-undo-outline"
+                          size={20}
+                          color={colors.textPrimary}
+                        />
+                      </Pressable>
+
+                      <View style={styles.iosMenuDivider} />
+
+                      <Pressable
+                        style={styles.iosMenuItem}
+                        onPress={handleMenuForward}
+                      >
+                        <AppText style={styles.iosMenuItemText}>Forward</AppText>
+                        <Ionicons
+                          name="arrow-redo-outline"
+                          size={20}
+                          color={colors.textPrimary}
+                        />
+                      </Pressable>
+
+                      {selectedMessage.mine && (
+                        <>
+                          {canEditSelectedMessage ? (
+                            <>
+                              <View style={styles.iosMenuDivider} />
+                              <Pressable
+                                style={styles.iosMenuItem}
+                                onPress={handleMenuEdit}
+                              >
+                                <AppText style={styles.iosMenuItemText}>
+                                  Edit Message
+                                </AppText>
+                                <Ionicons
+                                  name="create-outline"
+                                  size={20}
+                                  color={colors.textPrimary}
+                                />
+                              </Pressable>
+                            </>
+                          ) : null}
+
+                          <View style={styles.iosMenuDivider} />
+
+                          <Pressable
+                            style={styles.iosMenuItem}
+                            onPress={handleShowReadInfo}
+                          >
+                            <AppText style={styles.iosMenuItemText}>
+                              Message Info
+                            </AppText>
+                            <Ionicons
+                              name="information-circle-outline"
+                              size={20}
+                              color={colors.textPrimary}
+                            />
+                          </Pressable>
+
+                          <View style={styles.iosMenuDivider} />
+
+                          <Pressable
+                            style={styles.iosMenuItem}
+                            onPress={handleDeleteMessage}
+                          >
+                            <AppText
+                              style={[
+                                styles.iosMenuItemText,
+                                { color: colors.danger },
+                              ]}
+                            >
+                              Delete Message
+                            </AppText>
+                            <Ionicons
+                              name="trash-outline"
+                              size={20}
+                              color={colors.danger}
+                            />
+                          </Pressable>
+                        </>
+                      )}
+                    </Pressable>
+                  </Animated.View>
                 </Pressable>
-                <View style={styles.menuDivider} />
-                <Pressable style={styles.menuItem} onPress={handleDeleteMessage}>
-                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                  <AppText style={[styles.menuItemText, { color: colors.danger }]}>Delete</AppText>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </Pressable>
+              </View>
+            </BlurView>
+          </Pressable>
+        ) : null}
       </Modal>
 
       <Modal
@@ -3375,6 +3669,59 @@ const styles = StyleSheet.create({
   imagePreviewFull: {
     width: '100%',
     height: '100%',
+  },
+  iosMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  iosModalSafeArea: {
+    flex: 1,
+  },
+  iosModalPressableArea: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  iosModalInnerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  iosMenuCard: {
+    width: 240,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border + '50',
+  },
+  iosMenuCardMine: {
+    alignSelf: 'flex-end',
+    marginRight: spacing.lg + 4,
+  },
+  iosMenuCardTheirs: {
+    alignSelf: 'flex-start',
+    marginLeft: spacing.lg + 4,
+  },
+  iosMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  iosMenuItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  iosMenuDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border + '30',
   },
   menuOverlay: {
     flex: 1,

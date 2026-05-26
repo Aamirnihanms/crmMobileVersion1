@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
@@ -22,6 +21,7 @@ import {
     fetchCoursesPage
 } from '@/src/api/masters/paginatedMasters.api';
 import AppButton from '@/src/components/common/AppButton';
+import AppDatePicker from '@/src/components/common/AppDatePicker';
 import AppInput from '@/src/components/common/AppInput';
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppSelect from '@/src/components/common/AppSelect';
@@ -60,10 +60,6 @@ export default function BatchCreateScreen() {
         certificate_enabled: true,
         is_active: true,
     });
-
-    const [showStartDate, setShowStartDate] = useState(false);
-    const [showEndDate, setShowEndDate] = useState(false);
-    const [showTime, setShowTime] = useState(false);
 
     // Auto-calculate duration
     React.useEffect(() => {
@@ -323,36 +319,31 @@ export default function BatchCreateScreen() {
                 <View style={styles.card}>
                     {renderSectionHeader('Schedule', 'calendar-outline')}
                     <View style={styles.row}>
-                        <Pressable style={{ flex: 1 }} onPress={() => setShowStartDate(true)}>
-                            <AppInput
-                                label="Start Date"
-                                value={formData.start_date}
-                                editable={false}
-                                placeholder="YYYY-MM-DD"
-                                pointerEvents="none"
-                            />
-                        </Pressable>
+                        <AppDatePicker
+                            label="Start Date"
+                            value={formData.start_date}
+                            onChange={v => updateField('start_date', v)}
+                            placeholder="YYYY-MM-DD"
+                            containerStyle={{ flex: 1, marginBottom: spacing.md }}
+                        />
                         <View style={{ width: spacing.md }} />
-                        <Pressable style={{ flex: 1 }} onPress={() => setShowEndDate(true)}>
-                            <AppInput
-                                label="End Date"
-                                value={formData.end_date}
-                                editable={false}
-                                placeholder="YYYY-MM-DD"
-                                pointerEvents="none"
-                            />
-                        </Pressable>
+                        <AppDatePicker
+                            label="End Date"
+                            value={formData.end_date}
+                            onChange={v => updateField('end_date', v)}
+                            placeholder="YYYY-MM-DD"
+                            containerStyle={{ flex: 1, marginBottom: spacing.md }}
+                        />
                     </View>
                     <View style={styles.row}>
-                        <Pressable style={{ flex: 1 }} onPress={() => setShowTime(true)}>
-                            <AppInput
-                                label="Time"
-                                value={formData.time}
-                                editable={false}
-                                placeholder="HH:MM"
-                                pointerEvents="none"
-                            />
-                        </Pressable>
+                        <AppDatePicker
+                            label="Time"
+                            value={formData.time}
+                            onChange={v => updateField('time', v)}
+                            placeholder="HH:MM"
+                            mode="time"
+                            containerStyle={{ flex: 1, marginBottom: spacing.md }}
+                        />
                         <View style={{ width: spacing.md }} />
                         <View style={{ flex: 1 }}>
                             <AppInput
@@ -433,42 +424,7 @@ export default function BatchCreateScreen() {
                 />
             </ScrollView>
 
-            {/* PICKERS */}
-            {showStartDate && (
-                <DateTimePicker
-                    value={formData.start_date ? new Date(formData.start_date) : new Date()}
-                    mode="date"
-                    onChange={(_, date) => {
-                        setShowStartDate(false);
-                        if (date) updateField('start_date', date.toISOString().split('T')[0]);
-                    }}
-                />
-            )}
-            {showEndDate && (
-                <DateTimePicker
-                    value={formData.end_date ? new Date(formData.end_date) : new Date()}
-                    mode="date"
-                    onChange={(_, date) => {
-                        setShowEndDate(false);
-                        if (date) updateField('end_date', date.toISOString().split('T')[0]);
-                    }}
-                />
-            )}
-            {showTime && (
-                <DateTimePicker
-                    value={new Date()} // Current date doesn't matter for time mode
-                    mode="time"
-                    is24Hour={true}
-                    onChange={(_, date) => {
-                        setShowTime(false);
-                        if (date) {
-                            const hours = date.getHours().toString().padStart(2, '0');
-                            const mins = date.getMinutes().toString().padStart(2, '0');
-                            updateField('time', `${hours}:${mins}`);
-                        }
-                    }}
-                />
-            )}
+
         </KeyboardAvoidingView>
     );
 }

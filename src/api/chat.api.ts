@@ -68,6 +68,7 @@ export type ChatListParams = {
   archived_only?: boolean;
   unread_only?: boolean;
   chat_type?: ChatType;
+  category?: 'student' | 'users' | 'batch' | 'group';
 };
 
 export type ChatMessagesResponse = {
@@ -457,6 +458,17 @@ export const deleteChat = async (chatUid: string) => {
   const res = await http.delete(`/chats/${chatUid}/delete/`);
   return res.data;
 };
+
+export const pinChat = async (chatUid: string) => {
+  const res = await http.post(`/chats/${chatUid}/pin/`, {});
+  return res.data;
+};
+
+export const unpinChat = async (chatUid: string) => {
+  const res = await http.delete(`/chats/${chatUid}/pin/`);
+  return res.data;
+};
+
 
 export type BulkSendMessagePayload = {
   batch_uids: string[];

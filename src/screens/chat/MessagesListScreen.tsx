@@ -1,5 +1,7 @@
 import AttachmentPopup, { type AttachmentActionType } from '@/src/components/chat/AttachmentPopup';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import {
   useIsFocused,
   useNavigation,
@@ -18,6 +20,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -31,7 +34,9 @@ import {
   deleteChat,
   generatePresignedUploadUrl,
   getUploadedFileUrl,
+  pinChat,
   unarchiveChat,
+  unpinChat,
   uploadFileToPresignedPost,
   type ActiveUser,
   type ApiChat,
@@ -81,6 +86,7 @@ type ChatPreview = {
   participantId?: number;
   chatType: 'individual' | 'group' | 'batch';
   isArchived: boolean;
+  isPinned: boolean;
 };
 
 type PickerFile = {
@@ -164,6 +170,7 @@ const mapApiChatToPreview = (
       chatType: 'group',
       profilePic: chat.group_icon || null,
       isArchived: Boolean(chat.is_archived || anyChat.archived),
+      isPinned: Boolean(chat.is_pinned || anyChat.pinned || anyChat.is_pinned),
     };
   }
 
@@ -180,6 +187,7 @@ const mapApiChatToPreview = (
       chatType: 'batch',
       profilePic: null, // Batches don't usually have icons in this API
       isArchived: Boolean(chat.is_archived || anyChat.archived),
+      isPinned: Boolean(chat.is_pinned || anyChat.pinned || anyChat.is_pinned),
     };
   }
 
@@ -216,6 +224,7 @@ const mapApiChatToPreview = (
     online: Boolean(participant.is_active),
     profilePic: participant.profile_pic || null,
     isArchived: Boolean(chat.is_archived || anyChat.archived),
+    isPinned: Boolean(chat.is_pinned || anyChat.pinned || anyChat.is_pinned),
   };
 };
 
@@ -230,7 +239,8 @@ const areChatPreviewsEqual = (a: ChatPreview, b: ChatPreview) =>
   a.avatarColor === b.avatarColor &&
   a.participantId === b.participantId &&
   a.chatType === b.chatType &&
-  a.isArchived === b.isArchived;
+  a.isArchived === b.isArchived &&
+  a.isPinned === b.isPinned;
 
 const decodeJwtPayload = (token: string) => {
   try {
@@ -372,17 +382,26 @@ type ChatRowProps = {
   onOpenChat: (chat: ChatPreview) => void;
   onMenuPress: (chat: ChatPreview) => void;
   onAvatarPress: (chat: ChatPreview) => void;
+  isSelected?: boolean;
 };
 
-const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarPress }: ChatRowProps) {
+const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarPress, isSelected }: ChatRowProps) {
   return (
     <Pressable
       style={({ pressed }) => [
         styles.chatRow,
         pressed && styles.pressedRow,
-        chat.unread > 0 && styles.chatRowActive
+        chat.unread > 0 && styles.chatRowActive,
+        isSelected && styles.chatRowSelected,
       ]}
       onPress={() => onOpenChat(chat)}
+      onLongPress={() => {
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+        onMenuPress(chat);
+      }}
+      delayLongPress={350}
     >
       <Avatar
         label={chat.name}
@@ -393,9 +412,11 @@ const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarP
       />
 
       <View style={styles.chatMiddle}>
-        <AppText variant="subtitle" numberOfLines={1} style={styles.chatName}>
-          {chat.name}
-        </AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+          <AppText variant="subtitle" numberOfLines={1} style={[styles.chatName, { flexShrink: 1, marginBottom: 0 }]}>
+            {chat.name}
+          </AppText>
+        </View>
         <AppText
           color={chat.unread > 0 ? colors.textPrimary : colors.textSecondary}
           numberOfLines={1}
@@ -417,30 +438,30 @@ const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarP
           {chat.time}
         </AppText>
 
-        {chat.unread > 0 ? (
-          <View style={styles.unreadBadge}>
-            <AppText variant="caption" style={styles.unreadText}>
-              {chat.unread}
-            </AppText>
-          </View>
-        ) : chat.muted ? (
-          <Ionicons
-            name="volume-mute-outline"
-            size={14}
-            color={colors.textMuted}
-          />
-        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+          {chat.isPinned && (
+            <MaterialCommunityIcons
+              name="pin"
+              size={15}
+              color={colors.textMuted}
+              style={{ transform: [{ rotate: '45deg' }] }}
+            />
+          )}
 
-        <Pressable
-          onPress={() => onMenuPress(chat)}
-          style={({ pressed }) => [
-            styles.menuButton,
-            pressed && { opacity: 0.6 }
-          ]}
-          hitSlop={10}
-        >
-          <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
-        </Pressable>
+          {chat.unread > 0 ? (
+            <View style={styles.unreadBadge}>
+              <AppText variant="caption" style={styles.unreadText}>
+                {chat.unread}
+              </AppText>
+            </View>
+          ) : chat.muted ? (
+            <Ionicons
+              name="volume-mute-outline"
+              size={14}
+              color={colors.textMuted}
+            />
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
@@ -448,6 +469,7 @@ const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarP
   prev.onOpenChat === next.onOpenChat &&
   prev.onMenuPress === next.onMenuPress &&
   prev.onAvatarPress === next.onAvatarPress &&
+  prev.isSelected === next.isSelected &&
   areChatPreviewsEqual(prev.chat, next.chat)
 );
 
@@ -469,6 +491,8 @@ export default function MessagesListScreen() {
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [selectedChat, setSelectedChat] = useState<ChatPreview | null>(null);
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<'student' | 'users' | 'batch' | 'group' | 'all'>('all');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
 
   const [previewChat, setPreviewChat] = useState<ChatPreview | null>(null);
   const [showProfilePreview, setShowProfilePreview] = useState(false);
@@ -548,6 +572,7 @@ export default function MessagesListScreen() {
     search: debouncedSearch || undefined,
     pageSize: 30,
     archivedOnly: showArchivedOnly,
+    category: selectedCategory,
   });
 
   const {
@@ -644,9 +669,9 @@ export default function MessagesListScreen() {
   }, [isFocused, queryClient, refetchChats]);
 
   useEffect(() => {
-    // Clear local state when mode or search changes to prevent cross-contamination of cached data
+    // Clear local state when mode, search, or category changes to prevent cross-contamination of cached data
     setChats([]);
-  }, [showArchivedOnly, debouncedSearch]);
+  }, [showArchivedOnly, debouncedSearch, selectedCategory]);
 
   useEffect(() => {
     if (mappedChatsFromQuery.length === 0) {
@@ -682,6 +707,14 @@ export default function MessagesListScreen() {
         chat.lastMessage.toLowerCase().includes(s)
     );
   }, [chats, search, showArchivedOnly]);
+
+  const sortedChats = useMemo(() => {
+    return [...filteredChats].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return 0;
+    });
+  }, [filteredChats]);
 
   const getParticipantId = (item: ActiveUser | ChatStudent) => {
     if (typeof item.user_id === 'number') return item.user_id;
@@ -1147,6 +1180,11 @@ export default function MessagesListScreen() {
     setShowChatMenu(true);
   }, []);
 
+  const handleSelectCategory = useCallback((category: 'student' | 'users' | 'batch' | 'group' | 'all') => {
+    setSelectedCategory(category);
+    setShowFilterMenu(false);
+  }, []);
+
   const handleArchiveChat = useCallback(async () => {
     if (!selectedChat) return;
     try {
@@ -1174,6 +1212,36 @@ export default function MessagesListScreen() {
       setSelectedChat(null);
     } catch {
       Alert.alert('Error', 'Failed to unarchive chat');
+    }
+  }, [selectedChat, queryClient]);
+
+  const handlePinChat = useCallback(async () => {
+    if (!selectedChat) return;
+    try {
+      await pinChat(selectedChat.id);
+      setChats((prev) =>
+        prev.map((c) => c.id === selectedChat.id ? { ...c, isPinned: true } : c)
+      );
+      queryClient.invalidateQueries({ queryKey: ['chat-list'] });
+      setShowChatMenu(false);
+      setSelectedChat(null);
+    } catch {
+      Alert.alert('Error', 'Failed to pin chat');
+    }
+  }, [selectedChat, queryClient]);
+
+  const handleUnpinChat = useCallback(async () => {
+    if (!selectedChat) return;
+    try {
+      await unpinChat(selectedChat.id);
+      setChats((prev) =>
+        prev.map((c) => c.id === selectedChat.id ? { ...c, isPinned: false } : c)
+      );
+      queryClient.invalidateQueries({ queryKey: ['chat-list'] });
+      setShowChatMenu(false);
+      setSelectedChat(null);
+    } catch {
+      Alert.alert('Error', 'Failed to unpin chat');
     }
   }, [selectedChat, queryClient]);
 
@@ -1214,19 +1282,22 @@ export default function MessagesListScreen() {
     []
   );
 
+  const selectedChatId = showChatMenu ? selectedChat?.id : null;
+
   const renderChatItem = useCallback(
     ({ item }: { item: ChatPreview }) => (
       <ChatRow
         chat={item}
         onOpenChat={handleOpenChat}
         onMenuPress={handleMenuPress}
+        isSelected={item.id === selectedChatId}
         onAvatarPress={(chat) => {
           setPreviewChat(chat);
           setShowProfilePreview(true);
         }}
       />
     ),
-    [handleOpenChat, handleMenuPress]
+    [handleOpenChat, handleMenuPress, selectedChatId]
   );
 
   const refreshChats = useCallback(async () => {
@@ -1320,13 +1391,14 @@ export default function MessagesListScreen() {
         chat={item}
         onOpenChat={navigateToChat}
         onMenuPress={handleMenuPress}
+        isSelected={item.id === selectedChatId}
         onAvatarPress={(chat) => {
           setPreviewChat(chat);
           setShowProfilePreview(true);
         }}
       />
     ),
-    [navigateToChat, handleMenuPress]
+    [navigateToChat, handleMenuPress, selectedChatId]
   );
 
   const keyExtractor = useCallback((item: ChatPreview) => item.id, []);
@@ -1349,7 +1421,11 @@ export default function MessagesListScreen() {
           />
         </View>
 
-        <View style={styles.actionRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.actionRow}
+        >
           <Pressable
             style={styles.quickActionBtn}
             onPress={() => {
@@ -1391,7 +1467,48 @@ export default function MessagesListScreen() {
               {showArchivedOnly ? 'All Chats' : 'Archived'}
             </AppText>
           </Pressable>
-        </View>
+
+          <Pressable
+            onPress={() => setShowFilterMenu(true)}
+            style={({ pressed }) => [
+              styles.quickActionBtn,
+              pressed && { opacity: 0.7 },
+              selectedCategory !== 'all' && styles.quickActionBtnActive
+            ]}
+          >
+            <Ionicons
+              name={selectedCategory !== 'all' ? "funnel" : "funnel-outline"}
+              size={16}
+              color={selectedCategory !== 'all' ? colors.primary : colors.textSecondary}
+            />
+          </Pressable>
+        </ScrollView>
+
+        {selectedCategory !== 'all' && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: 4 }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: colors.primary + '15',
+              paddingHorizontal: spacing.md,
+              paddingVertical: 5,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: colors.primary + '30',
+            }}>
+              <AppText variant="caption" color={colors.primary} style={{ fontWeight: '700', textTransform: 'capitalize' }}>
+                Filter: {selectedCategory}
+              </AppText>
+              <Pressable
+                onPress={() => handleSelectCategory('all')}
+                style={{ marginLeft: 6 }}
+                hitSlop={10}
+              >
+                <Ionicons name="close-circle" size={16} color={colors.primary} />
+              </Pressable>
+            </View>
+          </View>
+        )}
       </View>
 
       <Modal
@@ -1401,25 +1518,138 @@ export default function MessagesListScreen() {
         onRequestClose={() => setShowChatMenu(false)}
       >
         <Pressable
-          style={styles.menuOverlay}
+          style={styles.contextMenuOverlay}
           onPress={() => setShowChatMenu(false)}
         >
-          <View style={styles.menuContent}>
-            {selectedChat?.isArchived ? (
-              <Pressable style={styles.menuItem} onPress={handleUnarchiveChat}>
-                <Ionicons name="chatbox-outline" size={20} color={colors.textPrimary} />
-                <AppText style={styles.menuItemText}>Unarchive</AppText>
-              </Pressable>
-            ) : (
-              <Pressable style={styles.menuItem} onPress={handleArchiveChat}>
-                <Ionicons name="archive-outline" size={20} color={colors.textPrimary} />
-                <AppText style={styles.menuItemText}>Archive</AppText>
-              </Pressable>
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+
+          <Pressable onPress={(e) => e.stopPropagation()} style={styles.contextMenuContainer}>
+            {/* Floating selected chat card */}
+            {selectedChat && (
+              <View style={styles.floatingChatCard}>
+                <Avatar
+                  label={selectedChat.name}
+                  color={selectedChat.avatarColor}
+                  online={selectedChat.online}
+                  uri={selectedChat.profilePic}
+                />
+                <View style={styles.floatingChatMiddle}>
+                  <AppText variant="subtitle" numberOfLines={1} style={styles.floatingChatName}>
+                    {selectedChat.name}
+                  </AppText>
+                  <AppText
+                    color={colors.textSecondary}
+                    numberOfLines={1}
+                    variant="caption"
+                    style={{ fontSize: 13 }}
+                  >
+                    {selectedChat.lastMessage}
+                  </AppText>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <AppText variant="caption" style={styles.chatTime}>
+                    {selectedChat.time}
+                  </AppText>
+                </View>
+              </View>
             )}
+
+            {/* Action buttons */}
+            <View style={styles.contextMenuActions}>
+              {selectedChat?.isPinned ? (
+                <Pressable style={styles.contextMenuItem} onPress={handleUnpinChat}>
+                  <View style={[styles.contextMenuIconWrap, { backgroundColor: colors.primaryLight + '20' }]}>
+                    <Ionicons name="pin-outline" size={20} color={colors.primary} />
+                  </View>
+                  <AppText style={styles.contextMenuItemText}>Unpin</AppText>
+                </Pressable>
+              ) : (
+                <Pressable style={styles.contextMenuItem} onPress={handlePinChat}>
+                  <View style={[styles.contextMenuIconWrap, { backgroundColor: colors.primaryLight + '20' }]}>
+                    <MaterialCommunityIcons name="pin" size={20} color={colors.primary} />
+                  </View>
+                  <AppText style={styles.contextMenuItemText}>Pin</AppText>
+                </Pressable>
+              )}
+
+              {selectedChat?.isArchived ? (
+                <Pressable style={styles.contextMenuItem} onPress={handleUnarchiveChat}>
+                  <View style={[styles.contextMenuIconWrap, { backgroundColor: colors.info + '15' }]}>
+                    <Ionicons name="chatbox-outline" size={20} color={colors.info} />
+                  </View>
+                  <AppText style={styles.contextMenuItemText}>Unarchive</AppText>
+                </Pressable>
+              ) : (
+                <Pressable style={styles.contextMenuItem} onPress={handleArchiveChat}>
+                  <View style={[styles.contextMenuIconWrap, { backgroundColor: colors.info + '15' }]}>
+                    <Ionicons name="archive-outline" size={20} color={colors.info} />
+                  </View>
+                  <AppText style={styles.contextMenuItemText}>Archive</AppText>
+                </Pressable>
+              )}
+
+              <Pressable style={styles.contextMenuItem} onPress={handleDeleteChat}>
+                <View style={[styles.contextMenuIconWrap, { backgroundColor: colors.dangerBg }]}>
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                </View>
+                <AppText style={[styles.contextMenuItemText, { color: colors.danger }]}>Delete</AppText>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={showFilterMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowFilterMenu(false)}
+      >
+        <Pressable
+          style={styles.menuOverlay}
+          onPress={() => setShowFilterMenu(false)}
+        >
+          <View style={styles.menuContent}>
+            <AppText style={styles.filterMenuTitle}>Filter Chats By</AppText>
             <View style={styles.menuDivider} />
-            <Pressable style={styles.menuItem} onPress={handleDeleteChat}>
-              <Ionicons name="trash-outline" size={20} color={colors.danger} />
-              <AppText style={[styles.menuItemText, { color: colors.danger }]}>Delete</AppText>
+            <Pressable
+              style={[styles.menuItem, selectedCategory === 'all' && styles.selectedFilterItem]}
+              onPress={() => handleSelectCategory('all')}
+            >
+              <Ionicons name="chatbubbles-outline" size={20} color={selectedCategory === 'all' ? colors.primary : colors.textPrimary} />
+              <AppText style={[styles.menuItemText, selectedCategory === 'all' && { color: colors.primary, fontWeight: 'bold' }]}>All Chats</AppText>
+            </Pressable>
+
+            <Pressable
+              style={[styles.menuItem, selectedCategory === 'student' && styles.selectedFilterItem]}
+              onPress={() => handleSelectCategory('student')}
+            >
+              <Ionicons name="school-outline" size={20} color={selectedCategory === 'student' ? colors.primary : colors.textPrimary} />
+              <AppText style={[styles.menuItemText, selectedCategory === 'student' && { color: colors.primary, fontWeight: 'bold' }]}>Students</AppText>
+            </Pressable>
+
+            <Pressable
+              style={[styles.menuItem, selectedCategory === 'users' && styles.selectedFilterItem]}
+              onPress={() => handleSelectCategory('users')}
+            >
+              <Ionicons name="person-outline" size={20} color={selectedCategory === 'users' ? colors.primary : colors.textPrimary} />
+              <AppText style={[styles.menuItemText, selectedCategory === 'users' && { color: colors.primary, fontWeight: 'bold' }]}>Users (Staff)</AppText>
+            </Pressable>
+
+            <Pressable
+              style={[styles.menuItem, selectedCategory === 'group' && styles.selectedFilterItem]}
+              onPress={() => handleSelectCategory('group')}
+            >
+              <Ionicons name="people-outline" size={20} color={selectedCategory === 'group' ? colors.primary : colors.textPrimary} />
+              <AppText style={[styles.menuItemText, selectedCategory === 'group' && { color: colors.primary, fontWeight: 'bold' }]}>Groups</AppText>
+            </Pressable>
+
+            <Pressable
+              style={[styles.menuItem, selectedCategory === 'batch' && styles.selectedFilterItem]}
+              onPress={() => handleSelectCategory('batch')}
+            >
+              <Ionicons name="layers-outline" size={20} color={selectedCategory === 'batch' ? colors.primary : colors.textPrimary} />
+              <AppText style={[styles.menuItemText, selectedCategory === 'batch' && { color: colors.primary, fontWeight: 'bold' }]}>Batches</AppText>
             </Pressable>
           </View>
         </Pressable>
@@ -1433,7 +1663,7 @@ export default function MessagesListScreen() {
       />
 
       <FlatList
-        data={filteredChats}
+        data={sortedChats}
         keyExtractor={chatKeyExtractor}
         contentContainerStyle={styles.list}
         initialNumToRender={14}
@@ -1830,9 +2060,34 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: spacing.sm,
   },
+  filterBtn: {
+    height: 48,
+    width: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBtnActive: {
+    borderColor: colors.primary + '30',
+    backgroundColor: colors.primary + '10',
+  },
+  filterMenuTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  selectedFilterItem: {
+    backgroundColor: colors.primary + '08',
+  },
   actionRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+    alignItems: 'center',
   },
   quickActionBtn: {
     flexDirection: 'row',
@@ -1867,6 +2122,11 @@ const styles = StyleSheet.create({
   chatRowActive: {
     backgroundColor: colors.primaryLight + '10',
     borderColor: colors.primaryLight + '30',
+  },
+  chatRowSelected: {
+    backgroundColor: colors.primaryLight + '25',
+    borderColor: colors.primary + '50',
+    transform: [{ scale: 0.97 }],
   },
   avatarOuter: {
     position: 'relative',
@@ -2157,6 +2417,73 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.surfaceSubtle,
     marginHorizontal: 8,
+  },
+  // Context menu (long-press) styles
+  contextMenuOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  contextMenuContainer: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+  },
+  floatingChatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: spacing.md,
+    width: '100%',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 15,
+    marginBottom: spacing.md,
+  },
+  floatingChatMiddle: {
+    flex: 1,
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  floatingChatName: {
+    fontWeight: '800',
+    color: colors.textPrimary,
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  contextMenuActions: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingVertical: 6,
+    width: '100%',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  contextMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    gap: 14,
+  },
+  contextMenuIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contextMenuItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
   profilePreviewOverlay: {
     flex: 1,

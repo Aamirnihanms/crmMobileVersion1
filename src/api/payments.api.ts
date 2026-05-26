@@ -116,6 +116,10 @@ export type PaymentFilters = {
     batch?: string | null;
     counselor_id?: string | null;
     status?: string | null;
+    period?: string | null;
+    time_period?: string | null;
+    date_from?: string | null;
+    date_to?: string | null;
 };
 
 export const fetchPaymentTransactions = async (
@@ -141,6 +145,10 @@ export const fetchPaymentTransactions = async (
     if (filters?.status) {
         filters.status.split(',').forEach(status => params.append('status', status));
     }
+    if (filters?.period) params.append('period', filters.period);
+    if (filters?.time_period) params.append('time_period', filters.time_period);
+    if (filters?.date_from) params.append('date_from', filters.date_from);
+    if (filters?.date_to) params.append('date_to', filters.date_to);
 
     const res = await http.get(`/payment-transactions/?${params.toString()}`);
 

@@ -1,19 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Platform, Pressable, StyleSheet, View, ViewStyle, Modal } from 'react-native';
 import { colors, spacing } from '@/src/theme';
 import AppText from './AppText';
 
 type AppDatePickerProps = {
   label?: string;
-  value: string; // YYYY-MM-DD
+  value: string; // YYYY-MM-DD or HH:mm
   onChange: (date: string) => void;
   placeholder?: string;
   error?: string;
   containerStyle?: ViewStyle;
   minimumDate?: Date;
   maximumDate?: Date;
+  mode?: 'date' | 'time';
 };
 
 export default function AppDatePicker({
@@ -25,28 +26,66 @@ export default function AppDatePicker({
   containerStyle,
   minimumDate,
   maximumDate,
+  mode = 'date',
 }: AppDatePickerProps) {
   const [show, setShow] = useState(false);
 
-  // Parse YYYY-MM-DD string to Date object
-  const dateValue = value ? new Date(value) : new Date();
+  const parseDate = (val: string, m: 'date' | 'time') => {
+    if (!val) return new Date();
+    if (m === 'time') {
+      const [hours, minutes] = val.split(':').map(Number);
+      const d = new Date();
+      d.setHours(hours || 0, minutes || 0, 0, 0);
+      return d;
+    }
+    return new Date(val);
+  };
+
+  const dateValue = parseDate(value, mode);
+  const [tempDate, setTempDate] = useState(dateValue);
+
+  useEffect(() => {
+    if (show && Platform.OS === 'ios') {
+      setTempDate(parseDate(value, mode));
+    }
+  }, [show, value, mode]);
 
   const handlePress = () => {
     setShow(true);
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShow(Platform.OS === 'ios'); // iOS keeps the picker open until dismissed
-
-    if (event.type === 'set' && selectedDate) {
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
-      onChange(dateString);
-    } else if (event.type === 'dismissed') {
-      setShow(false);
+  const formatOutput = (d: Date) => {
+    if (mode === 'time') {
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${hours}:${mins}`;
     }
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'ios') {
+      if (selectedDate) {
+        setTempDate(selectedDate);
+      }
+    } else {
+      setShow(false);
+      if (event.type === 'set' && selectedDate) {
+        onChange(formatOutput(selectedDate));
+      }
+    }
+  };
+
+  const confirmIosDate = () => {
+    setShow(false);
+    onChange(formatOutput(tempDate));
+  };
+
+  const cancelIosDate = () => {
+    setShow(false);
   };
 
   const displayValue = value || '';
@@ -79,19 +118,46 @@ export default function AppDatePicker({
           {displayValue || placeholder}
         </AppText>
         <View style={styles.rightElement}>
-          <Ionicons name="calendar-outline" size={20} color={colors.textMuted} />
+          <Ionicons name={mode === 'time' ? "time-outline" : "calendar-outline"} size={20} color={colors.textMuted} />
         </View>
       </Pressable>
 
-      {show && (
-        <DateTimePicker
-          value={dateValue}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleDateChange}
-          minimumDate={minimumDate}
-          maximumDate={maximumDate}
-        />
+      {Platform.OS === 'ios' ? (
+        <Modal visible={show} transparent animationType="slide">
+          <View style={styles.iosModalOverlay}>
+            <View style={styles.iosPickerContainer}>
+              <View style={styles.iosPickerHeader}>
+                <Pressable onPress={cancelIosDate} style={styles.iosHeaderBtn}>
+                  <AppText color={colors.primary}>Cancel</AppText>
+                </Pressable>
+                <Pressable onPress={confirmIosDate} style={styles.iosHeaderBtn}>
+                  <AppText style={{ fontWeight: 'bold' }} color={colors.primary}>Done</AppText>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={tempDate}
+                mode={mode}
+                display="spinner"
+                themeVariant="light"
+                textColor="#000000"
+                onChange={handleDateChange}
+                minimumDate={minimumDate}
+                maximumDate={maximumDate}
+              />
+            </View>
+          </View>
+        </Modal>
+      ) : (
+        show && (
+          <DateTimePicker
+            value={dateValue}
+            mode={mode}
+            display="default"
+            onChange={handleDateChange}
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
+          />
+        )
       )}
 
       {error ? (
@@ -144,5 +210,26 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: spacing.xs,
     marginLeft: spacing.xs,
+  },
+  iosModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  iosPickerContainer: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: spacing.xl,
+  },
+  iosPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  iosHeaderBtn: {
+    padding: spacing.sm,
   },
 });

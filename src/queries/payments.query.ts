@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
-import { fetchPaymentTransactionById, fetchPaymentTransactions, fetchReceipt } from '../api/payments.api';
 import type { PaymentFilters } from '../api/payments.api';
+import { fetchPaymentTransactionById, fetchPaymentTransactions, fetchReceipt } from '../api/payments.api';
 
 export const useInfinitePaymentTransactions = (
     search: string,
