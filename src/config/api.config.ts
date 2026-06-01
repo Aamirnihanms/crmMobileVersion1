@@ -3,7 +3,7 @@ export const API_CONFIG = {
   // Production URL for TestFlight: https://api.crm.luminartechnohub.com/api
   // Development URL: https://api.crm.dev.luminartechnohub.com/api
 
-  BASE_URL: 'https://api.crm.luminartechnohub.com/api',
+  BASE_URL: 'https://api.crm.dev.luminartechnohub.com/api',
   // BASE_URL: 'http://192.168.1.46:8000/api',
 
   ENV: 'production', // 'development' or 'production'

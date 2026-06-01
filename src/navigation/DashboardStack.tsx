@@ -42,6 +42,8 @@ export type DashboardStackParamList = {
     chatType: 'group' | 'batch';
   };
   Notifications: undefined;
+  BatchChangeRequestList: undefined;
+  BatchChangeRequestDetail: { uid: string };
 };
 
 const Stack = createNativeStackNavigator<DashboardStackParamList>();
@@ -218,6 +220,16 @@ export default function DashboardStack() {
           title: 'Notifications',
           headerTitleAlign: 'center',
         }}
+      />
+      <Stack.Screen
+        name="BatchChangeRequestList"
+        getComponent={() => require('../screens/more/BatchChangeRequestListScreen').default}
+        options={{ title: 'Batch Change Requests' }}
+      />
+      <Stack.Screen
+        name="BatchChangeRequestDetail"
+        getComponent={() => require('../screens/more/BatchChangeRequestDetailScreen').default}
+        options={{ title: 'Batch Change Detail' }}
       />
     </Stack.Navigator>
   );

@@ -52,9 +52,9 @@ export default function NotificationListScreen() {
         // Basic link mapping
         if (notification.link) {
             if (notification.link.includes('batch-request')) {
-                // Navigate to batch request screen if it exists in MoreStack
-                // Note: We might need to handle navigation between stacks if needed
-                navigation.navigate('More', { screen: 'BatchChangeRequestList' });
+                // Navigate directly in the local stack to preserve back button 
+                // and prevent overriding the 'More' tab's state.
+                navigation.navigate('BatchChangeRequestList');
             }
         }
     };
