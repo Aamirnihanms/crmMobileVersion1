@@ -372,3 +372,25 @@ export const deleteFieldTemplate = async (
   return res.data;
 };
 
+export type CreateCompanyJobPayload = {
+  title: string;
+  description: string;
+  location: string;
+  expires_at: string;
+  is_published: boolean;
+  custom_field_template_uid: string | null;
+};
+
+export type CreateCompanyJobResponse = {
+  status: string;
+  job: JobResponse;
+};
+
+export const createCompanyJob = async (
+  companyUid: string,
+  data: CreateCompanyJobPayload
+): Promise<CreateCompanyJobResponse> => {
+  const res = await http.post(`/jobs/companies/${companyUid}/jobs/`, data);
+  return res.data;
+};
+

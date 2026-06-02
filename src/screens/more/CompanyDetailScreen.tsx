@@ -15,6 +15,7 @@ import {
 import { colors, spacing } from '@/src/theme';
 import AppCard from '../../components/common/AppCard';
 import AppText from '../../components/common/AppText';
+import AddCompanyJobModal from '../../components/jobs/AddCompanyJobModal';
 import AddPortalUserModal from '../../components/jobs/AddPortalUserModal';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
 import {
@@ -110,9 +111,10 @@ export default function CompanyDetailScreen() {
   const { data: companyRes, isLoading, isError, error, refetch } = useCompanyDetail(uid);
   const { data: portalUsersRes, isLoading: loadingUsers, refetch: refetchUsers } = useCompanyPortalUsers(uid);
   const { data: templatesRes, isLoading: loadingTemplates, refetch: refetchTemplates } = useCompanyFieldTemplates(uid);
-  const { data: jobsRes, isLoading: loadingJobs } = useCompanyJobs(uid);
+  const { data: jobsRes, isLoading: loadingJobs, refetch: refetchJobs } = useCompanyJobs(uid);
 
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -358,7 +360,11 @@ export default function CompanyDetailScreen() {
         </AppCard>
 
         {/* ── COMPANY JOBS ── */}
-        <SectionHeader title="Jobs" count={jobsRes?.count} />
+        <SectionHeader
+          title="Jobs"
+          count={jobsRes?.count}
+          onAdd={() => setShowAddJobModal(true)}
+        />
         {loadingJobs ? (
           <AppCard style={styles.card}><SectionLoader /></AppCard>
         ) : jobsRes && jobsRes.results.length > 0 ? (
@@ -432,6 +438,19 @@ export default function CompanyDetailScreen() {
           onSuccess={() => {
             setShowAddUserModal(false);
             refetchUsers();
+          }}
+        />
+      )}
+
+      {templatesRes && (
+        <AddCompanyJobModal
+          visible={showAddJobModal}
+          companyUid={uid}
+          templates={templatesRes.results}
+          onClose={() => setShowAddJobModal(false)}
+          onSuccess={() => {
+            setShowAddJobModal(false);
+            refetchJobs();
           }}
         />
       )}

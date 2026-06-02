@@ -13,6 +13,7 @@ import {
   fetchFieldTemplateById,
   updateFieldTemplate,
   deleteFieldTemplate,
+  createCompanyJob,
 } from '../api/jobs.api';
 
 export const useInfiniteJobs = (search: string) => {
@@ -139,6 +140,17 @@ export const useDeleteFieldTemplate = (companyUid: string) => {
     mutationFn: (templateUid: string) => deleteFieldTemplate(companyUid, templateUid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-field-templates', companyUid] });
+    },
+  });
+};
+
+export const useCreateCompanyJob = (companyUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<typeof createCompanyJob>[1]) =>
+      createCompanyJob(companyUid, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-jobs', companyUid] });
     },
   });
 };
