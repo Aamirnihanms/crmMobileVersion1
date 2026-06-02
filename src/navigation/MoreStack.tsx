@@ -55,6 +55,13 @@ export type MoreStackParamList = {
   ExamSessions: { batch?: any } | undefined;
   Marking: { sessionUid: string };
   EvaluationMarkingDetail: { attemptUid: string };
+  JobsList: undefined;
+  JobDetail: { uid: string };
+  CompaniesList: undefined;
+  CompanyDetail: { uid: string };
+  CreateCompany: undefined;
+  FieldTemplateDetail: { companyUid: string; templateUid: string };
+  CreateEditFieldTemplate: { companyUid: string; templateUid?: string };
 };
 
 
@@ -256,6 +263,53 @@ export default function MoreStack() {
         name="EvaluationMarkingDetail"
         getComponent={() => require('../screens/more/EvaluationMarkingDetailScreen').default}
         options={{ title: 'Mark Sheet' }}
+      />
+      <Stack.Screen
+        name="JobsList"
+        getComponent={() => require('../screens/more/JobsListScreen').default}
+        options={{ title: 'Jobs' }}
+      />
+      <Stack.Screen
+        name="JobDetail"
+        getComponent={() => require('../screens/more/JobDetailScreen').default}
+        options={{ title: 'Job Details' }}
+      />
+      <Stack.Screen
+        name="CompaniesList"
+        getComponent={() => require('../screens/more/CompaniesListScreen').default}
+        options={({ navigation }) => ({
+          title: 'Companies',
+          headerRight: () => (
+            <Pressable
+              onPress={() => navigation.navigate('CreateCompany')}
+              style={{ padding: 4 }}
+            >
+              <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+            </Pressable>
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="CompanyDetail"
+        getComponent={() => require('../screens/more/CompanyDetailScreen').default}
+        options={{ title: 'Company Details' }}
+      />
+      <Stack.Screen
+        name="FieldTemplateDetail"
+        getComponent={() => require('../screens/more/FieldTemplateDetailScreen').default}
+        options={{ title: 'Template Details' }}
+      />
+      <Stack.Screen
+        name="CreateEditFieldTemplate"
+        getComponent={() => require('../screens/more/CreateEditFieldTemplateScreen').default}
+        options={({ route }: any) => ({ 
+          title: route.params?.templateUid ? 'Edit Template' : 'New Template' 
+        })}
+      />
+      <Stack.Screen
+        name="CreateCompany"
+        getComponent={() => require('../screens/more/CreateCompanyScreen').default}
+        options={{ title: 'New Company' }}
       />
     </Stack.Navigator>
 

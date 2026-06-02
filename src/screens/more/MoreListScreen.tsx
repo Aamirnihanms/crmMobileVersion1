@@ -227,6 +227,25 @@ export default function MoreListScreen() {
                     />
                 </AppCard> */}
 
+                <AppText variant="h3" style={styles.sectionTitle}>Jobs & Companies</AppText>
+                <AppCard style={styles.menuCard}>
+                    <MenuItem
+                        icon="briefcase-outline"
+                        label="Jobs"
+                        sublabel="Manage job postings"
+                        onPress={() => navigation.navigate('JobsList')}
+                        color={colors.primary}
+                    />
+                    <MenuItem
+                        icon="business-outline"
+                        label="Companies"
+                        sublabel="Manage partner companies"
+                        onPress={() => navigation.navigate('CompaniesList')}
+                        color={colors.info}
+                        isLast
+                    />
+                </AppCard>
+
                 <AppText variant="h3" style={styles.sectionTitle}>Account Actions</AppText>
                 <AppCard style={styles.menuCard}>
                     <MenuItem
