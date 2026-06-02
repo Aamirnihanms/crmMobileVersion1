@@ -60,6 +60,7 @@ export type MoreStackParamList = {
   CompaniesList: undefined;
   CompanyDetail: { uid: string };
   CreateCompany: undefined;
+  EditCompany: { uid: string };
   FieldTemplateDetail: { companyUid: string; templateUid: string };
   CreateEditFieldTemplate: { companyUid: string; templateUid?: string };
 };
@@ -292,7 +293,25 @@ export default function MoreStack() {
       <Stack.Screen
         name="CompanyDetail"
         getComponent={() => require('../screens/more/CompanyDetailScreen').default}
-        options={{ title: 'Company Details' }}
+        options={({ navigation, route }: any) => ({
+          title: 'Company Details',
+          headerRight: () => (
+            <Pressable
+              onPress={() => navigation.navigate('EditCompany', { uid: route.params.uid })}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.7 : 1,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: colors.primaryLight + '15',
+                alignItems: 'center',
+                justifyContent: 'center',
+              })}
+            >
+              <Ionicons name="pencil" size={20} color={colors.primary} />
+            </Pressable>
+          ),
+        })}
       />
       <Stack.Screen
         name="FieldTemplateDetail"
@@ -310,6 +329,11 @@ export default function MoreStack() {
         name="CreateCompany"
         getComponent={() => require('../screens/more/CreateCompanyScreen').default}
         options={{ title: 'New Company' }}
+      />
+      <Stack.Screen
+        name="EditCompany"
+        getComponent={() => require('../screens/more/EditCompanyScreen').default}
+        options={{ title: 'Edit Company' }}
       />
     </Stack.Navigator>
 

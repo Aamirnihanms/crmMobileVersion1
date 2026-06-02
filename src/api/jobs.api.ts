@@ -270,6 +270,7 @@ export type CreateCompanyPayload = {
   address?: string;
   logo?: { uri: string; name: string; type: string };
   representative_ids?: number[];
+  is_active?: boolean;
 };
 
 export const createCompany = async (data: CreateCompanyPayload): Promise<CompanyDetailResponse> => {
@@ -280,6 +281,7 @@ export const createCompany = async (data: CreateCompanyPayload): Promise<Company
   if (data.contact_email) formData.append('contact_email', data.contact_email);
   if (data.contact_phone) formData.append('contact_phone', data.contact_phone);
   if (data.address) formData.append('address', data.address);
+  if (data.is_active !== undefined) formData.append('is_active', String(data.is_active));
   if (data.logo) {
     formData.append('logo', { uri: data.logo.uri, name: data.logo.name, type: data.logo.type } as any);
   }
@@ -287,6 +289,30 @@ export const createCompany = async (data: CreateCompanyPayload): Promise<Company
     data.representative_ids.forEach((id) => formData.append('representative_ids', String(id)));
   }
   const res = await http.post('/jobs/companies/create/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+};
+
+export const updateCompany = async (
+  uid: string,
+  data: CreateCompanyPayload
+): Promise<CompanyDetailResponse> => {
+  const formData = new FormData();
+  formData.append('name', data.name);
+  formData.append('portal_slug', data.portal_slug);
+  if (data.website) formData.append('website', data.website);
+  if (data.contact_email) formData.append('contact_email', data.contact_email);
+  if (data.contact_phone) formData.append('contact_phone', data.contact_phone);
+  if (data.address) formData.append('address', data.address);
+  if (data.is_active !== undefined) formData.append('is_active', String(data.is_active));
+  if (data.logo) {
+    formData.append('logo', { uri: data.logo.uri, name: data.logo.name, type: data.logo.type } as any);
+  }
+  if (data.representative_ids?.length) {
+    data.representative_ids.forEach((id) => formData.append('representative_ids', String(id)));
+  }
+  const res = await http.put(`/jobs/companies/${uid}/`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return res.data;

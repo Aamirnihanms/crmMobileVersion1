@@ -8,6 +8,7 @@ import {
   fetchCompanyFieldTemplates,
   fetchCompanyJobs,
   createCompany,
+  updateCompany,
   createPortalUser,
   createFieldTemplate,
   fetchFieldTemplateById,
@@ -88,6 +89,17 @@ export const useCreateCompany = () => {
   return useMutation({
     mutationFn: createCompany,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+};
+
+export const useUpdateCompany = (uid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<typeof updateCompany>[1]) => updateCompany(uid, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company', uid] });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
   });
