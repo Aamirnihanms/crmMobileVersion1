@@ -364,3 +364,11 @@ export const updateFieldTemplate = async (
   return res.data;
 };
 
+export const deleteFieldTemplate = async (
+  companyUid: string,
+  templateUid: string
+): Promise<any> => {
+  const res = await http.delete(`/jobs/companies/${companyUid}/field-templates/${templateUid}/`);
+  return res.data;
+};
+

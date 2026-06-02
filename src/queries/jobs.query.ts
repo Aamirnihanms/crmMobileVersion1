@@ -12,6 +12,7 @@ import {
   createFieldTemplate,
   fetchFieldTemplateById,
   updateFieldTemplate,
+  deleteFieldTemplate,
 } from '../api/jobs.api';
 
 export const useInfiniteJobs = (search: string) => {
@@ -127,6 +128,16 @@ export const useUpdateFieldTemplate = (companyUid: string, templateUid: string) 
       updateFieldTemplate(companyUid, templateUid, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-field-template', companyUid, templateUid] });
+      queryClient.invalidateQueries({ queryKey: ['company-field-templates', companyUid] });
+    },
+  });
+};
+
+export const useDeleteFieldTemplate = (companyUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (templateUid: string) => deleteFieldTemplate(companyUid, templateUid),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-field-templates', companyUid] });
     },
   });

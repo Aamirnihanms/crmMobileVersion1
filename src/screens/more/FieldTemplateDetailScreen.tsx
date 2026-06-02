@@ -3,18 +3,19 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useLayoutEffect } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
-  Platform,
 } from 'react-native';
 
 import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
-import { useFieldTemplateDetail } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
 import type { MoreStackParamList } from '@/src/navigation/MoreStack';
+import { useDeleteFieldTemplate, useFieldTemplateDetail } from '@/src/queries/jobs.query';
+import { colors, spacing } from '@/src/theme';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type DetailRouteProp = RouteProp<MoreStackParamList, 'FieldTemplateDetail'>;
@@ -35,21 +36,76 @@ export default function FieldTemplateDetailScreen() {
   const { companyUid, templateUid } = route.params;
 
   const { data, isLoading, isError, error, refetch } = useFieldTemplateDetail(companyUid, templateUid);
+  const deleteMutation = useDeleteFieldTemplate(companyUid);
+
+  const handleDelete = () => {
+    if (!data?.template) return;
+    Alert.alert(
+      'Delete Template',
+      `Are you sure you want to delete "${data.template.name}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteMutation.mutate(templateUid, {
+              onSuccess: () => {
+                navigation.goBack();
+              },
+              onError: (error: any) => {
+                Alert.alert('Error', error?.response?.data?.message || 'Failed to delete template');
+              },
+            });
+          },
+        },
+      ]
+    );
+  };
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable
-          onPress={() => navigation.navigate('CreateEditFieldTemplate', { companyUid, templateUid })}
-          style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, padding: 4 }]}
-        >
-          <AppText color={colors.primary} style={{ fontWeight: '700', fontSize: 16 }}>
-            Edit
-          </AppText>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable
+            onPress={() => navigation.navigate('CreateEditFieldTemplate', { companyUid, templateUid })}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.7 : 1,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.primaryLight + '15',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 8,
+            })}
+          >
+            <Ionicons name="pencil" size={20} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={handleDelete}
+            disabled={deleteMutation.isPending}
+            style={({ pressed }) => ({
+              opacity: pressed || deleteMutation.isPending ? 0.7 : 1,
+              marginRight: 8,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.danger + '15',
+              alignItems: 'center',
+              justifyContent: 'center',
+            })}
+          >
+            <Ionicons
+              name={deleteMutation.isPending ? 'hourglass-outline' : 'trash'}
+              size={20}
+              color={colors.danger}
+            />
+          </Pressable>
+        </View>
       ),
     });
-  }, [navigation, companyUid, templateUid]);
+  }, [navigation, companyUid, templateUid, deleteMutation, handleDelete]);
 
   if (isLoading) {
     return (
@@ -81,7 +137,7 @@ export default function FieldTemplateDetailScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        
+
         {/* Metadata Card */}
         <AppCard style={styles.card}>
           <View style={styles.headerRow}>
@@ -98,7 +154,7 @@ export default function FieldTemplateDetailScreen() {
               </View>
             </View>
           </View>
-          
+
           {template.description ? (
             <View style={styles.descSection}>
               <AppText variant="caption" color={colors.textMuted}>Description</AppText>
@@ -107,16 +163,16 @@ export default function FieldTemplateDetailScreen() {
               </AppText>
             </View>
           ) : null}
-          
+
           <View style={styles.metaRow}>
-             <View>
-               <AppText variant="caption" color={colors.textMuted}>Created</AppText>
-               <AppText variant="body" style={{ fontWeight: '600' }}>{formatDate(template.created_at)}</AppText>
-             </View>
-             <View style={{ alignItems: 'flex-end' }}>
-               <AppText variant="caption" color={colors.textMuted}>Updated</AppText>
-               <AppText variant="body" style={{ fontWeight: '600' }}>{formatDate(template.updated_at)}</AppText>
-             </View>
+            <View>
+              <AppText variant="caption" color={colors.textMuted}>Created</AppText>
+              <AppText variant="body" style={{ fontWeight: '600' }}>{formatDate(template.created_at)}</AppText>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <AppText variant="caption" color={colors.textMuted}>Updated</AppText>
+              <AppText variant="body" style={{ fontWeight: '600' }}>{formatDate(template.updated_at)}</AppText>
+            </View>
           </View>
         </AppCard>
 
@@ -128,43 +184,43 @@ export default function FieldTemplateDetailScreen() {
         {template.items.map((item, index) => (
           <AppCard key={item.uid} style={styles.itemCard}>
             <View style={styles.itemHeader}>
-               <View style={styles.itemTypeBadge}>
-                 <AppText style={styles.itemTypeText}>{item.field_type.toUpperCase().replace('_', ' ')}</AppText>
-               </View>
-               {item.is_required && (
-                 <AppText variant="caption" color={colors.danger} style={{ fontWeight: '700' }}>
-                   * Required
-                 </AppText>
-               )}
+              <View style={styles.itemTypeBadge}>
+                <AppText style={styles.itemTypeText}>{item.field_type.toUpperCase().replace('_', ' ')}</AppText>
+              </View>
+              {item.is_required && (
+                <AppText variant="caption" color={colors.danger} style={{ fontWeight: '700' }}>
+                  * Required
+                </AppText>
+              )}
             </View>
-            
+
             <View style={styles.itemRow}>
-               <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Label</AppText>
-               <AppText variant="body" style={{ fontWeight: '700' }}>{item.label}</AppText>
+              <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Label</AppText>
+              <AppText variant="body" style={{ fontWeight: '700' }}>{item.label}</AppText>
             </View>
-            
+
             <View style={styles.itemRow}>
-               <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Key</AppText>
-               <AppText variant="body" color={colors.textSecondary} style={styles.codeText}>{item.key}</AppText>
+              <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Key</AppText>
+              <AppText variant="body" color={colors.textSecondary} style={styles.codeText}>{item.key}</AppText>
             </View>
-            
-            {item.options && item.options.length > 0 && (
+
+            {Array.isArray(item.options) && item.options.length > 0 && (
               <View style={styles.itemRow}>
-                 <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Options</AppText>
-                 <View style={styles.optionsWrap}>
-                    {item.options.map((opt, idx) => (
-                       <View key={idx} style={styles.optionChip}>
-                          <AppText variant="caption" style={{ fontWeight: '600' }}>{opt}</AppText>
-                       </View>
-                    ))}
-                 </View>
+                <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Options</AppText>
+                <View style={styles.optionsWrap}>
+                  {item.options.map((opt, idx) => (
+                    <View key={idx} style={styles.optionChip}>
+                      <AppText variant="caption" style={{ fontWeight: '600' }}>{opt}</AppText>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
-            
+
             {!item.is_active && (
               <View style={styles.itemRow}>
-                 <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Status</AppText>
-                 <AppText variant="body" color={colors.textMuted} style={{ fontStyle: 'italic' }}>Inactive</AppText>
+                <AppText variant="caption" color={colors.textMuted} style={styles.itemLabel}>Status</AppText>
+                <AppText variant="body" color={colors.textMuted} style={{ fontStyle: 'italic' }}>Inactive</AppText>
               </View>
             )}
           </AppCard>

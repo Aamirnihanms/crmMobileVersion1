@@ -4,14 +4,13 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import AppButton from '@/src/components/common/AppButton';
 import AppInput from '@/src/components/common/AppInput';
@@ -83,7 +82,7 @@ export default function CreateEditFieldTemplateScreen() {
         key: item.key,
         field_type: item.field_type,
         is_required: item.is_required,
-        options: item.options ? item.options.join(', ') : '',
+        options: Array.isArray(item.options) ? item.options.join(', ') : '',
       })));
     }
   }, [data, isEditMode]);
@@ -210,16 +209,13 @@ export default function CreateEditFieldTemplateScreen() {
 
   return (
     <View style={styles.container}>
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={80}
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.body}
-          keyboardShouldPersistTaps="handled"
-        >
           <AppInput
             label="Template Name *"
             placeholder="e.g. Applicant Additional Info"
@@ -308,8 +304,7 @@ export default function CreateEditFieldTemplateScreen() {
             </View>
           ))}
 
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       <View style={styles.footer}>
         <AppButton
