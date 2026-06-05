@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -15,8 +15,12 @@ import AppText from '@/src/components/common/AppText';
 
 import { colors, spacing } from '@/src/theme';
 
-import { useBatches } from '@/src/queries/masters/batches.query';
-import { useCourses } from '@/src/queries/masters/courses.query';
+import { Batch } from '@/src/api/batches.api';
+import {
+  fetchBatchesPage,
+  fetchCoursesPage,
+} from '@/src/api/masters/paginatedMasters.api';
+import type { Course } from '@/src/types/course';
 
 type Props = {
   visible: boolean;
@@ -43,8 +47,77 @@ export default function ConvertLeadModalPro({
     payment_method: null,
   });
 
-  const { data: courses = [], error: coursesError } = useCourses(visible);
-  const { data: batches = [], error: batchesError } = useBatches(form.course_id, visible);
+  // ── Caches for full course/batch objects ──
+  const [courseMap, setCourseMap] = useState<Record<string, Course>>({});
+  const [batchMap, setBatchMap] = useState<Record<string, Batch>>({});
+  const [fetchError, setFetchError] = useState<{ courses?: string; batches?: string }>({});
+
+  // Pre-seed course cache from the lead's pre-filled course so the label is visible
+  // immediately in the closed dropdown (avoids the "blank label until first open" UX gap)
+  useEffect(() => {
+    const seed = lead?.course_details;
+    if (seed?.id) {
+      setCourseMap((prev) => ({ ...prev, [String(seed.id)]: seed as Course }));
+    }
+  }, [lead]);
+
+  // ── AppSelect fetchOptions callbacks (backend search + infinite scroll) ──
+
+  const fetchCourseOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      setFetchError((e) => ({ ...e, courses: undefined }));
+      try {
+        const result = await fetchCoursesPage({ page, pageSize, search });
+        setCourseMap((prev) => {
+          const next = { ...prev };
+          result.items.forEach((c) => {
+            next[String(c.id)] = c;
+          });
+          return next;
+        });
+        return {
+          options: result.items.map((c) => ({ label: c.course_name, value: c.id })),
+          hasNextPage: result.hasNextPage,
+        };
+      } catch (err: any) {
+        setFetchError((e) => ({ ...e, courses: getErrorMessage(err) }));
+        return { options: [], hasNextPage: false };
+      }
+    },
+    []
+  );
+
+  const fetchBatchOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      if (!form.course_id) {
+        return { options: [], hasNextPage: false };
+      }
+      setFetchError((e) => ({ ...e, batches: undefined }));
+      try {
+        const result = await fetchBatchesPage({
+          page,
+          pageSize,
+          search,
+          courseId: form.course_id,
+        });
+        setBatchMap((prev) => {
+          const next = { ...prev };
+          result.items.forEach((b) => {
+            next[b.uid] = b;
+          });
+          return next;
+        });
+        return {
+          options: result.items.map((b) => ({ label: b.batch_name, value: b.uid })),
+          hasNextPage: result.hasNextPage,
+        };
+      } catch (err: any) {
+        setFetchError((e) => ({ ...e, batches: getErrorMessage(err) }));
+        return { options: [], hasNextPage: false };
+      }
+    },
+    [form.course_id]
+  );
 
   const getErrorMessage = (err: any) => {
     if (!err) return undefined;
@@ -64,17 +137,37 @@ export default function ConvertLeadModalPro({
     setForm((prev: any) => ({
       ...prev,
       batch_uid: null,
+      attendance_mode: null,
+      // preferred_location intentionally NOT reset
     }));
   }, [form.course_id]);
 
-  const selectedCourse = useMemo(() => {
-    return courses.find((c: any) => c.id === form.course_id);
-  }, [form.course_id, courses]);
+  const selectedCourseObj = form.course_id ? courseMap[String(form.course_id)] : undefined;
+  const selectedBatchObj = form.batch_uid ? batchMap[form.batch_uid] : null;
 
-  const attendanceModes = [
-    { label: 'Online', value: '1' },
-    { label: 'Offline', value: '2' },
-  ];
+  // Derive attendance mode options from the selected batch's course_mode_details
+  const attendanceModeOptions = useMemo(() => {
+    if (!selectedBatchObj) return [];
+    return (selectedBatchObj.course_mode_details ?? [])
+      .filter((m) => m.active)
+      .map((m) => ({ label: m.name, value: String(m.id) }));
+  }, [selectedBatchObj]);
+
+  // Show the currently-selected option in the closed dropdown so the label persists
+  const selectedCourseOption = useMemo(
+    () =>
+      selectedCourseObj
+        ? [{ label: selectedCourseObj.course_name, value: selectedCourseObj.id }]
+        : [],
+    [selectedCourseObj]
+  );
+  const selectedBatchOption = useMemo(
+    () =>
+      selectedBatchObj
+        ? [{ label: selectedBatchObj.batch_name, value: selectedBatchObj.uid }]
+        : [],
+    [selectedBatchObj]
+  );
 
   const paymentMethods = [
     { label: 'Cash', value: 'cash' },
@@ -82,7 +175,7 @@ export default function ConvertLeadModalPro({
     { label: 'Bank Transfer', value: 'bank' },
   ];
 
-  const apiError = useMemo(() => {
+  const submitError = useMemo(() => {
     if (!error) return null;
     const data = error?.response?.data;
     return {
@@ -105,7 +198,7 @@ export default function ConvertLeadModalPro({
     }
 
     // Find the selected batch to get admission_fees
-    const selectedBatch = batches.find((b: any) => b.uid === form.batch_uid);
+    const selectedBatch = form.batch_uid ? batchMap[form.batch_uid] : null;
     const payment_amount = selectedBatch?.admission_fees || 0;
 
     const payload = {
@@ -142,30 +235,29 @@ export default function ConvertLeadModalPro({
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             <AppSelect
               label="Selected Course"
+              options={selectedCourseOption}
               value={form.course_id}
-              options={courses.map((c: any) => ({
-                label: c.course_name,
-                value: c.id,
-              }))}
+              fetchOptions={fetchCourseOptions}
+              queryKey={['convert-lead', 'courses']}
+              error={fetchError.courses}
               onSelect={(v) => setForm({ ...form, course_id: v })}
-              error={getErrorMessage(coursesError)}
             />
 
             <AppSelect
-              label="Select Batch"
+              label={form.course_id ? 'Select Batch' : 'Select course first'}
+              options={selectedBatchOption}
               value={form.batch_uid}
-              options={batches.map(b => ({
-                label: b.batch_name,
-                value: b.uid,
-              }))}
+              fetchOptions={form.course_id ? fetchBatchOptions : undefined}
+              queryKey={['convert-lead', 'batches', form.course_id]}
+              error={!form.course_id ? 'Please select a course first' : fetchError.batches}
               onSelect={(v) => setForm({ ...form, batch_uid: v })}
-              error={getErrorMessage(batchesError)}
             />
 
             <AppSelect
-              label="Attendance Mode"
+              label={form.batch_uid ? 'Attendance Mode' : 'Select batch first'}
+              options={attendanceModeOptions}
               value={form.attendance_mode}
-              options={attendanceModes}
+              error={!form.batch_uid ? 'Please select a batch first' : undefined}
               onSelect={(v) => setForm({ ...form, attendance_mode: v })}
             />
 
@@ -173,7 +265,7 @@ export default function ConvertLeadModalPro({
               label="Preferred Location"
               value={form.preferred_location}
               options={
-                selectedCourse?.location_details?.map((l: any) => ({
+                selectedCourseObj?.location_details?.map((l: any) => ({
                   label: l.name,
                   value: l.id,
                 })) || []
@@ -188,17 +280,17 @@ export default function ConvertLeadModalPro({
               onSelect={(v) => setForm({ ...form, payment_method: v })}
             />
 
-            {apiError && (
+            {submitError && (
               <View style={styles.errorContainer}>
                 <View style={styles.errorHeader}>
                   <Ionicons name="alert-circle" size={20} color={colors.danger} />
                   <AppText style={styles.errorTitle}>Enrollment Failed</AppText>
                 </View>
-                <AppText style={styles.errorMessage}>{apiError.message}</AppText>
-                {apiError.suggestion && (
+                <AppText style={styles.errorMessage}>{submitError.message}</AppText>
+                {submitError.suggestion && (
                   <View style={styles.suggestionBox}>
                     <AppText variant="caption" style={styles.suggestionText}>
-                      💡 {apiError.suggestion}
+                      💡 {submitError.suggestion}
                     </AppText>
                   </View>
                 )}

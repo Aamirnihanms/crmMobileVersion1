@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useCallback, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Pressable,
@@ -11,21 +12,94 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { colors, spacing } from '@/src/theme';
 import AppCard from '../../components/common/AppCard';
 import AppText from '../../components/common/AppText';
+import EditJobModal from '../../components/jobs/EditJobModal';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
-import { useJobDetail } from '../../queries/jobs.query';
+import { useDeleteJob, useJobDetail } from '../../queries/jobs.query';
 import { JobStage } from '../../api/jobs.api';
 
 type JobDetailRouteProp = RouteProp<MoreStackParamList, 'JobDetail'>;
 
 export default function JobDetailScreen() {
   const route = useRoute<JobDetailRouteProp>();
+  const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const { uid } = route.params;
 
   const { data: detailResponse, isLoading, isError, error, refetch } = useJobDetail(uid);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const deleteMutation = useDeleteJob(detailResponse?.company_uid ?? '');
+
+  const handleDelete = useCallback(() => {
+    if (!detailResponse) return;
+    Alert.alert(
+      'Delete Job',
+      `Are you sure you want to delete "${detailResponse.job.title}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteMutation.mutate(detailResponse.job.uid, {
+              onSuccess: () => navigation.goBack(),
+              onError: (error: any) =>
+                Alert.alert('Error', error?.response?.data?.message || 'Failed to delete job'),
+            });
+          },
+        },
+      ]
+    );
+  }, [detailResponse, deleteMutation, navigation]);
+
+  useLayoutEffect(() => {
+    if (!detailResponse) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable
+            onPress={() => setShowEditModal(true)}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.7 : 1,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.primaryLight + '15',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 8,
+            })}
+          >
+            <Ionicons name="pencil" size={20} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={handleDelete}
+            disabled={deleteMutation.isPending}
+            style={({ pressed }) => ({
+              opacity: pressed || deleteMutation.isPending ? 0.7 : 1,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.danger + '15',
+              alignItems: 'center',
+              justifyContent: 'center',
+            })}
+          >
+            <Ionicons
+              name={deleteMutation.isPending ? 'hourglass-outline' : 'trash-outline'}
+              size={20}
+              color={colors.danger}
+            />
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, detailResponse, deleteMutation, handleDelete]);
 
   if (isLoading) {
     return (
@@ -69,6 +143,7 @@ export default function JobDetailScreen() {
   };
 
   return (
+    <>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header Section */}
       <View style={styles.headerSection}>
@@ -285,6 +360,19 @@ export default function JobDetailScreen() {
         <View style={{ height: 40 }} />
       </View>
     </ScrollView>
+    {detailResponse && (
+      <EditJobModal
+        visible={showEditModal}
+        companyUid={detailResponse.company_uid}
+        job={detailResponse.job}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => {
+          setShowEditModal(false);
+          refetch();
+        }}
+      />
+    )}
+  </>
   );
 }
 

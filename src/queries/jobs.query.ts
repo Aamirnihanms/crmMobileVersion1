@@ -9,12 +9,16 @@ import {
   fetchCompanyJobs,
   createCompany,
   updateCompany,
+  deleteCompany,
   createPortalUser,
   createFieldTemplate,
   fetchFieldTemplateById,
   updateFieldTemplate,
   deleteFieldTemplate,
   createCompanyJob,
+  updateJob,
+  deleteJob,
+  type UpdateJobPayload,
 } from '../api/jobs.api';
 
 export const useInfiniteJobs = (search: string) => {
@@ -105,6 +109,16 @@ export const useUpdateCompany = (uid: string) => {
   });
 };
 
+export const useDeleteCompany = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (uid: string) => deleteCompany(uid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+};
+
 export const useCreatePortalUser = (companyUid: string) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -163,6 +177,30 @@ export const useCreateCompanyJob = (companyUid: string) => {
       createCompanyJob(companyUid, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-jobs', companyUid] });
+    },
+  });
+};
+
+export const useUpdateJob = (companyUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ jobUid, data }: { jobUid: string; data: UpdateJobPayload }) =>
+      updateJob(companyUid, jobUid, data),
+    onSuccess: (_, { jobUid }) => {
+      queryClient.invalidateQueries({ queryKey: ['job', jobUid] });
+      queryClient.invalidateQueries({ queryKey: ['company-jobs', companyUid] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+};
+
+export const useDeleteJob = (companyUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (jobUid: string) => deleteJob(companyUid, jobUid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-jobs', companyUid] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
   });
 };

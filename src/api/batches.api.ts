@@ -5,6 +5,14 @@ export type Batch = {
   batch_name: string;
   course_name: string;
   course_mode_names: string[];
+  course_mode_details?: {
+    id: number;
+    name: string;
+    value: string;
+    deletable: boolean;
+    editable: boolean;
+    active: boolean;
+  }[];
   location_name: string;
   start_date: string;
   end_date: string;

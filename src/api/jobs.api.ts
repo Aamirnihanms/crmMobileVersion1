@@ -318,6 +318,11 @@ export const updateCompany = async (
   return res.data;
 };
 
+export const deleteCompany = async (uid: string): Promise<{ status: string; message?: string }> => {
+  const res = await http.delete(`/jobs/companies/${uid}/`);
+  return res.data;
+};
+
 export type CreatePortalUserPayload = {
   company: number;   // company integer ID
   full_name: string;
@@ -417,6 +422,32 @@ export const createCompanyJob = async (
   data: CreateCompanyJobPayload
 ): Promise<CreateCompanyJobResponse> => {
   const res = await http.post(`/jobs/companies/${companyUid}/jobs/`, data);
+  return res.data;
+};
+
+export type UpdateJobPayload = {
+  title?: string;
+  description?: string;
+  location?: string;
+  expires_at?: string;
+  is_published?: boolean;
+  custom_field_template_uid?: string | null;
+};
+
+export const updateJob = async (
+  companyUid: string,
+  jobUid: string,
+  data: UpdateJobPayload
+): Promise<CreateCompanyJobResponse> => {
+  const res = await http.patch(`/jobs/companies/${companyUid}/jobs/${jobUid}/`, data);
+  return res.data;
+};
+
+export const deleteJob = async (
+  companyUid: string,
+  jobUid: string
+): Promise<{ status: string; message?: string }> => {
+  const res = await http.delete(`/jobs/companies/${companyUid}/jobs/${jobUid}/`);
   return res.data;
 };
 

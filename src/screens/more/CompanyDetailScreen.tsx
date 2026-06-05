@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Pressable,
@@ -23,6 +24,7 @@ import {
   useCompanyFieldTemplates,
   useCompanyJobs,
   useCompanyPortalUsers,
+  useDeleteCompany,
 } from '../../queries/jobs.query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -112,6 +114,30 @@ export default function CompanyDetailScreen() {
   const { data: portalUsersRes, isLoading: loadingUsers, refetch: refetchUsers } = useCompanyPortalUsers(uid);
   const { data: templatesRes, isLoading: loadingTemplates, refetch: refetchTemplates } = useCompanyFieldTemplates(uid);
   const { data: jobsRes, isLoading: loadingJobs, refetch: refetchJobs } = useCompanyJobs(uid);
+
+  const deleteMutation = useDeleteCompany();
+
+  const handleDelete = () => {
+    if (!companyRes) return;
+    Alert.alert(
+      'Delete Company',
+      `Are you sure you want to delete "${companyRes.company.name}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteMutation.mutate(uid, {
+              onSuccess: () => navigation.goBack(),
+              onError: (error: any) =>
+                Alert.alert('Error', error?.response?.data?.message || 'Failed to delete company'),
+            });
+          },
+        },
+      ]
+    );
+  };
 
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showAddJobModal, setShowAddJobModal] = useState(false);
@@ -426,6 +452,34 @@ export default function CompanyDetailScreen() {
           </View>
         </AppCard>
 
+        {/* Danger Zone */}
+        <AppCard style={[styles.card, styles.dangerCard]}>
+          <View style={styles.dangerHeader}>
+            <Ionicons name="warning-outline" size={18} color={colors.danger} />
+            <AppText variant="subtitle" style={styles.dangerTitle}>Danger Zone</AppText>
+          </View>
+          <AppText variant="caption" color={colors.textMuted} style={styles.dangerSubtitle}>
+            Deleting this company is permanent and cannot be undone.
+          </AppText>
+          <Pressable
+            onPress={handleDelete}
+            disabled={deleteMutation.isPending}
+            style={({ pressed }) => [
+              styles.deleteBtn,
+              { opacity: pressed || deleteMutation.isPending ? 0.7 : 1 },
+            ]}
+          >
+            <Ionicons
+              name={deleteMutation.isPending ? 'hourglass-outline' : 'trash-outline'}
+              size={18}
+              color={colors.surface}
+            />
+            <AppText variant="body" color={colors.surface} style={styles.deleteBtnText}>
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete Company'}
+            </AppText>
+          </Pressable>
+        </AppCard>
+
         <View style={{ height: 40 }} />
       </View>
 
@@ -639,5 +693,37 @@ const styles = StyleSheet.create({
   emptySection: {
     alignItems: 'center',
     paddingVertical: spacing.lg,
+  },
+  /* Danger zone */
+  dangerCard: {
+    borderWidth: 1,
+    borderColor: colors.danger + '30',
+    backgroundColor: colors.dangerBgSoft,
+  },
+  dangerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  dangerTitle: {
+    fontWeight: '800',
+    color: colors.dangerStrong,
+  },
+  dangerSubtitle: {
+    marginBottom: spacing.md,
+    lineHeight: 18,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.danger,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  deleteBtnText: {
+    fontWeight: '700',
   },
 });

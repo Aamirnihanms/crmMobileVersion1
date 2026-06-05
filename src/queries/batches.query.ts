@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { fetchPaginatedBatches, fetchBatchDetail, createBatch, updateBatch, deleteBatch, markBatchCompleted, fetchBatchSessions, createBatchSession, fetchBatchSessionDetail, updateBatchSession, deleteBatchSession, type BatchesPageResponse, type BatchesFilters } from '../api/batches.api';
 
 export const useInfiniteBatches = (
@@ -6,7 +6,13 @@ export const useInfiniteBatches = (
   filters: BatchesFilters = {},
   options: any = {}
 ) => {
-  return useInfiniteQuery({
+  return useInfiniteQuery<
+    BatchesPageResponse,
+    Error,
+    InfiniteData<BatchesPageResponse>,
+    ['batches-paginated', string, BatchesFilters],
+    number
+  >({
     queryKey: ['batches-paginated', search, filters],
     initialPageParam: 1,
 

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   StyleSheet,
@@ -16,15 +16,19 @@ import AppInput from '@/src/components/common/AppInput';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
+import { Batch } from '@/src/api/batches.api';
+import {
+  fetchBatchesPage,
+  fetchCounselorsPage,
+  fetchCoursesPage,
+} from '@/src/api/masters/paginatedMasters.api';
 import { useCreateBatchChangeRequest } from '@/src/queries/batch-change.query';
-import { useInfiniteBatches } from '@/src/queries/batches.query';
 import { useEnrollmentDetails } from '@/src/queries/enrollment.query';
-import { useCounselors } from '@/src/queries/masters/counselors.query';
-import { useCourses } from '@/src/queries/masters/courses.query';
 import { useStudentProfile } from '@/src/queries/students.query';
 import { colors, spacing } from '@/src/theme';
+import type { Course } from '@/src/types/course';
+import type { Counselor } from '@/src/api/masters/counselors.api';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
-import { Batch } from '@/src/api/batches.api';
 
 type RouteParams = {
   BatchChange: {
@@ -32,12 +36,6 @@ type RouteParams = {
     studentId: string;
   };
 };
-
-const ATTENDANCE_MODES = [
-  { label: 'Online', value: 'online' },
-  { label: 'Offline', value: 'offline' },
-  { label: 'Hybrid', value: 'hybrid' },
-];
 
 const PRIORITY_OPTIONS = [
   { label: '🔴  High', value: 'high' },
@@ -131,8 +129,6 @@ export default function BatchChangeScreen() {
   // Data
   const { data: enrollment, isLoading: isEnrollmentLoading } = useEnrollmentDetails(enrollmentId);
   const { data: student, isLoading: isStudentLoading } = useStudentProfile(studentId);
-  const { data: courses, isLoading: isCoursesLoading } = useCourses();
-  const { data: counselors, isLoading: isCounselorsLoading } = useCounselors();
 
   // Form state
   const [selectedCourseId, setSelectedCourseId] = useState('');
@@ -143,10 +139,93 @@ export default function BatchChangeScreen() {
   const [reason, setReason] = useState('');
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
 
-  // Fetch batches filtered by selected course
-  const { data: batchPages, isLoading: isBatchesLoading } = useInfiniteBatches('', {
-    course_id: selectedCourseId || undefined,
-  });
+  // ── Caches for full objects so we can look up names & seat info by id ──
+  const [courseMap, setCourseMap] = useState<Record<string, Course>>({});
+  const [batchMap, setBatchMap] = useState<Record<string, Batch>>({});
+  const [counselorMap, setCounselorMap] = useState<Record<string, Counselor>>({});
+
+  // Seed the counselor cache from the student profile (for pre-fill lookup)
+  useEffect(() => {
+    if (!student) return;
+    const prefill = (student as any).admission_counselor;
+    if (prefill && prefill.uid) {
+      setCounselorMap((prev) => ({ ...prev, [prefill.uid]: prefill as Counselor }));
+    }
+  }, [student]);
+
+  // ── AppSelect fetchOptions callbacks (backend search + infinite scroll) ──
+
+  const fetchCourseOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCoursesPage({ page, pageSize, search });
+      setCourseMap((prev) => {
+        const next = { ...prev };
+        result.items.forEach((c) => {
+          next[String(c.id)] = c;
+        });
+        return next;
+      });
+      return {
+        options: result.items.map((c) => ({
+          label: c.course_name,
+          value: String(c.id),
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
+
+  const fetchBatchOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      if (!selectedCourseId) {
+        return { options: [], hasNextPage: false };
+      }
+      const result = await fetchBatchesPage({
+        page,
+        pageSize,
+        search,
+        courseId: selectedCourseId,
+      });
+      setBatchMap((prev) => {
+        const next = { ...prev };
+        result.items.forEach((b) => {
+          next[b.uid] = b;
+        });
+        return next;
+      });
+      return {
+        options: result.items.map((b) => ({
+          label: b.batch_name,
+          value: b.uid,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    [selectedCourseId]
+  );
+
+  const fetchCounselorOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCounselorsPage({ page, pageSize, search });
+      setCounselorMap((prev) => {
+        const next = { ...prev };
+        result.items.forEach((c) => {
+          const key = c.uid ?? String(c.id);
+          next[key] = c;
+        });
+        return next;
+      });
+      return {
+        options: result.items.map((c) => ({
+          label: c.full_name,
+          value: c.uid ?? String(c.id),
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
 
   const createMutation = useCreateBatchChangeRequest();
 
@@ -166,38 +245,60 @@ export default function BatchChangeScreen() {
     if (uid) setSelectedCounselorUid(uid);
   }, [student]);
 
-  const isLoading = isEnrollmentLoading || isStudentLoading || isCoursesLoading || isCounselorsLoading;
+  const isLoading = isEnrollmentLoading || isStudentLoading;
 
-  if (isLoading) return <AppLoader />;
-  if (!enrollment) return null;
+  // ── Derived data (hooks must be called unconditionally — keep above any early returns) ──
+  const selectedCourseObj = selectedCourseId ? courseMap[selectedCourseId] : undefined;
+  const selectedBatch = selectedBatchId ? batchMap[selectedBatchId] ?? null : null;
+  const selectedCounselorObj = selectedCounselorUid
+    ? counselorMap[selectedCounselorUid]
+    : undefined;
 
-  // ── Derived data ──────────────────────────────────────────────────────────
+  // Show the currently-selected option in the closed dropdown so the label persists
+  const selectedCourseOption = useMemo(
+    () =>
+      selectedCourseObj
+        ? [{ label: selectedCourseObj.course_name, value: String(selectedCourseObj.id) }]
+        : [],
+    [selectedCourseObj]
+  );
+  const selectedBatchOption = useMemo(
+    () =>
+      selectedBatch
+        ? [{ label: selectedBatch.batch_name, value: selectedBatch.uid }]
+        : [],
+    [selectedBatch]
+  );
+  const selectedCounselorOption = useMemo(
+    () =>
+      selectedCounselorObj
+        ? [
+            {
+              label: selectedCounselorObj.full_name,
+              value: selectedCounselorObj.uid ?? String(selectedCounselorObj.id),
+            },
+          ]
+        : [],
+    [selectedCounselorObj]
+  );
 
-  const courseOptions = (courses || []).map((c: any) => ({
-    label: c.course_name,
-    value: String(c.id),
-  }));
-
-  const allBatches = batchPages?.pages.flatMap((p) => p.batches) || [];
-
-  const batchOptions = allBatches.map((b) => ({
-    label: b.batch_name,
-    value: b.uid,
-  }));
-
-  const counselorOptions = (counselors || []).map((c: any) => ({
-    label: c.full_name,
-    value: c.uid ?? c.id?.toString(),
-  }));
-
-  // The full batch object for the currently selected batch
-  const selectedBatch = allBatches.find((b) => b.uid === selectedBatchId) ?? null;
+  // Derive attendance mode options from the selected batch's course_mode_details
+  // (real backend slugs, filtered to active modes only)
+  const attendanceModeOptions = useMemo(() => {
+    if (!selectedBatch) return [];
+    return (selectedBatch.course_mode_details ?? [])
+      .filter((m) => m.active)
+      .map((m) => ({ label: m.name, value: m.value }));
+  }, [selectedBatch]);
 
   // Seat availability check (live, recomputed on batch/mode change)
   const seatCheck = useMemo(
     () => checkSeatAvailability(selectedBatch, attendanceMode),
     [selectedBatch, attendanceMode]
   );
+
+  if (isLoading) return <AppLoader />;
+  if (!enrollment) return null;
 
   // ── Submit ────────────────────────────────────────────────────────────────
 
@@ -335,20 +436,28 @@ export default function BatchChangeScreen() {
         {/* Course */}
         <AppSelect
           label="Select Course"
-          options={courseOptions}
+          options={selectedCourseOption}
           value={selectedCourseId}
+          fetchOptions={fetchCourseOptions}
+          queryKey={['batch-change', 'courses']}
           onSelect={(val) => {
-            setSelectedCourseId(val);
+            setSelectedCourseId(String(val));
             setSelectedBatchId('');
           }}
         />
 
-        {/* Batch */}
+        {/* Batch — gated on course selection (no fetchOptions until a course is chosen) */}
         <AppSelect
-          label={isBatchesLoading ? 'Loading batches…' : 'Select Batch'}
-          options={batchOptions}
+          label={selectedCourseId ? 'Select Batch' : 'Select course first'}
+          options={selectedBatchOption}
           value={selectedBatchId}
-          onSelect={setSelectedBatchId}
+          fetchOptions={selectedCourseId ? fetchBatchOptions : undefined}
+          queryKey={['batch-change', 'batches', selectedCourseId]}
+          error={!selectedCourseId ? 'Please select a course first' : undefined}
+          onSelect={(val) => {
+            setSelectedBatchId(String(val));
+            setAttendanceMode('');
+          }}
         />
 
         {/* ── Seat Availability Banner ── */}
@@ -397,19 +506,22 @@ export default function BatchChangeScreen() {
           </View>
         )}
 
-        {/* Attendance Mode */}
+        {/* Attendance Mode — gated on batch selection; options derived from selected batch */}
         <AppSelect
-          label="Attendance Mode"
-          options={ATTENDANCE_MODES}
+          label={selectedBatchId ? 'Attendance Mode' : 'Select batch first'}
+          options={attendanceModeOptions}
           value={attendanceMode}
+          error={!selectedBatchId ? 'Please select a batch first' : undefined}
           onSelect={setAttendanceMode}
         />
 
         {/* Counselor */}
         <AppSelect
           label="Counselor"
-          options={counselorOptions}
+          options={selectedCounselorOption}
           value={selectedCounselorUid}
+          fetchOptions={fetchCounselorOptions}
+          queryKey={['batch-change', 'counselors']}
           onSelect={setSelectedCounselorUid}
         />
 

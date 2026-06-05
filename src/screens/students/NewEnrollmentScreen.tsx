@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -15,26 +15,23 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import AppButton from '@/src/components/common/AppButton';
 import AppCard from '@/src/components/common/AppCard';
 import AppInput from '@/src/components/common/AppInput';
-import AppLoader from '@/src/components/common/AppLoader';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 
-import { useInfiniteBatches } from '@/src/queries/batches.query';
-import { useCounselors } from '@/src/queries/masters/counselors.query';
-import { useCourses } from '@/src/queries/masters/courses.query';
+import { Batch } from '@/src/api/batches.api';
+import {
+  fetchBatchesPage,
+  fetchCounselorsPage,
+  fetchCoursesPage,
+} from '@/src/api/masters/paginatedMasters.api';
 import { useAddNewEnrollment } from '@/src/queries/students.query';
 
 import { colors, spacing } from '@/src/theme';
+import type { Course } from '@/src/types/course';
+import type { Counselor } from '@/src/api/masters/counselors.api';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
-import { Batch } from '@/src/api/batches.api';
 
 /* ─── Constants ─── */
-
-const ATTENDANCE_MODES = [
-  { label: 'Online', value: '1' },
-  { label: 'Offline', value: '2' },
-  { label: 'Hybrid', value: '3' },
-];
 
 const PAYMENT_METHODS = [
   { label: 'Cash', value: 'cash' },
@@ -152,39 +149,130 @@ export default function NewEnrollmentScreen() {
   const [paymentReference, setPaymentReference] = useState('');
 
   // Data hooks
-  const { data: courses, isLoading: isCoursesLoading } = useCourses();
-  const { data: counselors, isLoading: isCounselorsLoading } = useCounselors();
-
-  const { data: batchPages, isLoading: isBatchesLoading } = useInfiniteBatches('', {
-    course_id: selectedCourseId || undefined,
-  });
-
   const enrollMutation = useAddNewEnrollment();
 
-  const isLoading = isCoursesLoading || isCounselorsLoading;
+  // ── Caches for full objects so we can look up names & seat info by id ──
+  const [courseMap, setCourseMap] = useState<Record<string, Course>>({});
+  const [batchMap, setBatchMap] = useState<Record<string, Batch>>({});
+  const [counselorMap, setCounselorMap] = useState<Record<string, Counselor>>({});
 
-  if (isLoading) return <AppLoader />;
+  // ── AppSelect fetchOptions callbacks (backend search + infinite scroll) ──
 
-  // ── Derived data ──
-  const courseOptions = (courses || []).map((c: any) => ({
-    label: c.course_name,
-    value: String(c.id),
-  }));
+  const fetchCourseOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCoursesPage({ page, pageSize, search });
+      setCourseMap((prev) => {
+        const next = { ...prev };
+        result.items.forEach((c) => {
+          next[String(c.id)] = c;
+        });
+        return next;
+      });
+      return {
+        options: result.items.map((c) => ({
+          label: c.course_name,
+          value: String(c.id),
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
 
-  const allBatches = batchPages?.pages.flatMap((p) => p.batches) || [];
+  const fetchBatchOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      if (!selectedCourseId) {
+        return { options: [], hasNextPage: false };
+      }
+      const result = await fetchBatchesPage({
+        page,
+        pageSize,
+        search,
+        courseId: selectedCourseId,
+      });
+      setBatchMap((prev) => {
+        const next = { ...prev };
+        result.items.forEach((b) => {
+          next[b.uid] = b;
+        });
+        return next;
+      });
+      return {
+        options: result.items.map((b) => ({
+          label: b.batch_name,
+          value: b.uid,
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    [selectedCourseId]
+  );
 
-  const batchOptions = allBatches.map((b) => ({
-    label: b.batch_name,
-    value: b.uid,
-  }));
+  const fetchCounselorOptions = useCallback(
+    async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
+      const result = await fetchCounselorsPage({ page, pageSize, search });
+      setCounselorMap((prev) => {
+        const next = { ...prev };
+        result.items.forEach((c) => {
+          const key = c.uid ?? String(c.id);
+          next[key] = c;
+        });
+        return next;
+      });
+      return {
+        options: result.items.map((c) => ({
+          label: c.full_name,
+          value: c.uid ?? String(c.id),
+        })),
+        hasNextPage: result.hasNextPage,
+      };
+    },
+    []
+  );
 
-  const counselorOptions = (counselors || []).map((c: any) => ({
-    label: c.full_name,
-    value: c.uid ?? c.id?.toString(),
-  }));
+  // ── Derived data (hooks must be called unconditionally — keep above any early returns) ──
+  const selectedCourseObj = selectedCourseId ? courseMap[selectedCourseId] : undefined;
+  const selectedBatch = selectedBatchId ? batchMap[selectedBatchId] ?? null : null;
+  const selectedCounselorObj = selectedCounselorUid
+    ? counselorMap[selectedCounselorUid]
+    : undefined;
 
-  // The full batch object for the currently selected batch
-  const selectedBatch = allBatches.find((b) => b.uid === selectedBatchId) ?? null;
+  // Show the currently-selected option in the closed dropdown so the label persists
+  const selectedCourseOption = useMemo(
+    () =>
+      selectedCourseObj
+        ? [{ label: selectedCourseObj.course_name, value: String(selectedCourseObj.id) }]
+        : [],
+    [selectedCourseObj]
+  );
+  const selectedBatchOption = useMemo(
+    () =>
+      selectedBatch
+        ? [{ label: selectedBatch.batch_name, value: selectedBatch.uid }]
+        : [],
+    [selectedBatch]
+  );
+  const selectedCounselorOption = useMemo(
+    () =>
+      selectedCounselorObj
+        ? [
+            {
+              label: selectedCounselorObj.full_name,
+              value: selectedCounselorObj.uid ?? String(selectedCounselorObj.id),
+            },
+          ]
+        : [],
+    [selectedCounselorObj]
+  );
+
+  // Derive attendance mode options from the selected batch's course_mode_details
+  // (real backend IDs, filtered to active modes only)
+  const attendanceModeOptions = useMemo(() => {
+    if (!selectedBatch) return [];
+    return (selectedBatch.course_mode_details ?? [])
+      .filter((m) => m.active)
+      .map((m) => ({ label: m.name, value: String(m.id) }));
+  }, [selectedBatch]);
 
   // Seat availability check
   const seatCheck = useMemo(
@@ -311,32 +399,43 @@ export default function NewEnrollmentScreen() {
           <AppCard style={styles.formCard}>
             <AppSelect
               label="Select Course"
-              options={courseOptions}
+              options={selectedCourseOption}
               value={selectedCourseId}
+              fetchOptions={fetchCourseOptions}
+              queryKey={['new-enrollment', 'courses']}
               onSelect={(val) => {
-                setSelectedCourseId(val);
+                setSelectedCourseId(String(val));
                 setSelectedBatchId('');
               }}
             />
 
             <AppSelect
-              label={isBatchesLoading ? 'Loading batches…' : 'Select Batch'}
-              options={batchOptions}
+              label={selectedCourseId ? 'Select Batch' : 'Select course first'}
+              options={selectedBatchOption}
               value={selectedBatchId}
-              onSelect={setSelectedBatchId}
+              fetchOptions={selectedCourseId ? fetchBatchOptions : undefined}
+              queryKey={['new-enrollment', 'batches', selectedCourseId]}
+              error={!selectedCourseId ? 'Please select a course first' : undefined}
+              onSelect={(val) => {
+                setSelectedBatchId(String(val));
+                setAttendanceModeId('');
+              }}
             />
 
             <AppSelect
-              label="Attendance Mode"
-              options={ATTENDANCE_MODES}
+              label={selectedBatchId ? 'Attendance Mode' : 'Select batch first'}
+              options={attendanceModeOptions}
               value={attendanceModeId}
+              error={!selectedBatchId ? 'Please select a batch first' : undefined}
               onSelect={setAttendanceModeId}
             />
 
             <AppSelect
               label="Admission Counselor"
-              options={counselorOptions}
+              options={selectedCounselorOption}
               value={selectedCounselorUid}
+              fetchOptions={fetchCounselorOptions}
+              queryKey={['new-enrollment', 'counselors']}
               onSelect={setSelectedCounselorUid}
             />
 
