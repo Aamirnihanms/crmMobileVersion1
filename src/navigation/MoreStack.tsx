@@ -1,3 +1,4 @@
+import type { CompanyResponse } from '@/src/api/jobs.api';
 import { colors } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -59,10 +60,11 @@ export type MoreStackParamList = {
   JobDetail: { uid: string };
   CompaniesList: undefined;
   CompanyDetail: { uid: string };
-  CreateCompany: undefined;
+  CreateCompany: { onCreated?: (company: CompanyResponse) => void } | undefined;
   EditCompany: { uid: string };
   FieldTemplateDetail: { companyUid: string; templateUid: string };
   CreateEditFieldTemplate: { companyUid: string; templateUid?: string };
+  CreateJob: undefined;
 };
 
 
@@ -329,6 +331,11 @@ export default function MoreStack() {
         name="CreateCompany"
         getComponent={() => require('../screens/more/CreateCompanyScreen').default}
         options={{ title: 'New Company' }}
+      />
+      <Stack.Screen
+        name="CreateJob"
+        getComponent={() => require('../screens/more/CreateJobScreen').default}
+        options={{ title: 'Add Job' }}
       />
       <Stack.Screen
         name="EditCompany"

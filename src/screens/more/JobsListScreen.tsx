@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import type { InfiniteData } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -71,6 +71,19 @@ export default function JobsListScreen() {
       void refetch();
     }
   }, [isFocused, refetch]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => navigation.navigate('CreateJob')}
+          style={{ padding: 4 }}
+        >
+          <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   const onRefresh = useCallback(async () => {
     try {

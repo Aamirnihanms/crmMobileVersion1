@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import type { CompanyResponse } from '@/src/api/jobs.api';
 import { fetchCounselorsPage } from '@/src/api/masters/paginatedMasters.api';
 import AppButton from '@/src/components/common/AppButton';
 import AppInput from '@/src/components/common/AppInput';
@@ -53,8 +54,10 @@ function SectionHeader({ icon, title }: { icon: any; title: string }) {
 
 export default function CreateCompanyScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
+    const route = useRoute<RouteProp<MoreStackParamList, 'CreateCompany'>>();
     const insets = useSafeAreaInsets();
     const createCompanyMutation = useCreateCompany();
+    const onCreated = route.params?.onCreated;
 
     /* ─── form state ─── */
     const [name, setName] = useState('');
@@ -137,7 +140,7 @@ export default function CreateCompanyScreen() {
         if (!validate()) return;
 
         try {
-            await createCompanyMutation.mutateAsync({
+            const response = await createCompanyMutation.mutateAsync({
                 name: name.trim(),
                 portal_slug: portalSlug.trim(),
                 website: website.trim() || undefined,
@@ -150,9 +153,16 @@ export default function CreateCompanyScreen() {
                 representative_ids: representativeIds.length ? representativeIds : undefined,
             });
 
-            Alert.alert('Success', 'Company created successfully!', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-            ]);
+            const newCompany = (response as any)?.company as CompanyResponse | undefined;
+
+            if (onCreated && newCompany) {
+                onCreated(newCompany);
+                navigation.goBack();
+            } else {
+                Alert.alert('Success', 'Company created successfully!', [
+                    { text: 'OK', onPress: () => navigation.goBack() },
+                ]);
+            }
         } catch (error: any) {
             const msg =
                 error?.response?.data?.message ||
