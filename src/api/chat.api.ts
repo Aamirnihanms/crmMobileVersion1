@@ -476,6 +476,13 @@ export type BulkSendMessagePayload = {
   content: string;
   message_type: string;
   user_ids: number[];
+  file_url?: string;
+  file?: string;
+  attachment_url?: string;
+  file_name?: string;
+  original_filename?: string;
+  s3_key?: string;
+  content_type?: string;
 };
 
 export const bulkSendMessage = async (payload: BulkSendMessagePayload) => {

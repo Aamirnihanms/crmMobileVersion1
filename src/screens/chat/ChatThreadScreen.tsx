@@ -3249,6 +3249,8 @@ export default function ChatThreadScreen() {
         visible={forwardModalVisible}
         messageContent={selectedMessage?.raw?.content || selectedMessage?.text || null}
         messageType={selectedMessage?.messageType || 'text'}
+        messageFileUrl={selectedMessage?.fileUrl || selectedMessage?.raw?.file_url || null}
+        messageFileName={selectedMessage?.fileName || selectedMessage?.raw?.file_name || null}
         onClose={() => {
           setForwardModalVisible(false);
           setSelectedMessage(null);

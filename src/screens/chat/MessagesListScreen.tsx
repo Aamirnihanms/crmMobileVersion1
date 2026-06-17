@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,6 +24,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 
@@ -1698,9 +1700,10 @@ export default function MessagesListScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              {isCreatingChat && (
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalCard}>
+                {isCreatingChat && (
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 10, borderRadius: 16 }]}>
                   <ActivityIndicator size="large" color={colors.primary} />
                   <AppText style={{ marginTop: 8, color: colors.primary, fontWeight: '600' }}>Creating chat...</AppText>
@@ -1813,6 +1816,7 @@ export default function MessagesListScreen() {
               )}
             </View>
           </View>
+          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1830,8 +1834,9 @@ export default function MessagesListScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCardTall}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalCardTall}>
               <View style={styles.modalHeaderRow}>
                 <AppText variant="subtitle">Create Group</AppText>
                 <Pressable
@@ -2018,6 +2023,7 @@ export default function MessagesListScreen() {
               </Pressable>
             </View>
           </View>
+          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Modal>
 

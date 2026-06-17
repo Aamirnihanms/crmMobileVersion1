@@ -10,6 +10,8 @@ import {
     View,
 } from 'react-native';
 
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+
 import AppButton from '@/src/components/common/AppButton';
 import AppCard from '@/src/components/common/AppCard';
 import AppInput from '@/src/components/common/AppInput';
@@ -164,7 +166,13 @@ export default function EvaluationMarkingDetailScreen() {
     }
 
     return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollView
+            style={styles.container}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bottomOffset={80}
+        >
             {/* Student Header */}
             <View style={styles.header}>
                 <View style={styles.studentInfo}>
@@ -360,7 +368,7 @@ export default function EvaluationMarkingDetailScreen() {
                     )}
                 </View>
             )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
     );
 }
 
@@ -368,6 +376,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    scrollContent: {
+        paddingBottom: spacing.xl,
     },
     center: {
         flex: 1,

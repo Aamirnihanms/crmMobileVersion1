@@ -30,6 +30,8 @@ export type ForwardMessageModalProps = {
     visible: boolean;
     messageContent: string | null;
     messageType: string;
+    messageFileUrl?: string | null;
+    messageFileName?: string | null;
     onClose: () => void;
     onForwardSuccess?: () => void;
 };
@@ -41,6 +43,8 @@ export default function ForwardMessageModal({
     visible,
     messageContent,
     messageType,
+    messageFileUrl,
+    messageFileName,
     onClose,
     onForwardSuccess,
 }: ForwardMessageModalProps) {
@@ -193,9 +197,14 @@ export default function ForwardMessageModal({
             setIsSending(true);
             await bulkSendMessage({
                 batch_uids: batchUids,
-                chat_uids: [], // Not supported in this modal yet
+                chat_uids: [],
                 content: messageContent,
                 message_type: messageType,
+                file_url: messageFileUrl ?? undefined,
+                file: messageFileUrl ?? undefined,
+                attachment_url: messageFileUrl ?? undefined,
+                file_name: messageFileName ?? undefined,
+                original_filename: messageFileName ?? undefined,
                 user_ids: userIds,
             });
 
@@ -209,7 +218,7 @@ export default function ForwardMessageModal({
         } finally {
             setIsSending(false);
         }
-    }, [selectedItems, messageContent, isSending, messageType, onForwardSuccess, onClose]);
+    }, [selectedItems, messageContent, isSending, messageType, messageFileUrl, messageFileName, onForwardSuccess, onClose]);
 
     const selectedCount = selectedItems.size;
 

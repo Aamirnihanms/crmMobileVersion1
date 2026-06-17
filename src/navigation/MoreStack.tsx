@@ -58,6 +58,10 @@ export type MoreStackParamList = {
   EvaluationMarkingDetail: { attemptUid: string };
   JobsList: undefined;
   JobDetail: { uid: string };
+  JobApplications: { companyUid: string; jobUid: string; jobTitle?: string };
+  ApplicantDetail: { companyUid: string; jobUid: string; applicationUid: string };
+  InterviewDetail: { companyUid: string; jobUid: string; applicationUid: string; interviewUid: string; applicantName?: string };
+  JobInterviews: { companyUid: string; jobUid: string; jobTitle?: string };
   CompaniesList: undefined;
   CompanyDetail: { uid: string };
   CreateCompany: { onCreated?: (company: CompanyResponse) => void } | undefined;
@@ -276,6 +280,26 @@ export default function MoreStack() {
         name="JobDetail"
         getComponent={() => require('../screens/more/JobDetailScreen').default}
         options={{ title: 'Job Details' }}
+      />
+      <Stack.Screen
+        name="JobApplications"
+        getComponent={() => require('../screens/more/JobApplicationsScreen').default}
+        options={({ route }: any) => ({ title: route.params?.jobTitle || 'Applications' })}
+      />
+      <Stack.Screen
+        name="ApplicantDetail"
+        getComponent={() => require('../screens/more/ApplicantDetailScreen').default}
+        options={{ title: 'Applicant Details' }}
+      />
+      <Stack.Screen
+        name="InterviewDetail"
+        getComponent={() => require('../screens/more/InterviewDetailScreen').default}
+        options={{ title: 'Interview Details' }}
+      />
+      <Stack.Screen
+        name="JobInterviews"
+        getComponent={() => require('../screens/more/JobInterviewsScreen').default}
+        options={({ route }: any) => ({ title: route.params?.jobTitle ? `Interviews - ${route.params.jobTitle}` : 'Interviews' })}
       />
       <Stack.Screen
         name="CompaniesList"

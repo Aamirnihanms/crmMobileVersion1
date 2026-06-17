@@ -18,7 +18,23 @@ import {
   createCompanyJob,
   updateJob,
   deleteJob,
+  fetchJobStages,
+  fetchJobApplications,
+  changeApplicationStage,
+  fetchJobInterviews,
+  updateInterview,
+  fetchJobApplicationDetail,
+  createInterview,
+  deleteInterview,
+  fetchInterviewDetail,
+  broadcastJob,
   type UpdateJobPayload,
+  type FetchApplicationsParams,
+  type ChangeStagePayload,
+  type FetchInterviewsParams,
+  type UpdateInterviewPayload,
+  type CreateInterviewPayload,
+  type BroadcastJobPayload,
 } from '../api/jobs.api';
 
 export const useInfiniteJobs = (search: string) => {
@@ -202,5 +218,182 @@ export const useDeleteJob = (companyUid: string) => {
       queryClient.invalidateQueries({ queryKey: ['company-jobs', companyUid] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
     },
+  });
+};
+
+export const useJobStages = (companyUid: string, jobUid: string) => {
+  return useQuery({
+    queryKey: ['job-stages', companyUid, jobUid],
+    queryFn: () => fetchJobStages(companyUid, jobUid),
+    enabled: !!companyUid && !!jobUid,
+  });
+};
+
+export const useInfiniteJobApplications = (
+  companyUid: string,
+  jobUid: string,
+  stageUid: string,
+  search: string,
+  pageSize = 10
+) => {
+  return useInfiniteQuery({
+    queryKey: ['job-applications', companyUid, jobUid, stageUid, search],
+    initialPageParam: 1,
+    enabled: !!companyUid && !!jobUid && !!stageUid,
+    queryFn: ({ pageParam }) =>
+      fetchJobApplications(companyUid, jobUid, {
+        page: Number(pageParam),
+        page_size: pageSize,
+        current_stage_uid: stageUid,
+        search: search || undefined,
+      }),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.has_next) return undefined;
+      return lastPage.page + 1;
+    },
+  });
+};
+
+export const useChangeApplicationStage = (companyUid: string, jobUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      applicationUid,
+      payload,
+    }: {
+      applicationUid: string;
+      payload: ChangeStagePayload;
+    }) => changeApplicationStage(companyUid, jobUid, applicationUid, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['job-applications', companyUid, jobUid],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['job', jobUid],
+      });
+    },
+  });
+};
+
+export const useJobApplicationDetail = (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string
+) => {
+  return useQuery({
+    queryKey: ['job-application-detail', companyUid, jobUid, applicationUid],
+    queryFn: () => fetchJobApplicationDetail(companyUid, jobUid, applicationUid),
+    enabled: !!companyUid && !!jobUid && !!applicationUid,
+  });
+};
+
+export const useInfiniteJobInterviews = (
+  companyUid: string,
+  jobUid: string,
+  search: string,
+  pageSize = 30
+) => {
+  return useInfiniteQuery({
+    queryKey: ['job-interviews', companyUid, jobUid, search],
+    initialPageParam: 1,
+    enabled: !!companyUid && !!jobUid,
+    queryFn: ({ pageParam }) =>
+      fetchJobInterviews(companyUid, jobUid, {
+        page: Number(pageParam),
+        page_size: pageSize,
+        search: search || undefined,
+      }),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.has_next) return undefined;
+      return lastPage.page + 1;
+    },
+  });
+};
+
+export const useUpdateInterview = (companyUid: string, jobUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      applicationUid,
+      interviewUid,
+      payload,
+    }: {
+      applicationUid: string;
+      interviewUid: string;
+      payload: UpdateInterviewPayload;
+    }) => updateInterview(companyUid, jobUid, applicationUid, interviewUid, payload),
+    onSuccess: (_data, { applicationUid }) => {
+      queryClient.invalidateQueries({
+        queryKey: ['job-interviews', companyUid, jobUid],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['job-application-detail', companyUid, jobUid, applicationUid],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['job-interview-detail', companyUid, jobUid],
+      });
+    },
+  });
+};
+
+export const useDeleteInterview = (companyUid: string, jobUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      applicationUid,
+      interviewUid,
+    }: {
+      applicationUid: string;
+      interviewUid: string;
+    }) => deleteInterview(companyUid, jobUid, applicationUid, interviewUid),
+    onSuccess: (_data, { applicationUid }) => {
+      queryClient.invalidateQueries({
+        queryKey: ['job-interviews', companyUid, jobUid],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['job-application-detail', companyUid, jobUid, applicationUid],
+      });
+    },
+  });
+};
+
+export const useCreateInterview = (companyUid: string, jobUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      applicationUid,
+      payload,
+    }: {
+      applicationUid: string;
+      payload: CreateInterviewPayload;
+    }) => createInterview(companyUid, jobUid, applicationUid, payload),
+    onSuccess: (_data, { applicationUid }) => {
+      queryClient.invalidateQueries({
+        queryKey: ['job-interviews', companyUid, jobUid],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['job-application-detail', companyUid, jobUid, applicationUid],
+      });
+    },
+  });
+};
+
+export const useInterviewDetail = (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string,
+  interviewUid: string
+) => {
+  return useQuery({
+    queryKey: ['job-interview-detail', companyUid, jobUid, applicationUid, interviewUid],
+    queryFn: () => fetchInterviewDetail(companyUid, jobUid, applicationUid, interviewUid),
+    enabled: !!companyUid && !!jobUid && !!applicationUid && !!interviewUid,
+  });
+};
+
+export const useBroadcastJob = (companyUid: string, jobUid: string) => {
+  return useMutation({
+    mutationFn: (payload: BroadcastJobPayload) =>
+      broadcastJob(companyUid, jobUid, payload),
   });
 };

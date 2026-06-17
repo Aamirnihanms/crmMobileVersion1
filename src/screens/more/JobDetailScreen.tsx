@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,9 +16,11 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { colors, spacing } from '@/src/theme';
+import { API_CONFIG } from '@/src/config/api.config';
 import AppCard from '../../components/common/AppCard';
 import AppText from '../../components/common/AppText';
 import EditJobModal from '../../components/jobs/EditJobModal';
+import ShareJobModal from '../../components/jobs/ShareJobModal';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
 import { useDeleteJob, useJobDetail } from '../../queries/jobs.query';
 import { JobStage } from '../../api/jobs.api';
@@ -32,6 +35,7 @@ export default function JobDetailScreen() {
   const { data: detailResponse, isLoading, isError, error, refetch } = useJobDetail(uid);
 
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const deleteMutation = useDeleteJob(detailResponse?.company_uid ?? '');
 
@@ -250,6 +254,65 @@ export default function JobDetailScreen() {
           </View>
         </AppCard>
 
+        {/* Quick Actions */}
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={() => navigation.navigate('JobApplications', {
+              companyUid: detailResponse.company_uid,
+              jobUid: job.uid,
+              jobTitle: job.title,
+            })}
+            style={styles.actionButton}
+          >
+            <View style={styles.actionIconWrap}>
+              <Ionicons name="people-outline" size={22} color={colors.primary} />
+            </View>
+            <AppText variant="caption" style={styles.actionLabel}>Applicants</AppText>
+            {job.active_applications_count > 0 && (
+              <View style={styles.actionBadge}>
+                <AppText variant="caption" color={colors.surface} style={{ fontSize: 11, fontWeight: '800' }}>
+                  {job.active_applications_count}
+                </AppText>
+              </View>
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => navigation.navigate('JobInterviews', {
+              companyUid: detailResponse.company_uid,
+              jobUid: job.uid,
+              jobTitle: job.title,
+            })}
+            style={styles.actionButton}
+          >
+            <View style={styles.actionIconWrap}>
+              <Ionicons name="calendar-outline" size={22} color={colors.primary} />
+            </View>
+            <AppText variant="caption" style={styles.actionLabel}>Interviews</AppText>
+          </Pressable>
+          <Pressable
+            onPress={async () => {
+              const link = `${API_CONFIG.JOB_PORTAL_URL}/job/${job.uid}/apply`;
+              await Clipboard.setStringAsync(link);
+              Alert.alert('Link Copied', 'Job link has been copied to clipboard.');
+            }}
+            style={styles.actionButton}
+          >
+            <View style={styles.actionIconWrap}>
+              <Ionicons name="link-outline" size={22} color={colors.primary} />
+            </View>
+            <AppText variant="caption" style={styles.actionLabel}>Link</AppText>
+          </Pressable>
+          <Pressable
+            onPress={() => setShowShareModal(true)}
+            style={styles.actionButton}
+          >
+            <View style={styles.actionIconWrap}>
+              <Ionicons name="share-outline" size={22} color={colors.primary} />
+            </View>
+            <AppText variant="caption" style={styles.actionLabel}>Share</AppText>
+          </Pressable>
+        </View>
+
         {/* Representatives Section */}
         {job.company.representatives && job.company.representatives.length > 0 && (
           <>
@@ -361,16 +424,26 @@ export default function JobDetailScreen() {
       </View>
     </ScrollView>
     {detailResponse && (
-      <EditJobModal
-        visible={showEditModal}
-        companyUid={detailResponse.company_uid}
-        job={detailResponse.job}
-        onClose={() => setShowEditModal(false)}
-        onSuccess={() => {
-          setShowEditModal(false);
-          refetch();
-        }}
-      />
+      <>
+        <EditJobModal
+          visible={showEditModal}
+          companyUid={detailResponse.company_uid}
+          job={detailResponse.job}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false);
+            refetch();
+          }}
+        />
+        <ShareJobModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          companyUid={detailResponse.company_uid}
+          jobUid={detailResponse.job.uid}
+          jobTitle={detailResponse.job.title}
+          companyName={detailResponse.job.company.name}
+        />
+      </>
     )}
   </>
   );
@@ -600,5 +673,49 @@ const styles = StyleSheet.create({
   stageContent: {
     flex: 1,
     justifyContent: 'center',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    position: 'relative',
+  },
+  actionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  actionLabel: {
+    fontWeight: '600',
+    marginTop: 2,
+    fontSize: 12,
+  },
+  actionBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
   },
 });

@@ -451,3 +451,320 @@ export const deleteJob = async (
   return res.data;
 };
 
+/* ─────────────────────────────────────────────
+   JOB APPLICATIONS / STAGES
+───────────────────────────────────────────── */
+
+export type JobApplication = {
+  uid: string;
+  job_uid: string;
+  job_title: string;
+  applicant_type: string;
+  student_id: string;
+  applicant_name: string;
+  applicant_email: string;
+  applicant_phone: string;
+  status: string;
+  applied_at: string;
+  current_stage: {
+    uid: string;
+    name: string;
+    code: string;
+  };
+  resume_url: string | null;
+  resume_file: string | null;
+};
+
+export type JobApplicationsResponse = {
+  status: string;
+  count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  has_next: boolean;
+  results: JobApplication[];
+  company_uid: string;
+  job_uid: string;
+};
+
+export type JobStagesResponse = {
+  status: string;
+  job_uid: string;
+  count: number;
+  results: JobStage[];
+};
+
+export type FetchApplicationsParams = {
+  page: number;
+  page_size: number;
+  current_stage_uid?: string;
+  search?: string;
+};
+
+export const fetchJobStages = async (
+  companyUid: string,
+  jobUid: string
+): Promise<JobStagesResponse> => {
+  const res = await http.get(`/jobs/companies/${companyUid}/jobs/${jobUid}/stages/`);
+  return res.data;
+};
+
+export const fetchJobApplications = async (
+  companyUid: string,
+  jobUid: string,
+  params: FetchApplicationsParams
+): Promise<JobApplicationsResponse> => {
+  const res = await http.get(`/jobs/companies/${companyUid}/jobs/${jobUid}/applications/`, {
+    params: {
+      page: params.page,
+      page_size: params.page_size,
+      current_stage_uid: params.current_stage_uid,
+      search: params.search || undefined,
+    },
+  });
+  return res.data;
+};
+
+export type ChangeStagePayload = {
+  stage_uid: string;
+  note?: string;
+};
+
+export const changeApplicationStage = async (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string,
+  payload: ChangeStagePayload
+): Promise<{ status: string; message?: string }> => {
+  const res = await http.post(
+    `/jobs/companies/${companyUid}/jobs/${jobUid}/applications/${applicationUid}/change-stage/`,
+    payload
+  );
+  return res.data;
+};
+
+export type JobApplicationAnswer = {
+  uid: string;
+  field_uid: string;
+  label: string;
+  key: string;
+  field_type: string;
+  value_text: string | null;
+  value_json: any[] | null;
+  value_file: string | null;
+};
+
+export type StageHistoryEntry = {
+  uid: string;
+  from_stage: {
+    uid: string;
+    name: string;
+    code: string;
+  };
+  to_stage: {
+    uid: string;
+    name: string;
+    code: string;
+  };
+  note: string | null;
+  changed_by: string | null;
+  changed_at: string;
+};
+
+export type JobApplicationDetailResponse = {
+  status: string;
+  company_uid: string;
+  application: {
+    uid: string;
+    job_uid: string;
+    job_title: string;
+    applicant_type: string;
+    student_id: string | null;
+    applicant_name: string;
+    applicant_email: string;
+    applicant_phone: string;
+    status: string;
+    applied_at: string;
+    current_stage: {
+      uid: string;
+      name: string;
+      code: string;
+    };
+    resume_url: string | null;
+    resume_file: string | null;
+    answers: JobApplicationAnswer[];
+    stage_history: StageHistoryEntry[];
+    interviews: any[];
+    created_at: string;
+    updated_at: string;
+  };
+};
+
+export const fetchJobApplicationDetail = async (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string
+): Promise<JobApplicationDetailResponse> => {
+  const res = await http.get(
+    `/jobs/companies/${companyUid}/jobs/${jobUid}/applications/${applicationUid}/`
+  );
+  return res.data;
+};
+
+/* ─────────────────────────────────────────────
+   JOB INTERVIEWS
+───────────────────────────────────────────── */
+
+export type JobInterview = {
+  uid: string;
+  stage_uid: string;
+  stage_name: string;
+  scheduled_at: string;
+  mode: string;
+  meeting_link: string | null;
+  location: string | null;
+  attendance: string;
+  feedback: string | null;
+  score: number | null;
+  created_at: string;
+  updated_at: string;
+  application_uid: string;
+  applicant_type: string;
+  student_id: string;
+  applicant_name: string;
+  applicant_email: string;
+  applicant_phone: string;
+  current_stage_name: string;
+};
+
+export type JobInterviewsResponse = {
+  status: string;
+  company_uid: string;
+  job_uid: string;
+  job_title: string;
+  count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  has_next: boolean;
+  results: JobInterview[];
+};
+
+export type FetchInterviewsParams = {
+  page: number;
+  page_size: number;
+  search?: string;
+};
+
+export const fetchJobInterviews = async (
+  companyUid: string,
+  jobUid: string,
+  params: FetchInterviewsParams
+): Promise<JobInterviewsResponse> => {
+  const res = await http.get(`/jobs/companies/${companyUid}/jobs/${jobUid}/interviews/`, {
+    params: {
+      page: params.page,
+      page_size: params.page_size,
+      search: params.search || undefined,
+    },
+  });
+  return res.data;
+};
+
+export type UpdateInterviewPayload = {
+  stage_uid?: string;
+  scheduled_at?: string;
+  mode?: 'online' | 'offline';
+  meeting_link?: string | null;
+  location?: string | null;
+  attendance?: 'scheduled' | 'present' | 'absent' | 'rescheduled';
+  feedback?: string | null;
+  score?: string | null;
+};
+
+export const updateInterview = async (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string,
+  interviewUid: string,
+  payload: UpdateInterviewPayload
+): Promise<{ status: string; message?: string }> => {
+  const res = await http.patch(
+    `/jobs/companies/${companyUid}/jobs/${jobUid}/applications/${applicationUid}/interviews/${interviewUid}/`,
+    payload
+  );
+  return res.data;
+};
+
+export type CreateInterviewPayload = {
+  stage_uid: string;
+  scheduled_at: string;
+  mode: 'online' | 'offline';
+  meeting_link?: string;
+  location?: string;
+  attendance: 'scheduled';
+};
+
+export const createInterview = async (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string,
+  payload: CreateInterviewPayload
+): Promise<{ status: string; message?: string }> => {
+  const res = await http.post(
+    `/jobs/companies/${companyUid}/jobs/${jobUid}/applications/${applicationUid}/interviews/`,
+    payload
+  );
+  return res.data;
+};
+
+export const deleteInterview = async (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string,
+  interviewUid: string
+): Promise<{ status: string; message?: string }> => {
+  const res = await http.delete(
+    `/jobs/companies/${companyUid}/jobs/${jobUid}/applications/${applicationUid}/interviews/${interviewUid}/`
+  );
+  return res.data;
+};
+
+export type JobInterviewDetailResponse = {
+  status: string;
+  interview: JobInterview;
+};
+
+export const fetchInterviewDetail = async (
+  companyUid: string,
+  jobUid: string,
+  applicationUid: string,
+  interviewUid: string
+): Promise<JobInterviewDetailResponse> => {
+  const res = await http.get(
+    `/jobs/companies/${companyUid}/jobs/${jobUid}/applications/${applicationUid}/interviews/${interviewUid}/`
+  );
+  return res.data;
+};
+
+export type BroadcastJobPayload = {
+  batch_uids?: string[];
+  student_ids?: string[];
+  dry_run?: boolean;
+  send_push?: boolean;
+  title: string;
+  message: string;
+};
+
+export const broadcastJob = async (
+  companyUid: string,
+  jobUid: string,
+  payload: BroadcastJobPayload
+): Promise<{ status: string; message?: string }> => {
+  const res = await http.post(
+    `/jobs/companies/${companyUid}/jobs/${jobUid}/broadcast/`,
+    payload
+  );
+  return res.data;
+};
+
