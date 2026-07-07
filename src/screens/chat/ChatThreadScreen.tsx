@@ -39,6 +39,8 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import * as Clipboard from 'expo-clipboard';
+
 import {
   createMessage,
   deleteChatMessage,
@@ -53,7 +55,7 @@ import {
 import { http } from '@/src/api/http';
 import AttachmentPopup, { AttachmentActionType } from '@/src/components/chat/AttachmentPopup';
 import AudioPlayer from '@/src/components/chat/AudioPlayer';
-import ForwardMessageModal from '@/src/components/chat/ForwardMessageModal';
+import ForwardMessageModal, { type ForwardMessageData } from '@/src/components/chat/ForwardMessageModal';
 import MessageReadInfoModal from '@/src/components/chat/MessageReadInfoModal';
 import ParsedMessageText from '@/src/components/chat/ParsedMessageText';
 import AppText from '@/src/components/common/AppText';
@@ -593,11 +595,14 @@ type MessageRowProps = {
   onLongPress: (message: ThreadMessage) => void;
   onReply: (message: ThreadMessage) => void;
   onAttachmentPress: (message: ThreadMessage) => void;
-  showSenderInfo?: boolean;
+  showSenderInfo: boolean;
   progress?: number;
   progressDirection?: 'upload' | 'download';
   onDownload: (message: ThreadMessage) => void;
   onCancelDownload: (message: ThreadMessage) => void;
+  selectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 };
 
 const MessageRow = memo(function MessageRow({
@@ -610,6 +615,9 @@ const MessageRow = memo(function MessageRow({
   progressDirection,
   onDownload,
   onCancelDownload,
+  selectMode = false,
+  isSelected = false,
+  onToggleSelect,
 }: MessageRowProps) {
   const swipeableRef = useRef<Swipeable>(null);
   const [isImageLoading, setIsImageLoading] = useState(
@@ -666,6 +674,186 @@ const MessageRow = memo(function MessageRow({
     },
     []
   );
+
+  if (selectMode) {
+    return (
+      <Pressable
+        onPress={() => onToggleSelect?.(item.id)}
+        style={[styles.bubbleRow, item.mine && styles.mineRow, { alignItems: 'center' }]}
+      >
+        {!item.mine && (
+          <View style={styles.selectCheckbox}>
+            <Ionicons
+              name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+              size={22}
+              color={isSelected ? colors.primary : colors.textMuted}
+            />
+          </View>
+        )}
+        {showSenderInfo && !item.mine ? (
+          <View style={styles.avatarContainer}>
+            {item.senderAvatar ? (
+              <ExpoImage
+                source={{ uri: item.senderAvatar }}
+                style={styles.senderAvatar}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.senderAvatar,
+                  {
+                    backgroundColor: colors.primaryLight + '30',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                ]}
+              >
+                <Ionicons name="person" size={12} color={colors.primary} />
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        <View
+          style={[
+            styles.bubble,
+            item.mine ? styles.myBubble : styles.theirBubble,
+            item.messageType === 'image' && !shouldShowMessageText(item) && !item.replyPreview ? styles.imageOnlyBubble : null,
+          ]}
+        >
+          {showSenderInfo && item.senderName && !item.mine ? (
+            <AppText
+              variant="caption"
+              color={colors.primary}
+              style={styles.senderName}
+              numberOfLines={1}
+            >
+              {item.senderName}
+            </AppText>
+          ) : null}
+          {item.replyPreview && !isMessageDeleted(item.raw) ? (
+            <View style={[
+              styles.replyPreviewBox,
+              { borderLeftColor: item.mine ? colors.surfaceAlpha53 : colors.primary }
+            ]}>
+              <AppText
+                variant="caption"
+                color={item.mine ? colors.surface : colors.primary}
+                numberOfLines={1}
+                style={{ fontWeight: '700' }}
+              >
+                {item.replyPreview.senderName}
+              </AppText>
+              <AppText
+                variant="caption"
+                color={item.mine ? colors.surfaceAlpha93 : colors.textSecondary}
+                numberOfLines={1}
+              >
+                {item.replyPreview.messageType === 'image'
+                  ? 'Image'
+                  : isFileLikeMessageType(item.replyPreview.messageType)
+                    ? 'Attachment'
+                    : item.replyPreview.text}
+              </AppText>
+            </View>
+          ) : null}
+
+          {!isMessageDeleted(item.raw) && item.messageType === 'audio' && item.fileUrl ? (
+            <AudioPlayer uri={item.fileUrl} mine={item.mine} progress={progress} />
+          ) : !isMessageDeleted(item.raw) && (item.messageType === 'image' || isFileLikeMessageType(item.messageType)) ? (
+            <Pressable onPress={() => onAttachmentPress(item)}>
+              {item.messageType === 'image' && item.fileUrl ? (
+                <View style={styles.imageBubbleWrap}>
+                  <ExpoImage
+                    source={{ uri: item.fileUrl }}
+                    style={styles.imageBubble}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={120}
+                    recyclingKey={`${item.id}-${item.fileUrl || ''}`}
+                  />
+                </View>
+              ) : (
+                <View style={[
+                  styles.fileCard,
+                  item.mine && { backgroundColor: colors.surfaceAlpha91, borderColor: colors.surface }
+                ]}>
+                  <Ionicons
+                    name="document-attach-outline"
+                    size={16}
+                    color={item.mine ? colors.primary : colors.textSecondary}
+                  />
+                  <View style={styles.fileTextWrap}>
+                    <AppText
+                      style={styles.fileName}
+                      color={colors.textPrimary}
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                      variant="caption"
+                    >
+                      {truncateFileName(getDisplayFileName(item))}
+                    </AppText>
+                  </View>
+                </View>
+              )}
+            </Pressable>
+          ) : null}
+
+          {shouldShowMessageText(item) ? (
+            <ParsedMessageText mine={item.mine}>{item.text}</ParsedMessageText>
+          ) : null}
+          <View style={styles.metaRow}>
+            {item.raw?.is_edited && !isMessageDeleted(item.raw) ? (
+              <AppText
+                variant="caption"
+                color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
+                style={styles.editedLabel}
+              >
+                edited
+              </AppText>
+            ) : null}
+            <AppText
+              variant="caption"
+              color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
+              style={{ fontSize: 10 }}
+            >
+              {item.time}
+            </AppText>
+            {item.mine ? (
+              <Ionicons
+                name={
+                  item.status === 'sending'
+                    ? 'time-outline'
+                    : item.status === 'failed'
+                      ? 'alert-circle-outline'
+                      : 'checkmark-done'
+                }
+                size={12}
+                color={
+                  item.status === 'failed'
+                    ? colors.dangerSoft
+                    : item.status === 'read'
+                      ? colors.surface
+                      : colors.surfaceAlpha80
+                }
+              />
+            ) : null}
+          </View>
+        </View>
+        {item.mine && (
+          <View style={styles.selectCheckbox}>
+            <Ionicons
+              name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+              size={22}
+              color={isSelected ? colors.primary : colors.textMuted}
+            />
+          </View>
+        )}
+      </Pressable>
+    );
+  }
 
   return (
     <Swipeable
@@ -952,6 +1140,9 @@ const MessageRow = memo(function MessageRow({
   prev.progress === next.progress &&
   prev.progressDirection === next.progressDirection &&
   prev.onCancelDownload === next.onCancelDownload &&
+  prev.selectMode === next.selectMode &&
+  prev.isSelected === next.isSelected &&
+  prev.onToggleSelect === next.onToggleSelect &&
   areThreadMessagesEqual(prev.item, next.item)
 );
 
@@ -1025,8 +1216,11 @@ export default function ChatThreadScreen() {
   const [editingMessage, setEditingMessage] = useState<ThreadMessage | null>(null);
   const [messageMenuVisible, setMessageMenuVisible] = useState(false);
   const [forwardModalVisible, setForwardModalVisible] = useState(false);
+  const [forwardMessages, setForwardMessages] = useState<ForwardMessageData[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<ThreadMessage | null>(null);
   const [readInfoVisible, setReadInfoVisible] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
 
   const [menuScale] = useState(() => new Animated.Value(0.85));
   const [menuOpacity] = useState(() => new Animated.Value(0));
@@ -2352,6 +2546,17 @@ export default function ChatThreadScreen() {
     setSelectedMessage(null);
   }, [selectedMessage]);
 
+  const handleMenuCopy = useCallback(async () => {
+    if (!selectedMessage) return;
+    const text = selectedMessage.raw?.content || selectedMessage.text || '';
+    if (text) {
+      await Clipboard.setStringAsync(text);
+      Alert.alert('Copied', 'Message copied to clipboard');
+    }
+    setMessageMenuVisible(false);
+    setSelectedMessage(null);
+  }, [selectedMessage]);
+
   const handleMenuEdit = useCallback(() => {
     if (!selectedMessage || !isEditableMessage(selectedMessage)) return;
     setEditingMessage(selectedMessage);
@@ -2363,9 +2568,51 @@ export default function ChatThreadScreen() {
   }, [selectedMessage]);
 
   const handleMenuForward = useCallback(() => {
-    setForwardModalVisible(true);
+    if (selectedMessage) {
+      setSelectedMessages(new Set([selectedMessage.id]));
+      setSelectMode(true);
+    }
     setMessageMenuVisible(false);
+    setSelectedMessage(null);
+  }, [selectedMessage]);
+
+  const handleToggleSelectMode = useCallback(() => {
+    setSelectMode((prev) => !prev);
+    setSelectedMessages(new Set());
   }, []);
+
+  const handleCancelSelect = useCallback(() => {
+    setSelectMode(false);
+    setSelectedMessages(new Set());
+  }, []);
+
+  const handleToggleMessageSelection = useCallback((messageId: string) => {
+    setSelectedMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectForward = useCallback(() => {
+    if (selectedMessages.size === 0) return;
+    const msgs = messages
+      .filter((m) => selectedMessages.has(m.id))
+      .map((m) => ({
+        content: m.raw?.content || m.text || null,
+        type: m.messageType || 'text',
+        fileUrl: m.fileUrl || m.raw?.file_url || null,
+        fileName: m.fileName || m.raw?.file_name || null,
+      }));
+    setForwardMessages(msgs);
+    setSelectMode(false);
+    setSelectedMessages(new Set());
+    setForwardModalVisible(true);
+  }, [messages, selectedMessages]);
 
   const handleShowReadInfo = useCallback(() => {
     setMessageMenuVisible(false);
@@ -2533,9 +2780,12 @@ export default function ChatThreadScreen() {
         progressDirection={progressDirection}
         onDownload={handleDownload}
         onCancelDownload={handleCancelDownload}
+        selectMode={selectMode}
+        isSelected={selectedMessages.has(item.id)}
+        onToggleSelect={handleToggleMessageSelection}
       />
     );
-  }, [chatType, handleAttachmentPress, handleCancelDownload, handleMessageLongPress, downloadProgress, handleDownload]);
+  }, [chatType, handleAttachmentPress, handleCancelDownload, handleMessageLongPress, downloadProgress, handleDownload, selectMode, selectedMessages, handleToggleMessageSelection]);
 
   const loadOlderMessages = useCallback(() => {
     if (!hasOlderMessages || fetchingOlderMessages) return;
@@ -2620,12 +2870,11 @@ export default function ChatThreadScreen() {
         </Pressable>
 
         <View style={styles.headerRight}>
-          {/* <Pressable style={styles.headerIcon}>
-            <Ionicons name="call-outline" size={20} color={colors.surface} />
-          </Pressable>
-          <Pressable style={styles.headerIcon}>
-            <Ionicons name="ellipsis-vertical" size={20} color={colors.surface} />
-          </Pressable> */}
+          {selectMode && (
+            <Pressable style={styles.headerIcon} onPress={handleCancelSelect}>
+              <Ionicons name="close" size={22} color={colors.surface} />
+            </Pressable>
+          )}
         </View>
       </LinearGradient>
 
@@ -2864,6 +3113,20 @@ export default function ChatThreadScreen() {
 
                       <Pressable
                         style={styles.iosMenuItem}
+                        onPress={handleMenuCopy}
+                      >
+                        <AppText style={styles.iosMenuItemText}>Copy</AppText>
+                        <Ionicons
+                          name="copy-outline"
+                          size={20}
+                          color={colors.textPrimary}
+                        />
+                      </Pressable>
+
+                      <View style={styles.iosMenuDivider} />
+
+                      <Pressable
+                        style={styles.iosMenuItem}
                         onPress={handleMenuForward}
                       >
                         <AppText style={styles.iosMenuItemText}>Forward</AppText>
@@ -3079,184 +3342,211 @@ export default function ChatThreadScreen() {
         />
       </ImageBackground>
 
-      <View
-        style={[
-          styles.composerWrap,
-          { paddingBottom: composerBottomPadding },
-        ]}
-      >
-        {!isRecording && !editingMessage && (
-          <Pressable style={styles.attachButton} onPress={() => setAttachmentPopupVisible(true)}>
-            <Ionicons
-              name="add-circle-outline"
-              size={20}
-              color={colors.textSecondary}
-            />
+      {selectMode ? (
+        <View style={[styles.selectModeBar, { paddingBottom: composerBottomPadding }]}>
+          <Pressable onPress={handleCancelSelect} style={styles.selectCancelBtn} hitSlop={8}>
+            <Ionicons name="close" size={22} color={colors.textSecondary} />
           </Pressable>
-        )}
-
-        {isRecording ? (
-          <View style={styles.recordingBar}>
-            <View style={styles.recordingIndicator}>
-              <View style={styles.recordingDot} />
-              <AppText style={styles.recordingTime}>
-                {formatRecordingTime(recordingDuration)}
-              </AppText>
-            </View>
-            <AppText color={colors.textMuted} variant="caption">
-              Recording...
+          <AppText variant="body" style={styles.selectCountText}>
+            {selectedMessages.size} selected
+          </AppText>
+          <Pressable
+            style={[
+              styles.selectForwardBtn,
+              selectedMessages.size === 0 && styles.selectForwardBtnDisabled,
+            ]}
+            onPress={handleSelectForward}
+            disabled={selectedMessages.size === 0}
+          >
+            <AppText color={colors.surface} style={{ fontWeight: '600', fontSize: 14 }}>
+              Forward
             </AppText>
-            <Pressable style={styles.cancelRecordButton} onPress={cancelRecording}>
-              <Ionicons name="trash-outline" size={20} color={colors.danger} />
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.composerInputWrap}>
-            {editingMessage ? (
-              <View style={styles.editingComposerBar}>
-                <View style={styles.replyingTextWrap}>
-                  <AppText variant="caption" color={colors.successDeep} numberOfLines={1}>
-                    Editing message
-                  </AppText>
-                  <AppText
-                    variant="caption"
-                    color={colors.textSecondary}
-                    numberOfLines={1}
-                  >
-                    {editingMessage.text || 'Message'}
-                  </AppText>
-                </View>
-                <Pressable
-                  onPress={() => {
-                    setEditingMessage(null);
-                    setInput('');
-                  }}
-                >
-                  <Ionicons
-                    name="close"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
-              </View>
-            ) : replyingTo ? (
-              <View style={styles.replyingComposerBar}>
-                <View style={styles.replyingTextWrap}>
-                  <AppText variant="caption" color={colors.successDeep} numberOfLines={1}>
-                    Replying to {replyingTo.mine ? 'yourself' : name}
-                  </AppText>
-                  <AppText
-                    variant="caption"
-                    color={colors.textSecondary}
-                    numberOfLines={1}
-                  >
-                    {replyComposerText}
-                  </AppText>
-                </View>
-                <Pressable onPress={() => setReplyingTo(null)}>
-                  <Ionicons
-                    name="close"
-                    size={16}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
-              </View>
-            ) : null}
-
-            {(pendingAttachments.length > 0 || isPicking) ? (
-              <View style={styles.pendingAttachmentsContainer}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.pendingAttachmentsList}
-                >
-                  {pendingAttachments.map((att, index) => (
-                    <View key={`${att.uri}-${index}`} style={styles.pendingAttachmentItem}>
-                      {att.isImage ? (
-                        <ExpoImage
-                          source={{ uri: att.uri }}
-                          style={styles.pendingAttachmentPreview}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <View style={styles.pendingAttachmentIconWrap}>
-                          <Ionicons
-                            name={att.isVideo ? 'videocam-outline' : 'document-outline'}
-                            size={20}
-                            color={colors.textSecondary}
-                          />
-                        </View>
-                      )}
-                      <Pressable
-                        style={styles.removeAttachmentButton}
-                        onPress={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== index))}
-                      >
-                        <Ionicons name="close-circle" size={18} color={colors.danger} />
-                      </Pressable>
-                    </View>
-                  ))}
-                  {isPicking && (
-                    <View style={styles.pickingLoaderItem}>
-                      <ActivityIndicator color={colors.primary} size="small" />
-                    </View>
-                  )}
-                </ScrollView>
-              </View>
-            ) : null}
-
-            <View style={styles.composerInputRow}>
-              <TextInput
-                value={input}
-                onChangeText={setInput}
-                placeholder={
-                  editingMessage
-                    ? 'Edit message'
-                    : pendingAttachments.length > 0
-                      ? 'Add a caption (optional)'
-                      : 'Type a message'
-                }
-                placeholderTextColor={colors.textMuted}
-                style={styles.composerInput}
-                multiline
-              />
-              {!editingMessage ? (
-                <Pressable style={styles.smallAction} onPress={() => setCameraPopupVisible(true)}>
-                  <Ionicons
-                    name="camera-outline"
-                    size={18}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
-              ) : null}
-            </View>
-          </View>
-        )}
-
-        <Pressable
+            <Ionicons name="arrow-forward" size={16} color={colors.surface} style={{ marginLeft: 4 }} />
+          </Pressable>
+        </View>
+      ) : (
+        <View
           style={[
-            styles.sendButton,
-            sending && styles.sendButtonDisabled,
-            isRecording && styles.sendButtonRecording,
+            styles.composerWrap,
+            { paddingBottom: composerBottomPadding },
           ]}
-          onPress={isRecording ? stopAndSendRecording : (isMicButton ? startRecording : handleSend)}
-          disabled={sending}
         >
-          <Ionicons name={isRecording || !isMicButton ? 'send' : 'mic'} size={16} color={colors.surface} />
-        </Pressable>
-      </View>
+          {!isRecording && !editingMessage && (
+            <Pressable style={styles.attachButton} onPress={() => setAttachmentPopupVisible(true)}>
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+          )}
+
+          {isRecording ? (
+            <View style={styles.recordingBar}>
+              <View style={styles.recordingIndicator}>
+                <View style={styles.recordingDot} />
+                <AppText style={styles.recordingTime}>
+                  {formatRecordingTime(recordingDuration)}
+                </AppText>
+              </View>
+              <AppText color={colors.textMuted} variant="caption">
+                Recording...
+              </AppText>
+              <Pressable style={styles.cancelRecordButton} onPress={cancelRecording}>
+                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.composerInputWrap}>
+              {editingMessage ? (
+                <View style={styles.editingComposerBar}>
+                  <View style={styles.replyingTextWrap}>
+                    <AppText variant="caption" color={colors.successDeep} numberOfLines={1}>
+                      Editing message
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      color={colors.textSecondary}
+                      numberOfLines={1}
+                    >
+                      {editingMessage.text || 'Message'}
+                    </AppText>
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      setEditingMessage(null);
+                      setInput('');
+                    }}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+              ) : replyingTo ? (
+                <View style={styles.replyingComposerBar}>
+                  <View style={styles.replyingTextWrap}>
+                    <AppText variant="caption" color={colors.successDeep} numberOfLines={1}>
+                      Replying to {replyingTo.mine ? 'yourself' : name}
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      color={colors.textSecondary}
+                      numberOfLines={1}
+                    >
+                      {replyComposerText}
+                    </AppText>
+                  </View>
+                  <Pressable onPress={() => setReplyingTo(null)}>
+                    <Ionicons
+                      name="close"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {(pendingAttachments.length > 0 || isPicking) ? (
+                <View style={styles.pendingAttachmentsContainer}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.pendingAttachmentsList}
+                  >
+                    {pendingAttachments.map((att, index) => (
+                      <View key={`${att.uri}-${index}`} style={styles.pendingAttachmentItem}>
+                        {att.isImage ? (
+                          <ExpoImage
+                            source={{ uri: att.uri }}
+                            style={styles.pendingAttachmentPreview}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View style={styles.pendingAttachmentIconWrap}>
+                            <Ionicons
+                              name={att.isVideo ? 'videocam-outline' : 'document-outline'}
+                              size={20}
+                              color={colors.textSecondary}
+                            />
+                          </View>
+                        )}
+                        <Pressable
+                          style={styles.removeAttachmentButton}
+                          onPress={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== index))}
+                        >
+                          <Ionicons name="close-circle" size={18} color={colors.danger} />
+                        </Pressable>
+                      </View>
+                    ))}
+                    {isPicking && (
+                      <View style={styles.pickingLoaderItem}>
+                        <ActivityIndicator color={colors.primary} size="small" />
+                      </View>
+                    )}
+                  </ScrollView>
+                </View>
+              ) : null}
+
+              <View style={styles.composerInputRow}>
+                <TextInput
+                  value={input}
+                  onChangeText={setInput}
+                  placeholder={
+                    editingMessage
+                      ? 'Edit message'
+                      : pendingAttachments.length > 0
+                        ? 'Add a caption (optional)'
+                        : 'Type a message'
+                  }
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.composerInput}
+                  multiline
+                />
+                {!editingMessage ? (
+                  <Pressable style={styles.smallAction} onPress={() => setCameraPopupVisible(true)}>
+                    <Ionicons
+                      name="camera-outline"
+                      size={18}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          )}
+
+          <Pressable
+            style={[
+              styles.sendButton,
+              sending && styles.sendButtonDisabled,
+              isRecording && styles.sendButtonRecording,
+            ]}
+            onPress={isRecording ? stopAndSendRecording : (isMicButton ? startRecording : handleSend)}
+            disabled={sending}
+          >
+            <Ionicons name={isRecording || !isMicButton ? 'send' : 'mic'} size={16} color={colors.surface} />
+          </Pressable>
+        </View>
+      )}
 
       <ForwardMessageModal
         visible={forwardModalVisible}
-        messageContent={selectedMessage?.raw?.content || selectedMessage?.text || null}
-        messageType={selectedMessage?.messageType || 'text'}
-        messageFileUrl={selectedMessage?.fileUrl || selectedMessage?.raw?.file_url || null}
-        messageFileName={selectedMessage?.fileName || selectedMessage?.raw?.file_name || null}
+        messages={forwardMessages}
         onClose={() => {
           setForwardModalVisible(false);
+          setForwardMessages([]);
           setSelectedMessage(null);
         }}
         onForwardSuccess={() => {
-          Alert.alert('Success', 'Message forwarded successfully');
+          const count = forwardMessages.length;
+          if (count > 1) {
+            Alert.alert('Success', `${count} messages forwarded successfully`);
+          } else {
+            Alert.alert('Success', 'Message forwarded successfully');
+          }
         }}
       />
     </KeyboardAvoidingView>
@@ -3849,5 +4139,46 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textSecondary,
     textTransform: 'uppercase',
+  },
+  selectModeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.surfaceSubtle,
+    gap: spacing.sm,
+  },
+  selectCancelBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  selectCountText: {
+    flex: 1,
+    fontWeight: '600',
+  },
+  selectForwardBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    height: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectForwardBtnDisabled: {
+    opacity: 0.5,
+  },
+  selectCheckbox: {
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

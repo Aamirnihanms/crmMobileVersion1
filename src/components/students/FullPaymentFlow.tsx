@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import AppButton from '@/src/components/common/AppButton';
@@ -9,10 +9,23 @@ import AppText from '@/src/components/common/AppText';
 import { useEnrollmentDetails } from '@/src/queries/enrollment.query';
 import { colors, spacing } from '@/src/theme';
 
+type PaymentEntry = {
+  id: string;
+  amount: string;
+  payment_method: string;
+  payment_reference: string;
+};
+
 type Props = {
     enrollmentId: string;
     onConfirmManual: (payload: any) => void;
     confirmLoading?: boolean;
+};
+
+let entryCounter = 0;
+const createEntry = (): PaymentEntry => {
+  entryCounter += 1;
+  return { id: `entry_${entryCounter}`, amount: '', payment_method: 'cash', payment_reference: '' };
 };
 
 export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirmLoading }: Props) {
@@ -21,9 +34,25 @@ export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirm
     const { data: enrollment } = useEnrollmentDetails(enrollmentId);
 
     // Manual Entry Form State
-    const [paymentMethod, setPaymentMethod] = useState('cash');
-    const [reference, setReference] = useState('');
+    const [payments, setPayments] = useState<PaymentEntry[]>([createEntry()]);
     const [notes, setNotes] = useState('');
+
+    const updatePayment = useCallback((id: string, field: keyof PaymentEntry, value: string) => {
+      setPayments(prev => prev.map(p => (p.id === id ? { ...p, [field]: value } : p)));
+    }, []);
+
+    const addPaymentEntry = useCallback(() => {
+      setPayments(prev => [...prev, createEntry()]);
+    }, []);
+
+    const removePaymentEntry = useCallback((id: string) => {
+      setPayments(prev => prev.length > 1 ? prev.filter(p => p.id !== id) : prev);
+    }, []);
+
+    const totalEntryAmount = useMemo(
+      () => payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
+      [payments]
+    );
 
     const generatePaymentLink = () => {
         if (!enrollment) return '';
@@ -56,8 +85,11 @@ export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirm
             enrollment_id: enrollmentId,
             notes: notes,
             payment_date: new Date().toISOString(),
-            payment_method: paymentMethod,
-            payment_reference: reference,
+            payments: payments.map(p => ({
+                amount: parseFloat(p.amount) || 0,
+                payment_method: p.payment_method,
+                payment_reference: p.payment_reference,
+            })),
         };
         onConfirmManual(payload);
     };
@@ -198,60 +230,132 @@ export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirm
         );
     }
 
-    return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            <TouchableOpacity style={styles.backButton} onPress={() => setSubStep('selection')}>
-                <Ionicons name="arrow-back" size={20} color={colors.primary} />
-                <AppText variant="body" color={colors.primary} style={{ fontWeight: '600', marginLeft: 4 }}>
-                    Back to Options
+    if (subStep === 'manual') {
+        const amountToPay = Math.max(0, (Number(enrollment?.total_pending_amount) || 0) - (Number(enrollment?.original_course_fees_discount) || 0));
+        const totalFormatted = totalEntryAmount.toLocaleString('en-IN');
+        const targetFormatted = amountToPay.toLocaleString('en-IN');
+        const isOver = totalEntryAmount > amountToPay;
+        const isUnder = totalEntryAmount > 0 && totalEntryAmount < amountToPay;
+        const isExact = totalEntryAmount > 0 && totalEntryAmount === amountToPay;
+
+        return (
+            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+                <TouchableOpacity style={styles.backButton} onPress={() => setSubStep('selection')}>
+                    <Ionicons name="arrow-back" size={20} color={colors.primary} />
+                    <AppText variant="body" color={colors.primary} style={{ fontWeight: '600', marginLeft: 4 }}>
+                        Back to Options
+                    </AppText>
+                </TouchableOpacity>
+
+                <AppText variant="h3" style={styles.title}>Manual Payment Entry</AppText>
+                <AppText variant="body" color={colors.textMuted} style={styles.subtitle}>
+                    Enter the details of the payment received
                 </AppText>
-            </TouchableOpacity>
 
-            <AppText variant="h3" style={styles.title}>Manual Payment Entry</AppText>
-            <AppText variant="body" color={colors.textMuted} style={styles.subtitle}>
-                Enter the details of the payment received
-            </AppText>
+                <FinancialSummary />
 
-            <FinancialSummary />
+                <View style={styles.paymentsSection}>
+                    <AppText variant="subtitle" style={styles.paymentsSectionTitle}>Payment Splits</AppText>
 
-            <AppSelect
-                label="Payment Method"
-                value={paymentMethod}
-                onSelect={setPaymentMethod}
-                options={[
-                    { label: 'Cash', value: 'cash' },
-                    { label: 'UPI', value: 'upi' },
-                    { label: 'Bank Transfer', value: 'bank_transfer' },
-                    { label: 'Card', value: 'card' },
-                    { label: 'Cheque', value: 'cheque' },
-                ]}
-            />
+                    {payments.map((entry, index) => (
+                        <View key={entry.id} style={styles.paymentEntryCard}>
+                            <View style={styles.paymentEntryHeader}>
+                                <AppText variant="caption" color={colors.textMuted} style={{ fontWeight: '600' }}>
+                                    Payment #{index + 1}
+                                </AppText>
+                                {payments.length > 1 && (
+                                    <TouchableOpacity onPress={() => removePaymentEntry(entry.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                        <Ionicons name="remove-circle-outline" size={22} color={colors.danger} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
 
-            <AppInput
-                label="Payment Reference (Optional)"
-                placeholder="Transaction ID, Receipt No, etc."
-                value={reference}
-                onChangeText={setReference}
-            />
+                            <AppInput
+                                label="Amount"
+                                placeholder="Enter amount"
+                                value={entry.amount}
+                                onChangeText={(v) => updatePayment(entry.id, 'amount', v)}
+                                keyboardType="numeric"
+                            />
 
-            <AppInput
-                label="Notes (Optional)"
-                placeholder="Additional details..."
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-                numberOfLines={3}
-                style={{ height: 100, textAlignVertical: 'top' }}
-            />
+                            <AppSelect
+                                label="Payment Method"
+                                value={entry.payment_method}
+                                onSelect={(v) => updatePayment(entry.id, 'payment_method', v)}
+                                options={[
+                                    { label: 'Cash', value: 'cash' },
+                                    { label: 'UPI', value: 'upi' },
+                                    { label: 'Bank Transfer', value: 'bank_transfer' },
+                                    { label: 'Card', value: 'card' },
+                                    { label: 'Cheque', value: 'cheque' },
+                                ]}
+                            />
 
-            <AppButton
-                title="Complete Full Payment"
-                onPress={handleManualSubmit}
-                loading={confirmLoading}
-                style={{ marginTop: spacing.xl, marginBottom: spacing.xxl }}
-            />
-        </ScrollView>
-    );
+                            <AppInput
+                                label="Payment Reference (Optional)"
+                                placeholder="Transaction ID, Receipt No, etc."
+                                value={entry.payment_reference}
+                                onChangeText={(v) => updatePayment(entry.id, 'payment_reference', v)}
+                            />
+                        </View>
+                    ))}
+
+                    <TouchableOpacity style={styles.addPaymentButton} onPress={addPaymentEntry}>
+                        <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                        <AppText variant="body" color={colors.primary} style={{ fontWeight: '600', marginLeft: 8 }}>
+                            Add Another Payment Method
+                        </AppText>
+                    </TouchableOpacity>
+
+                    {totalEntryAmount > 0 && (
+                        <View style={[styles.totalBar, isOver && styles.totalBarOver, isExact && styles.totalBarExact]}>
+                            <AppText variant="body" style={{ fontWeight: '700' }}>
+                                Total: ₹{totalFormatted}
+                            </AppText>
+                            <AppText variant="caption" style={{ fontWeight: '600' }}>
+                                {isExact
+                                    ? '✓ Matches amount to pay'
+                                    : isOver
+                                        ? `⚠ Exceeds by ₹{(totalEntryAmount - amountToPay).toLocaleString('en-IN')}`
+                                        : `of ₹${targetFormatted}`}
+                            </AppText>
+                        </View>
+                    )}
+
+                    {totalEntryAmount > 0 && !isExact && (
+                        <View style={styles.errorBar}>
+                            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                            <AppText variant="caption" color={colors.danger} style={{ marginLeft: 6, flex: 1 }}>
+                                {isOver
+                                    ? `Total exceeds amount to pay by ₹${(totalEntryAmount - amountToPay).toLocaleString('en-IN')}`
+                                    : `Total is ₹${(amountToPay - totalEntryAmount).toLocaleString('en-IN')} short of the amount to pay`}
+                            </AppText>
+                        </View>
+                    )}
+                </View>
+
+                <AppInput
+                    label="Notes (Optional)"
+                    placeholder="Additional details..."
+                    value={notes}
+                    onChangeText={setNotes}
+                    multiline
+                    numberOfLines={3}
+                    style={{ height: 100, textAlignVertical: 'top' }}
+                />
+
+                <AppButton
+                    title="Complete Full Payment"
+                    onPress={handleManualSubmit}
+                    loading={confirmLoading}
+                    disabled={!isExact}
+                    style={{ marginTop: spacing.xl, marginBottom: spacing.xxl }}
+                />
+            </ScrollView>
+        );
+    }
+
+    return null;
 }
 
 const styles = StyleSheet.create({
@@ -345,5 +449,61 @@ const styles = StyleSheet.create({
     finalLabel: {
         fontWeight: '700',
         fontSize: 16,
+    },
+    paymentsSection: {
+        marginBottom: spacing.lg,
+    },
+    paymentsSectionTitle: {
+        fontWeight: '700',
+        marginBottom: spacing.md,
+    },
+    paymentEntryCard: {
+        backgroundColor: colors.surface,
+        padding: spacing.lg,
+        borderRadius: 20,
+        marginBottom: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.surfaceSubtle,
+    },
+    paymentEntryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    addPaymentButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: spacing.lg,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: colors.primaryLight,
+        backgroundColor: colors.primaryLight + '08',
+        marginBottom: spacing.md,
+    },
+    totalBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: spacing.md,
+        borderRadius: 16,
+        backgroundColor: colors.info + '12',
+        marginBottom: spacing.md,
+    },
+    totalBarOver: {
+        backgroundColor: colors.danger + '15',
+    },
+    totalBarExact: {
+        backgroundColor: colors.success + '15',
+    },
+    errorBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.md,
+        borderRadius: 16,
+        backgroundColor: colors.danger + '12',
+        marginBottom: spacing.md,
     },
 });

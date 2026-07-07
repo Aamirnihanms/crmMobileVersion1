@@ -26,12 +26,16 @@ import {
 } from '@/src/queries/chat.query';
 import { colors } from '@/src/theme';
 
+export type ForwardMessageData = {
+    content: string | null;
+    type: string;
+    fileUrl?: string | null;
+    fileName?: string | null;
+};
+
 export type ForwardMessageModalProps = {
     visible: boolean;
-    messageContent: string | null;
-    messageType: string;
-    messageFileUrl?: string | null;
-    messageFileName?: string | null;
+    messages: ForwardMessageData[];
     onClose: () => void;
     onForwardSuccess?: () => void;
 };
@@ -41,10 +45,7 @@ type RecipientItem = (ActiveUser | ChatStudent | ChatBatch) & { _type: Recipient
 
 export default function ForwardMessageModal({
     visible,
-    messageContent,
-    messageType,
-    messageFileUrl,
-    messageFileName,
+    messages,
     onClose,
     onForwardSuccess,
 }: ForwardMessageModalProps) {
@@ -54,13 +55,16 @@ export default function ForwardMessageModal({
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedItems, setSelectedItems] = useState<Map<string | number, RecipientItem>>(new Map());
     const [isSending, setIsSending] = useState(false);
+    const [forwardingIndex, setForwardingIndex] = useState(0);
+
+    const totalMessages = messages.length;
+    const isForwardingAll = totalMessages > 1;
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
         return () => clearTimeout(timer);
     }, [search]);
 
-    // Reset state when modal opens
     useEffect(() => {
         if (visible) {
             setTab('users');
@@ -68,6 +72,7 @@ export default function ForwardMessageModal({
             setDebouncedSearch('');
             setSelectedItems(new Map());
             setIsSending(false);
+            setForwardingIndex(0);
         }
     }, [visible]);
 
@@ -178,7 +183,7 @@ export default function ForwardMessageModal({
     }, []);
 
     const handleForward = useCallback(async () => {
-        if (selectedItems.size === 0 || !messageContent || isSending) return;
+        if (selectedItems.size === 0 || messages.length === 0 || isSending) return;
 
         const items = Array.from(selectedItems.values());
         const userIds: number[] = [];
@@ -193,20 +198,28 @@ export default function ForwardMessageModal({
             }
         });
 
+        if (userIds.length === 0 && batchUids.length === 0) return;
+
         try {
             setIsSending(true);
-            await bulkSendMessage({
-                batch_uids: batchUids,
-                chat_uids: [],
-                content: messageContent,
-                message_type: messageType,
-                file_url: messageFileUrl ?? undefined,
-                file: messageFileUrl ?? undefined,
-                attachment_url: messageFileUrl ?? undefined,
-                file_name: messageFileName ?? undefined,
-                original_filename: messageFileName ?? undefined,
-                user_ids: userIds,
-            });
+
+            for (let i = 0; i < messages.length; i++) {
+                setForwardingIndex(i);
+                const msg = messages[i];
+
+                await bulkSendMessage({
+                    batch_uids: batchUids,
+                    chat_uids: [],
+                    content: msg.content ?? '',
+                    message_type: msg.type,
+                    file_url: msg.fileUrl ?? undefined,
+                    file: msg.fileUrl ?? undefined,
+                    attachment_url: msg.fileUrl ?? undefined,
+                    file_name: msg.fileName ?? undefined,
+                    original_filename: msg.fileName ?? undefined,
+                    user_ids: userIds,
+                });
+            }
 
             if (onForwardSuccess) {
                 onForwardSuccess();
@@ -217,10 +230,15 @@ export default function ForwardMessageModal({
             Alert.alert('Error', msg);
         } finally {
             setIsSending(false);
+            setForwardingIndex(0);
         }
-    }, [selectedItems, messageContent, isSending, messageType, messageFileUrl, messageFileName, onForwardSuccess, onClose]);
+    }, [selectedItems, messages, isSending, onForwardSuccess, onClose]);
 
     const selectedCount = selectedItems.size;
+
+    const headerTitle = isForwardingAll
+        ? `Forward ${totalMessages} Messages`
+        : 'Forward Message';
 
     return (
         <Modal
@@ -233,7 +251,7 @@ export default function ForwardMessageModal({
                 <View style={styles.card}>
                     <View style={styles.header}>
                         <View style={styles.headerTitleWrap}>
-                            <AppText variant="subtitle">Forward Message</AppText>
+                            <AppText variant="subtitle">{headerTitle}</AppText>
                             {selectedCount > 0 && (
                                 <View style={styles.countBadge}>
                                     <AppText variant="caption" color={colors.surface} style={{ fontSize: 10 }}>
@@ -246,6 +264,15 @@ export default function ForwardMessageModal({
                             <Ionicons name="close" size={24} color={colors.textSecondary} />
                         </Pressable>
                     </View>
+
+                    {isForwardingAll && (
+                        <View style={styles.forwardSummary}>
+                            <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.primary} />
+                            <AppText variant="caption" color={colors.textSecondary} numberOfLines={1} style={styles.forwardSummaryText}>
+                                {totalMessages} message{totalMessages > 1 ? 's' : ''} will be forwarded
+                            </AppText>
+                        </View>
+                    )}
 
                     <View style={styles.tabsRow}>
                         {(['users', 'students', 'batches'] as RecipientTab[]).map((t) => (
@@ -349,11 +376,18 @@ export default function ForwardMessageModal({
                             disabled={selectedCount === 0 || isSending}
                         >
                             {isSending ? (
-                                <ActivityIndicator color={colors.surface} size="small" />
+                                <View style={styles.sendingRow}>
+                                    <ActivityIndicator color={colors.surface} size="small" />
+                                    {isForwardingAll && (
+                                        <AppText color={colors.surface} variant="caption" style={{ marginLeft: 8 }}>
+                                            {forwardingIndex + 1} of {totalMessages}
+                                        </AppText>
+                                    )}
+                                </View>
                             ) : (
                                 <>
                                     <AppText color={colors.surface} style={{ fontWeight: '600' }}>
-                                        Forward Message
+                                        {isForwardingAll ? `Forward (${selectedCount})` : 'Forward Message'}
                                     </AppText>
                                     <Ionicons name="send" size={16} color={colors.surface} style={{ marginLeft: 8 }} />
                                 </>
@@ -397,6 +431,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
         paddingVertical: 2,
         marginLeft: 8,
+    },
+    forwardSummary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: colors.primaryLight + '15',
+        gap: 6,
+    },
+    forwardSummaryText: {
+        flex: 1,
     },
     tabsRow: {
         flexDirection: 'row',
@@ -482,5 +527,9 @@ const styles = StyleSheet.create({
     },
     forwardBtnDisabled: {
         opacity: 0.5,
+    },
+    sendingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
 });
