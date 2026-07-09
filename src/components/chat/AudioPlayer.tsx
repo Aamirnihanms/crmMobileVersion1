@@ -32,6 +32,22 @@ const toProgressPercent = (progress: number) => {
     return Math.round(Math.min(1, Math.max(0, normalized)) * 100);
 };
 
+const getExtension = (url: string): string => {
+    try {
+        const path = url.split(/[?#]/)[0];
+        const match = path.match(/\.([a-zA-Z0-9]+)$/);
+        if (match && match[1]) {
+            const ext = match[1].toLowerCase();
+            if (ext.length >= 2 && ext.length <= 4) {
+                return `.${ext}`;
+            }
+        }
+    } catch (e) {
+        console.warn('Error parsing extension from url:', e);
+    }
+    return '.mp3'; // Fallback to .mp3 since backend converts voice messages to MP3
+};
+
 export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
     const [audioSource, setAudioSource] = useState<AudioSource>(null);
     const player = useAudioPlayer(audioSource, { updateInterval: 50 });
@@ -64,8 +80,9 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
             if (uri.startsWith('http')) {
                 try {
                     // Extract a unique identifier from the end of the URL
+                    const ext = getExtension(uri);
                     const safeName = uri.replace(/[^a-z0-9]/gi, '_').slice(-60);
-                    const localPath = `${FileSystem.cacheDirectory}${safeName}.m4a`;
+                    const localPath = `${FileSystem.cacheDirectory}${safeName}${ext}`;
 
                     const fileInfo = await FileSystem.getInfoAsync(localPath);
                     if (fileInfo.exists) {

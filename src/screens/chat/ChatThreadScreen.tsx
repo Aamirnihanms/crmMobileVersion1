@@ -378,6 +378,15 @@ const areMessagesLikelySameOutgoing = (
 
   const localFileName = (local.fileName || '').trim().toLowerCase();
   const incomingFileName = (incoming.fileName || '').trim().toLowerCase();
+
+  if (local.messageType === 'audio' && incoming.messageType === 'audio') {
+    const isLocalVoiceNote = localFileName.startsWith('voice-note');
+    const isIncomingVoiceNote = incomingFileName.startsWith('voice-note');
+    if (isLocalVoiceNote && isIncomingVoiceNote) {
+      return true;
+    }
+  }
+
   if (localFileName && incomingFileName) {
     return localFileName === incomingFileName;
   }
@@ -2527,7 +2536,9 @@ export default function ChatThreadScreen() {
     [isImageFile, openAttachmentUrl]
   );
 
-  const keyExtractor = useCallback((item: ChatListItem) => item.id, []);
+  const keyExtractor = useCallback((item: ChatListItem) => {
+    return ('clientId' in item && item.clientId) ? item.clientId : item.id;
+  }, []);
 
   const handleMessageLongPress = useCallback((message: ThreadMessage) => {
     if (Platform.OS !== 'web') {
