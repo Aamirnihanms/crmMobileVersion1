@@ -3828,7 +3828,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     paddingVertical: spacing.sm,
     maxHeight: 96,
-    fontSize: 15,
+    fontSize: 16,
+    lineHeight: 22,
   },
   smallAction: {
     width: 32,

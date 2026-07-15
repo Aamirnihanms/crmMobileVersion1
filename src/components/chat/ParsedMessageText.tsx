@@ -59,8 +59,8 @@ export default function ParsedMessageText({
   return (
     <ParsedText
       style={[
-        styles.text,
         typography[variant],
+        styles.text,
         { color: defaultColor },
       ]}
       parse={parsePatterns}
@@ -74,6 +74,8 @@ export default function ParsedMessageText({
 const styles = StyleSheet.create({
   text: {
     includeFontPadding: false,
+    fontSize: 16,
+    lineHeight: 22,
   },
   url: {
     color: colors.primary,
