@@ -343,7 +343,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     },
     selectorActive: {
         borderColor: colors.primary,
-        backgroundColor: 'white',
+        backgroundColor: colors.surface,
     },
     selectorText: {
         fontSize: 14,

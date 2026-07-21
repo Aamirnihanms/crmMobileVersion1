@@ -330,7 +330,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   selectorActive: {
     borderColor: colors.primary,
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
   },
   selectorError: {
     borderColor: colors.danger,

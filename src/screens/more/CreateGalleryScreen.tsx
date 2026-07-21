@@ -188,7 +188,7 @@ const getStyles = (colors: any) => StyleSheet.create({
         padding: spacing.lg,
     },
     card: {
-        backgroundColor: 'white',
+        backgroundColor: colors.surface,
         borderRadius: 24,
         padding: spacing.xl,
         marginBottom: spacing.lg,

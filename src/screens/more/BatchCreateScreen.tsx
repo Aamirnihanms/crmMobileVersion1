@@ -440,7 +440,7 @@ const getStyles = (colors: any) => StyleSheet.create({
         padding: spacing.lg,
     },
     card: {
-        backgroundColor: 'white',
+        backgroundColor: colors.surface,
         borderRadius: 20,
         padding: spacing.xl,
         marginBottom: spacing.lg,
