@@ -1,5 +1,5 @@
 import AppText from '@/src/components/common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import React, { createContext, useContext, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -35,18 +35,13 @@ const SessionsTab = () => {
     return batch ? <BatchSessionsTab batchUid={batch.uid} /> : null;
 };
 
-const PlaceholderTab = ({ title }: { title: string }) => (
-    <View style={styles.placeholder}>
-        <AppText variant="subtitle" color={colors.textMuted}>{title} Coming Soon!</AppText>
-    </View>
-);
-
 const GalleryTab = () => {
     const { batch } = useContext(BatchContext);
     return batch ? <BatchGalleryTab batchUid={batch.uid} /> : null;
 };
 
 export default function BatchDetailsTabs({ batch }: { batch: BatchDetail }) {
+    const { colors } = useAppTheme();
     const value = useMemo(() => ({ batch }), [batch]);
 
     return (
@@ -72,7 +67,7 @@ export default function BatchDetailsTabs({ batch }: { batch: BatchDetail }) {
                     tabBarInactiveTintColor: colors.textMuted,
                     tabBarPressColor: colors.primaryLight + '20',
                     tabBarStyle: {
-                        backgroundColor: colors.background,
+                        backgroundColor: colors.surface,
                         elevation: 0,
                         shadowOpacity: 0,
                         borderBottomWidth: 1,
@@ -95,6 +90,5 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.background,
     },
 });

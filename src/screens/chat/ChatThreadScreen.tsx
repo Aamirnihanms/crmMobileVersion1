@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import {
   RouteProp,
@@ -72,7 +73,7 @@ import {
 } from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useChatStore } from '@/src/store/chat.store';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { getToken } from '@/src/utils/token';
 
 type ChatThreadRouteProp = RouteProp<
@@ -581,6 +582,8 @@ function HeaderAvatar({
   avatarColor: string;
   uri?: string | null;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={[styles.headerAvatar, { backgroundColor: colors.primaryLight + '50' }]}>
       {uri ? (
@@ -628,6 +631,8 @@ const MessageRow = memo(function MessageRow({
   isSelected = false,
   onToggleSelect,
 }: MessageRowProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const swipeableRef = useRef<Swipeable>(null);
   const [isImageLoading, setIsImageLoading] = useState(
     item.messageType === 'image' && Boolean(item.fileUrl)
@@ -745,11 +750,11 @@ const MessageRow = memo(function MessageRow({
           {item.replyPreview && !isMessageDeleted(item.raw) ? (
             <View style={[
               styles.replyPreviewBox,
-              { borderLeftColor: item.mine ? colors.surfaceAlpha53 : colors.primary }
+              { borderLeftColor: item.mine ? 'rgba(255, 255, 255, 0.5)' : colors.primary }
             ]}>
               <AppText
                 variant="caption"
-                color={item.mine ? colors.surface : colors.primary}
+                color={item.mine ? '#FFFFFF' : colors.primary}
                 numberOfLines={1}
                 style={{ fontWeight: '700' }}
               >
@@ -757,7 +762,7 @@ const MessageRow = memo(function MessageRow({
               </AppText>
               <AppText
                 variant="caption"
-                color={item.mine ? colors.surfaceAlpha93 : colors.textSecondary}
+                color={item.mine ? 'rgba(255, 255, 255, 0.9)' : colors.textSecondary}
                 numberOfLines={1}
               >
                 {item.replyPreview.messageType === 'image'
@@ -787,17 +792,17 @@ const MessageRow = memo(function MessageRow({
               ) : (
                 <View style={[
                   styles.fileCard,
-                  item.mine && { backgroundColor: colors.surfaceAlpha91, borderColor: colors.surface }
+                  item.mine && { backgroundColor: colors.surfaceAlpha25, borderColor: 'transparent' }
                 ]}>
                   <Ionicons
                     name="document-attach-outline"
                     size={16}
-                    color={item.mine ? colors.primary : colors.textSecondary}
+                    color={item.mine ? colors.surface : colors.primary}
                   />
                   <View style={styles.fileTextWrap}>
                     <AppText
                       style={styles.fileName}
-                      color={colors.textPrimary}
+                      color={item.mine ? colors.surface : colors.textPrimary}
                       numberOfLines={1}
                       ellipsizeMode="middle"
                       variant="caption"
@@ -817,7 +822,7 @@ const MessageRow = memo(function MessageRow({
             {item.raw?.is_edited && !isMessageDeleted(item.raw) ? (
               <AppText
                 variant="caption"
-                color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
+                color={item.mine ? 'rgba(255, 255, 255, 0.7)' : colors.textMuted}
                 style={styles.editedLabel}
               >
                 edited
@@ -825,7 +830,7 @@ const MessageRow = memo(function MessageRow({
             ) : null}
             <AppText
               variant="caption"
-              color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
+              color={item.mine ? 'rgba(255, 255, 255, 0.7)' : colors.textMuted}
               style={{ fontSize: 10 }}
             >
               {item.time}
@@ -844,8 +849,8 @@ const MessageRow = memo(function MessageRow({
                   item.status === 'failed'
                     ? colors.dangerSoft
                     : item.status === 'read'
-                      ? colors.surface
-                      : colors.surfaceAlpha80
+                      ? '#FFFFFF'
+                      : 'rgba(255, 255, 255, 0.6)'
                 }
               />
             ) : null}
@@ -931,11 +936,11 @@ const MessageRow = memo(function MessageRow({
           {item.replyPreview && !isMessageDeleted(item.raw) ? (
             <View style={[
               styles.replyPreviewBox,
-              { borderLeftColor: item.mine ? colors.surfaceAlpha53 : colors.primary }
+              { borderLeftColor: item.mine ? 'rgba(255, 255, 255, 0.5)' : colors.primary }
             ]}>
               <AppText
                 variant="caption"
-                color={item.mine ? colors.surface : colors.primary}
+                color={item.mine ? '#FFFFFF' : colors.primary}
                 numberOfLines={1}
                 style={{ fontWeight: '700' }}
               >
@@ -943,7 +948,7 @@ const MessageRow = memo(function MessageRow({
               </AppText>
               <AppText
                 variant="caption"
-                color={item.mine ? colors.surfaceAlpha93 : colors.textSecondary}
+                color={item.mine ? 'rgba(255, 255, 255, 0.9)' : colors.textSecondary}
                 numberOfLines={1}
               >
                 {item.replyPreview.messageType === 'image'
@@ -1013,14 +1018,14 @@ const MessageRow = memo(function MessageRow({
               ) : (
                 <View style={[
                   styles.fileCard,
-                  item.mine && { backgroundColor: colors.surfaceAlpha91, borderColor: colors.surface }
+                  item.mine && { backgroundColor: colors.surfaceAlpha25, borderColor: 'transparent' }
                 ]}>
                   {hasProgress ? (
                     <View style={styles.fileProgressIndicator}>
                       <ActivityIndicator color={item.mine ? colors.surface : colors.primary} size="small" />
                       <AppText
                         variant="caption"
-                        color={colors.primary}
+                        color={item.mine ? colors.surface : colors.primary}
                         style={styles.fileProgressPercent}
                         numberOfLines={1}
                       >
@@ -1033,13 +1038,13 @@ const MessageRow = memo(function MessageRow({
                     <Ionicons
                       name="document-attach-outline"
                       size={16}
-                      color={item.mine ? colors.primary : colors.textSecondary}
+                      color={item.mine ? colors.surface : colors.primary}
                     />
                   )}
                   <View style={styles.fileTextWrap}>
                     <AppText
                       style={styles.fileName}
-                      color={colors.textPrimary}
+                      color={item.mine ? colors.surface : colors.textPrimary}
                       numberOfLines={1}
                       ellipsizeMode="middle"
                       variant="caption"
@@ -1049,7 +1054,7 @@ const MessageRow = memo(function MessageRow({
                     {fileProgressText ? (
                       <AppText
                         style={styles.fileProgress}
-                        color={item.mine ? colors.blueDeep : colors.textSecondary}
+                        color={item.mine ? colors.surfaceAlpha80 : colors.textSecondary}
                         numberOfLines={1}
                         variant="caption"
                       >
@@ -1105,7 +1110,7 @@ const MessageRow = memo(function MessageRow({
             {item.raw?.is_edited && !isMessageDeleted(item.raw) ? (
               <AppText
                 variant="caption"
-                color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
+                color={item.mine ? 'rgba(255, 255, 255, 0.7)' : colors.textMuted}
                 style={styles.editedLabel}
               >
                 edited
@@ -1113,7 +1118,7 @@ const MessageRow = memo(function MessageRow({
             ) : null}
             <AppText
               variant="caption"
-              color={item.mine ? colors.surfaceAlpha80 : colors.textMuted}
+              color={item.mine ? 'rgba(255, 255, 255, 0.7)' : colors.textMuted}
               style={{ fontSize: 10 }}
             >
               {item.time}
@@ -1132,8 +1137,8 @@ const MessageRow = memo(function MessageRow({
                   item.status === 'failed'
                     ? colors.dangerSoft
                     : item.status === 'read'
-                      ? colors.surface
-                      : colors.surfaceAlpha80
+                      ? '#FFFFFF'
+                      : 'rgba(255, 255, 255, 0.6)'
                 }
               />
             ) : null}
@@ -1174,6 +1179,8 @@ const mapPendingUploadToThreadMessage = (upload: any): ThreadMessage => ({
 });
 
 export default function ChatThreadScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<NativeStackNavigationProp<DashboardStackParamList>>();
   const isFocused = useIsFocused();
   const queryClient = useQueryClient();
@@ -2852,7 +2859,7 @@ export default function ChatThreadScreen() {
           style={styles.headerIcon}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.surface} />
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
 
         <Pressable
@@ -2867,7 +2874,7 @@ export default function ChatThreadScreen() {
           <HeaderAvatar label={name} avatarColor={avatarColor} uri={profilePic} />
 
           <View style={styles.headerTitleWrap}>
-            <AppText variant="subtitle" color={colors.surface} style={{ fontWeight: '800' }}>
+            <AppText variant="subtitle" color="#FFFFFF" style={{ fontWeight: '800' }}>
               {name}
             </AppText>
             <AppText
@@ -2883,13 +2890,13 @@ export default function ChatThreadScreen() {
         <View style={styles.headerRight}>
           {selectMode && (
             <Pressable style={styles.headerIcon} onPress={handleCancelSelect}>
-              <Ionicons name="close" size={22} color={colors.surface} />
+              <Ionicons name="close" size={22} color="#FFFFFF" />
             </Pressable>
           )}
         </View>
       </LinearGradient>
 
-      <Modal
+      <AppModal statusBarTranslucent navigationBarTranslucent
         transparent
         visible={messageMenuVisible && !!selectedMessage}
         animationType="fade"
@@ -3011,8 +3018,8 @@ export default function ChatThreadScreen() {
                                 style={[
                                   styles.fileCard,
                                   selectedMessage.mine && {
-                                    backgroundColor: colors.surfaceAlpha91,
-                                    borderColor: colors.surface,
+                                    backgroundColor: colors.surfaceAlpha25,
+                                    borderColor: 'transparent',
                                   },
                                 ]}
                               >
@@ -3021,14 +3028,18 @@ export default function ChatThreadScreen() {
                                   size={16}
                                   color={
                                     selectedMessage.mine
-                                      ? colors.primary
-                                      : colors.textSecondary
+                                      ? colors.surface
+                                      : colors.primary
                                   }
                                 />
                                 <View style={styles.fileTextWrap}>
                                   <AppText
                                     style={styles.fileName}
-                                    color={colors.textPrimary}
+                                    color={
+                                      selectedMessage.mine
+                                        ? colors.surface
+                                        : colors.textPrimary
+                                    }
                                     numberOfLines={1}
                                     ellipsizeMode="middle"
                                     variant="caption"
@@ -3214,9 +3225,9 @@ export default function ChatThreadScreen() {
             </BlurView>
           </Pressable>
         ) : null}
-      </Modal>
+      </AppModal>
 
-      <Modal
+      <AppModal statusBarTranslucent navigationBarTranslucent
         visible={Boolean(imagePreview)}
         transparent
         animationType="fade"
@@ -3289,7 +3300,7 @@ export default function ChatThreadScreen() {
             ) : null}
           </Pressable>
         </View>
-      </Modal>
+      </AppModal>
 
       <AttachmentPopup
         visible={attachmentPopupVisible}
@@ -3564,7 +3575,7 @@ export default function ChatThreadScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -3654,7 +3665,7 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceSubtle,
   },
   myBubble: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.chatMyBubble || colors.primary,
     borderTopRightRadius: 4,
   },
   imageOnlyBubble: {
@@ -3674,10 +3685,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    backgroundColor: colors.surfaceSubtle,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(209, 213, 219, 0.5)',
+    borderColor: colors.border,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     marginBottom: 4,

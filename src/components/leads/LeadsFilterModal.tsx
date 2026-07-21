@@ -21,7 +21,7 @@ import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppDatePicker from '@/src/components/common/AppDatePicker';
 import AppText from '@/src/components/common/AppText';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type Props = {
   visible: boolean;
@@ -36,6 +36,8 @@ export default function LeadsFilterModal({
   filters,
   setAllFilters,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [localFilters, setLocalFilters] = React.useState<LeadsFilters>(filters || {});
 
   React.useEffect(() => {
@@ -131,7 +133,7 @@ export default function LeadsFilterModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <Pressable style={styles.dismissArea} onPress={onClose} />
         <View style={styles.card}>
@@ -231,7 +233,7 @@ export default function LeadsFilterModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

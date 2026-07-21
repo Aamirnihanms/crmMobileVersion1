@@ -17,10 +17,12 @@ import AppCard from '@/src/components/common/AppCard';
 import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
 import { useMarkSheet, useSaveEvaluationDraft, useSubmitEvaluation, usePublishEvaluation } from '@/src/queries/evaluation.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { getErrorMessage } from '@/src/utils/error';
 
 export default function EvaluationMarkingDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const { attemptUid } = route.params;
@@ -372,7 +374,7 @@ export default function EvaluationMarkingDetailScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

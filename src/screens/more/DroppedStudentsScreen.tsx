@@ -9,12 +9,14 @@ import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
 import DroppedStudentCard from '../../components/cards/DroppedStudentCard';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useInfiniteDroppedStudents } from '../../queries/students.query';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 import type { DroppedStudent } from '../../api/students.api';
 
 export default function DroppedStudentsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -124,7 +126,7 @@ export default function DroppedStudentsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { callNumber, openWhatsApp } from '../../utils/contactActions';
 import AppText from '../common/AppText';
 
@@ -19,6 +19,8 @@ export default function LeadHeader({
   onConvertLinkPress,
   onEditPress,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const statusColor = lead.lead_status_details?.color || colors.primary;
 
   return (
@@ -99,7 +101,10 @@ export default function LeadHeader({
   );
 }
 
-function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: any) {
+function ActionCard({ icon, label, onPress, disabled, color }: any) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const resolvedColor = color || colors.primary;
   return (
     <Pressable
       onPress={onPress}
@@ -110,8 +115,8 @@ function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: 
         pressed && styles.pressedCard
       ]}
     >
-      <View style={[styles.actionIconContainer, { backgroundColor: color + (disabled ? '10' : '15') }]}>
-        <Ionicons name={icon} size={20} color={disabled ? colors.textMuted : color} />
+      <View style={[styles.actionIconContainer, { backgroundColor: resolvedColor + (disabled ? '10' : '15') }]}>
+        <Ionicons name={icon} size={20} color={disabled ? colors.textMuted : resolvedColor} />
       </View>
       <AppText 
         variant="caption" 
@@ -126,7 +131,7 @@ function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: 
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     backgroundColor: colors.background,
     overflow: 'hidden',

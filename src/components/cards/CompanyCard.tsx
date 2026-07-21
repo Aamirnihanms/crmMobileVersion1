@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 import type { CompanyResponse } from '../../api/jobs.api';
@@ -13,6 +13,8 @@ type CompanyCardProps = {
 };
 
 export default function CompanyCard({ company, onPress }: CompanyCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const initials = company.name
     .split(' ')
     .map((w) => w[0])
@@ -84,7 +86,7 @@ export default function CompanyCard({ company, onPress }: CompanyCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     marginBottom: spacing.md,
     padding: spacing.lg,

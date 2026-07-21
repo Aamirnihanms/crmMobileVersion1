@@ -1,4 +1,4 @@
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -18,39 +18,10 @@ const ROUTES_WITH_OWN_BOTTOM_INSET = ['ChatThread', 'GroupDetails'];
 
 const hiddenTabBarStyle = { display: 'none' as const };
 
-const getBaseTabBarStyle = (bottomInset: number) => {
-  const extraBottomPadding = Math.max(bottomInset, spacing.sm);
-  const baseHeight = Platform.OS === 'ios' ? 56 : 60;
-
-  return {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.surfaceSubtle,
-    paddingBottom: extraBottomPadding,
-    paddingTop: spacing.sm,
-    height: baseHeight + extraBottomPadding,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
-  };
-};
-
 // Helper function to get tabBarStyle based on current route
-const getTabBarStyle = (route: any, visibleStyle: ReturnType<typeof getBaseTabBarStyle>) => {
+const getTabBarStyle = (route: any, visibleStyle: object) => {
   const routeName = getFocusedRouteNameFromRoute(route);
-
-  // If routeName is undefined, it means we're at the initial route of the stack.
-  // If it's defined, we check if it's one of our initial routes.
   const isTabBarVisible = !routeName || INITIAL_ROUTES.includes(routeName);
-
   return isTabBarVisible ? visibleStyle : hiddenTabBarStyle;
 };
 
@@ -70,7 +41,30 @@ const getSceneStyle = (route: any, bottomInset: number) => {
 
 export default function AppTabs() {
   const insets = useSafeAreaInsets();
-  const baseTabBarStyle = getBaseTabBarStyle(insets.bottom);
+  const { colors, isDark } = useAppTheme();
+
+  const extraBottomPadding = Math.max(insets.bottom, spacing.sm);
+  const baseHeight = Platform.OS === 'ios' ? 56 : 60;
+
+  const baseTabBarStyle = {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingBottom: extraBottomPadding,
+    paddingTop: spacing.sm,
+    height: baseHeight + extraBottomPadding,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: isDark ? 0.3 : 0.05,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  };
 
   return (
     <Tab.Navigator

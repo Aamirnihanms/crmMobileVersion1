@@ -18,12 +18,14 @@ import AppInput from '@/src/components/common/AppInput';
 import PhoneInputWithCode, { COUNTRY_CODES, CountryCode, DEFAULT_COUNTRY } from '@/src/components/common/PhoneInputWithCode';
 import ScreenShell from '@/src/components/common/ScreenShell';
 import { useUpdateProfile } from '@/src/queries/profile.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 
 export default function EditProfileScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const route = useRoute<any>();
   const { user } = route.params;
@@ -205,7 +207,7 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     padding: spacing.lg,
   },

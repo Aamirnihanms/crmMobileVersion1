@@ -3,13 +3,15 @@ import { View, StyleSheet, Dimensions, Animated, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import NetInfo from '@react-native-community/netinfo';
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 import AppText from '../common/AppText';
 import AppButton from '../common/AppButton';
 
 const { width } = Dimensions.get('window');
 
 export default function NoNetworkScreen({ onRetry }: { onRetry?: () => Promise<boolean> }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const shakeAnimation = React.useRef(new Animated.Value(0)).current;
   const [isRetrying, setIsRetrying] = React.useState(false);
 
@@ -106,7 +108,7 @@ export default function NoNetworkScreen({ onRetry }: { onRetry?: () => Promise<b
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 99999,

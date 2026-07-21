@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FlashList } from '@shopify/flash-list';
+import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Pressable,
     RefreshControl,
+    Share,
     StyleSheet,
     View,
 } from 'react-native';
@@ -18,9 +21,11 @@ import CreateExamSessionSheet from '@/src/components/evaluation/CreateExamSessio
 import { useBatchesFilters } from '@/src/hooks/useBatchesFilters';
 import { useInfiniteBatches } from '@/src/queries/batches.query';
 import { useInfiniteExamSessions } from '@/src/queries/evaluation.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function ExamSessionsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const selectedBatch = route.params?.batch;
@@ -28,6 +33,7 @@ export default function ExamSessionsScreen() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [showCreate, setShowCreate] = useState(false);
+    const [selectedSessionForEdit, setSelectedSessionForEdit] = useState<any>(null);
 
     /* ---------------- BATCH FILTERS ---------------- */
     const { filters, setAllFilters } = useBatchesFilters();
@@ -90,11 +96,24 @@ export default function ExamSessionsScreen() {
         />
     ), []);
 
+    const handleCopyLink = async (link: string) => {
+        await Clipboard.setStringAsync(link);
+        Alert.alert('Copied', 'Exam link copied to clipboard');
+    };
+
+    const handleShareLink = async (link: string, name: string) => {
+        try {
+            await Share.share({
+                message: `Join the exam session "${name}" here: ${link}`,
+            });
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        }
+    };
+
     const renderSessionItem = useCallback(({ item }: { item: any }) => (
-        <Pressable
-            style={styles.sessionCard}
-            onPress={() => navigation.navigate('Marking', { sessionUid: item.uid })}
-        >
+        <View style={styles.sessionCard}>
+            <Pressable onPress={() => navigation.navigate('Marking', { sessionUid: item.uid })}>
             <View style={styles.sessionHeader}>
                 <View style={styles.sessionTitleRow}>
                     <Ionicons name="calendar" size={20} color={colors.primary} />
@@ -120,11 +139,43 @@ export default function ExamSessionsScreen() {
                         {item.exam_type_code}
                     </AppText>
                 </View>
+                {!!item.exam_link && (
+                    <View style={styles.infoRow}>
+                        <Ionicons name="link-outline" size={16} color={colors.primary} />
+                        <AppText variant="body" color={colors.primary} style={[styles.infoText, { flex: 1 }]} numberOfLines={1}>
+                            {item.exam_link}
+                        </AppText>
+                    </View>
+                )}
             </View>
 
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={styles.chevron} />
-        </Pressable>
-    ), [navigation]);
+            </Pressable>
+
+            {/* Action Bar */}
+            <View style={styles.actionBar}>
+                <Pressable style={styles.actionBtn} onPress={() => { setSelectedSessionForEdit(item); setShowCreate(true); }}>
+                    <Ionicons name="pencil" size={16} color={colors.textMuted} />
+                    <AppText variant="caption" color={colors.textMuted} style={{ marginLeft: 4 }}>Edit</AppText>
+                </Pressable>
+                
+                {!!item.exam_link && (
+                    <>
+                        <View style={styles.actionDivider} />
+                        <Pressable style={styles.actionBtn} onPress={() => handleCopyLink(item.exam_link)}>
+                            <Ionicons name="copy-outline" size={16} color={colors.textMuted} />
+                            <AppText variant="caption" color={colors.textMuted} style={{ marginLeft: 4 }}>Copy</AppText>
+                        </Pressable>
+                        <View style={styles.actionDivider} />
+                        <Pressable style={styles.actionBtn} onPress={() => handleShareLink(item.exam_link, item.exam_name)}>
+                            <Ionicons name="share-social-outline" size={16} color={colors.primary} />
+                            <AppText variant="caption" color={colors.primary} style={{ marginLeft: 4 }}>Share</AppText>
+                        </Pressable>
+                    </>
+                )}
+            </View>
+        </View>
+    ), [navigation, colors, styles]);
 
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
@@ -233,14 +284,15 @@ export default function ExamSessionsScreen() {
 
             <CreateExamSessionSheet
                 visible={showCreate}
-                onClose={() => setShowCreate(false)}
+                onClose={() => { setShowCreate(false); setSelectedSessionForEdit(null); }}
                 batch={selectedBatch}
+                initialData={selectedSessionForEdit}
             />
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
@@ -355,8 +407,29 @@ const styles = StyleSheet.create({
     },
     chevron: {
         position: 'absolute',
-        right: spacing.md,
-        top: '50%',
+        right: spacing.sm,
+        top: '25%',
         marginTop: -10,
+    },
+    actionBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        marginTop: spacing.md,
+        paddingTop: spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: colors.divider,
+    },
+    actionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
+    },
+    actionDivider: {
+        width: 1,
+        height: 16,
+        backgroundColor: colors.divider,
+        marginHorizontal: spacing.xs,
     },
 });

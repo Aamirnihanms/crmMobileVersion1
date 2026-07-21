@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import CompanyCard from '../../components/cards/CompanyCard';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
@@ -22,6 +22,8 @@ import type { MoreStackParamList } from '../../navigation/MoreStack';
 import { useInfiniteCompanies } from '../../queries/jobs.query';
 
 export default function CompaniesListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   /* ---------------- SEARCH STATE ---------------- */
   const [search, setSearch] = useState('');
@@ -156,7 +158,7 @@ export default function CompaniesListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

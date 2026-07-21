@@ -1,10 +1,9 @@
+import { useAppTheme } from '@/src/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CreateLeadScreen from '../screens/leads/CreateLeadScreen';
 import LeadDetailsScreen from '../screens/leads/LeadDetailsScreen';
 import LeadsListScreen from '../screens/leads/LeadsListScreen';
-
-import { colors } from '@/src/theme';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 
 export type LeadsStackParamList = {
@@ -16,6 +15,7 @@ export type LeadsStackParamList = {
 const Stack = createNativeStackNavigator<LeadsStackParamList>();
 
 export default function LeadsStack() {
+  const { colors } = useAppTheme();
   return (
     <Stack.Navigator
       screenOptions={{

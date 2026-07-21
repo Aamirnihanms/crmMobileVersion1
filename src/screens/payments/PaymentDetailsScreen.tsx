@@ -19,7 +19,7 @@ import AppCard from '@/src/components/common/AppCard';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useDownloadReceipt, usePaymentTransactionDetails } from '@/src/queries/payments.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 function DetailRow({ label, value, icon, isLast = false, onValuePress, actionLabel }: {
     label: string;
@@ -29,6 +29,8 @@ function DetailRow({ label, value, icon, isLast = false, onValuePress, actionLab
     onValuePress?: () => void;
     actionLabel?: string;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     if (!value) return null;
     return (
         <View style={[styles.detailRow, isLast && { borderBottomWidth: 0 }]}>
@@ -58,6 +60,8 @@ function DetailRow({ label, value, icon, isLast = false, onValuePress, actionLab
 }
 
 export default function PaymentDetailsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const route = useRoute<any>();
     const navigation = useNavigation<any>();
     const { uid } = route.params;
@@ -303,7 +307,7 @@ export default function PaymentDetailsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: colors.background,

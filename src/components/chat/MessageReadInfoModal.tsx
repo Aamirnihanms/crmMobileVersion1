@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ import {
 
 import { getMessageReadInfo } from '@/src/api/chat.api';
 import AppText from '@/src/components/common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type ReadByUser = {
     user_id: number;
@@ -68,6 +69,8 @@ const MessageReadInfoModal: React.FC<MessageReadInfoModalProps> = ({
     chatUid,
     messageUid,
 }) => {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
     const [loading, setLoading] = useState(false);
     const [info, setInfo] = useState<MessageReadInfoResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -131,7 +134,7 @@ const MessageReadInfoModal: React.FC<MessageReadInfoModalProps> = ({
     );
 
     return (
-        <Modal
+        <AppModal statusBarTranslucent navigationBarTranslucent
             visible={visible}
             transparent
             animationType="slide"
@@ -180,11 +183,11 @@ const MessageReadInfoModal: React.FC<MessageReadInfoModalProps> = ({
                     )}
                 </View>
             </View>
-        </Modal>
+        </AppModal>
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',

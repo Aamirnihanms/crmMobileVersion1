@@ -1,5 +1,5 @@
 import AppText from '@/src/components/common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -20,6 +20,8 @@ export default function LeadsFilterBar({
   onPress,
   filters,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const activeCount = Object.values(filters).filter(Boolean).length;
 
   return (
@@ -50,7 +52,7 @@ export default function LeadsFilterBar({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,

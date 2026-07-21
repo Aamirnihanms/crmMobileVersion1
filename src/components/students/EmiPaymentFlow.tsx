@@ -6,7 +6,7 @@ import AppLoader from '@/src/components/common/AppLoader';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 import { useEmiPlans, useEmiPreview } from '@/src/queries/enrollment.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type Props = {
     enrollmentId: string;
@@ -15,6 +15,8 @@ type Props = {
 };
 
 export default function EmiPaymentFlow({ enrollmentId, onConfirm, confirmLoading }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export default function EmiPaymentFlow({ enrollmentId, onConfirm, confirmLoading
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
     },

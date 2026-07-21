@@ -1,5 +1,5 @@
 import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,6 +28,8 @@ const getLoginPlatform = (): LoginPlatform => {
 const logo = require('../../../assets/images/logo.png');
 
 export default function LoginScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   useSystemBarsStyle();
@@ -160,7 +162,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

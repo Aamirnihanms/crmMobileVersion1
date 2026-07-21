@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -20,7 +21,7 @@ import AppButton from '@/src/components/common/AppButton';
 import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
 import { useCreatePortalUser } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type Props = {
     visible: boolean;
@@ -39,6 +40,8 @@ export default function AddPortalUserModal({
     onClose,
     onSuccess,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const createMutation = useCreatePortalUser(companyUid);
 
     const [fullName, setFullName] = useState('');
@@ -111,7 +114,7 @@ export default function AddPortalUserModal({
     };
 
     return (
-        <Modal
+        <AppModal statusBarTranslucent navigationBarTranslucent
             visible={visible}
             transparent
             animationType="slide"
@@ -216,11 +219,11 @@ export default function AddPortalUserModal({
                     </ScrollView>
                 </View>
             </KeyboardAvoidingView>
-        </Modal>
+        </AppModal>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     backdrop: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.45)',

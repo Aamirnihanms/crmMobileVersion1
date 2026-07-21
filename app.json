@@ -2,11 +2,11 @@
   "expo": {
     "name": "luminar-staff",
     "slug": "crm-mobile",
-    "version": "2.2.2",
+    "version": "2.2.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "crmmobile",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.luminar.crmmobile",
@@ -53,7 +53,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
-            "backgroundColor": "#ffffff"
+            "backgroundColor": "#0B0F19"
           }
         }
       ],

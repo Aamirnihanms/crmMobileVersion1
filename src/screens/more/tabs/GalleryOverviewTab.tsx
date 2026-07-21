@@ -15,9 +15,11 @@ import AppCard from '../../../components/common/AppCard';
 import AppText from '../../../components/common/AppText';
 import { MoreStackParamList } from '../../../navigation/MoreStack';
 import { useDeleteGallery, useGalleryDetail } from '../../../queries/gallery.query';
-import { colors, spacing } from '../../../theme';
+import { useAppTheme, spacing } from '../../../theme';
 
 export default function GalleryOverviewTab({ uid }: { uid: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const { data: gallery, isLoading, error } = useGalleryDetail(uid);
     const deleteGalleryMutation = useDeleteGallery();
@@ -157,7 +159,7 @@ export default function GalleryOverviewTab({ uid }: { uid: string }) {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

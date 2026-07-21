@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
 import AppButton from '../common/AppButton';
 
@@ -36,6 +36,8 @@ export default function UpdateFollowUpStatusModal({
   onSubmit: (payload: any) => void;
   loading?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [status, setStatus] = React.useState<Status>('completed');
   const [methods, setMethods] = React.useState<Method[]>([]);
   const [callDuration, setCallDuration] = React.useState('');
@@ -83,7 +85,7 @@ export default function UpdateFollowUpStatusModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
         behavior="padding"
         style={styles.overlay}
@@ -217,7 +219,7 @@ export default function UpdateFollowUpStatusModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

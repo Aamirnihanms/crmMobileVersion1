@@ -1,12 +1,14 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import StudentEnrollmentsSection from '@/src/components/students/StudentEnrollmentsSection';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function StudentEnrollmentsTab({
   student,
 }: {
   student: any;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <ScrollView
       style={styles.scrollView}
@@ -21,7 +23,7 @@ export default function StudentEnrollmentsTab({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: colors.background,

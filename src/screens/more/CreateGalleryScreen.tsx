@@ -20,9 +20,11 @@ import AppMultiSelect from '../../components/common/AppMultiSelect';
 import AppText from '../../components/common/AppText';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 import { useCreateGallery, useUpdateGallery } from '../../queries/gallery.query';
-import { colors, spacing } from '../../theme';
+import { useAppTheme, spacing } from '../../theme';
 
 export default function CreateGalleryScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const route = useRoute<RouteProp<MoreStackParamList, 'CreateGallery'>>();
     const insets = useSafeAreaInsets();
@@ -177,7 +179,7 @@ export default function CreateGalleryScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

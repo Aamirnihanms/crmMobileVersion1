@@ -14,7 +14,7 @@ import {
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { Batch } from '../../api/batches.api';
 import { broadcastJob, type BroadcastJobPayload } from '../../api/jobs.api';
 import { fetchBatchesPage, fetchCoursesPage } from '../../api/masters/paginatedMasters.api';
@@ -44,6 +44,8 @@ function useDebounce(value: string, delay: number) {
 }
 
 export default function ShareJobModal({ visible, onClose, companyUid, jobUid, jobTitle, companyName }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('batches');
 
@@ -207,7 +209,7 @@ export default function ShareJobModal({ visible, onClose, companyUid, jobUid, jo
   const selectedCount = tab === 'batches' ? selectedBatchUids.size : selectedStudentIds.size;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <KeyboardAvoidingView behavior="padding" style={styles.sheetWrapper}>
         <View style={[styles.sheet, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
@@ -440,7 +442,7 @@ export default function ShareJobModal({ visible, onClose, companyUid, jobUid, jo
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',

@@ -27,7 +27,7 @@ import PhoneInputWithCode, {
 } from '@/src/components/common/PhoneInputWithCode';
 import { MoreStackParamList } from '@/src/navigation/MoreStack';
 import { useCreateCompany } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 /* ─── helpers ─── */
 const toSlug = (name: string) =>
@@ -42,6 +42,8 @@ const isValidEmail = (email: string) =>
 
 /* ─── section header ─── */
 function SectionHeader({ icon, title }: { icon: any; title: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     return (
         <View style={styles.sectionHeader}>
             <View style={styles.sectionIcon}>
@@ -53,6 +55,8 @@ function SectionHeader({ icon, title }: { icon: any; title: string }) {
 }
 
 export default function CreateCompanyScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const route = useRoute<RouteProp<MoreStackParamList, 'CreateCompany'>>();
     const insets = useSafeAreaInsets();
@@ -304,7 +308,7 @@ export default function CreateCompanyScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -15,7 +15,7 @@ import {
 import { useChatUnreadCount } from '@/src/queries/chat.query';
 import { useNotificationsUnreadCount } from '@/src/queries/notifications.query';
 import { useAuthStore } from '@/src/store/auth.store';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { scheduleUnreadCountRefresh } from '../lib/unreadCount';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
@@ -59,6 +59,7 @@ function HeaderIconButton({
   showDot?: boolean;
   badgeCount?: number;
 }) {
+  const { colors } = useAppTheme();
   const safeBadgeCount = Number.isFinite(badgeCount)
     ? Math.max(0, Math.floor(badgeCount))
     : 0;
@@ -67,28 +68,38 @@ function HeaderIconButton({
   return (
     <Pressable
       style={({ pressed }) => [
-        styles.iconButton,
-        pressed && styles.pressed
+        {
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.surface,
+          position: 'relative',
+          shadowColor: colors.black,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 5,
+          elevation: 2,
+        },
+        pressed && { opacity: 0.7 },
       ]}
       onPress={onPress}
     >
-      <Ionicons
-        name={icon}
-        size={22}
-        color={colors.primary}
-      />
+      <Ionicons name={icon} size={22} color={colors.primary} />
       {safeBadgeCount > 0 ? (
-        <View style={styles.countBadge}>
+        <View style={[styles.countBadge, { borderColor: colors.surface }]}>
           <Text style={styles.countBadgeText}>{badgeText}</Text>
         </View>
       ) : showDot ? (
-        <View style={styles.dot} />
+        <View style={[styles.dot, { borderColor: colors.surface }]} />
       ) : null}
     </Pressable>
   );
 }
 
 export default function DashboardStack() {
+  const { colors } = useAppTheme();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const authUser = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
@@ -147,9 +158,7 @@ export default function DashboardStack() {
                 icon="notifications-outline"
                 badgeCount={notificationsUnreadCount}
                 showDot={notificationsUnreadCount > 0}
-                onPress={() =>
-                  navigation.navigate('Notifications')
-                }
+                onPress={() => navigation.navigate('Notifications')}
               />
               <HeaderIconButton
                 icon="chatbubble-ellipses-outline"
@@ -161,15 +170,18 @@ export default function DashboardStack() {
           headerRight: () => (
             <Pressable
               style={({ pressed }) => [
-                styles.profileButton,
-                pressed && styles.pressed,
+                {
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+                pressed && { opacity: 0.7 },
               ]}
               onPress={() => {
                 const parentNav = navigation.getParent() as any;
                 parentNav?.navigate('More');
               }}
             >
-              <View style={styles.avatarShell}>
+              <View style={[styles.avatarShell, { backgroundColor: colors.surface }]}>
                 {avatarUri && !avatarLoadFailed ? (
                   <Image
                     source={{ uri: avatarUri }}
@@ -178,11 +190,7 @@ export default function DashboardStack() {
                     onError={() => setAvatarLoadFailed(true)}
                   />
                 ) : (
-                  <Ionicons
-                    name="person"
-                    size={20}
-                    color={colors.primary}
-                  />
+                  <Ionicons name="person" size={20} color={colors.primary} />
                 )}
               </View>
             </Pressable>
@@ -193,33 +201,23 @@ export default function DashboardStack() {
       <Stack.Screen
         name="MessagesList"
         component={MessagesListScreen}
-        options={{
-          title: 'Messages',
-        }}
+        options={{ title: 'Messages' }}
       />
 
       <Stack.Screen
         name="ChatThread"
         component={ChatThreadScreen}
-        options={{
-          headerShown: false,
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="GroupDetails"
         component={require('../screens/chat/GroupDetailsScreen').default}
-        options={{
-          title: 'Group Info',
-          headerTitleAlign: 'center',
-        }}
+        options={{ title: 'Group Info', headerTitleAlign: 'center' }}
       />
       <Stack.Screen
         name="Notifications"
         component={NotificationListScreen}
-        options={{
-          title: 'Notifications',
-          headerTitleAlign: 'center',
-        }}
+        options={{ title: 'Notifications', headerTitleAlign: 'center' }}
       />
       <Stack.Screen
         name="BatchChangeRequestList"
@@ -236,33 +234,10 @@ export default function DashboardStack() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    padding: spacing.lg,
-  },
   leftActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    position: 'relative',
-    borderWidth: 0,
-    borderColor: 'transparent',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
   },
   dot: {
     position: 'absolute',
@@ -271,9 +246,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.danger,
+    backgroundColor: '#EF4444',
     borderWidth: 1,
-    borderColor: colors.surface,
   },
   countBadge: {
     position: 'absolute',
@@ -285,27 +259,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.danger,
+    backgroundColor: '#EF4444',
     borderWidth: 1,
-    borderColor: colors.surface,
   },
   countBadgeText: {
-    color: colors.surface,
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
-  },
-  profileButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   avatarShell: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.black,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -316,128 +284,26 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 12,
   },
-  pressed: {
-    opacity: 0.7,
-  },
-  heroCard: {
-    borderRadius: 24,
-    padding: spacing.xl,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  heroValue: {
-    fontSize: 28,
-    marginVertical: spacing.xs,
-  },
-  heroBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  heroBadgeText: {
-    marginLeft: 4,
-    fontWeight: '600',
-  },
-  heroActions: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    padding: 4,
-  },
-  heroButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginBottom: 4,
-  },
-  heroButtonInactive: {
-    backgroundColor: 'transparent',
-    marginBottom: 0,
-  },
-  heroButtonText: {
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    marginTop: spacing.sm,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xl,
-  },
-  statCard: {
-    width: (width - spacing.lg * 2 - spacing.md) / 2,
-    padding: spacing.md,
-  },
-  statHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  statIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  trendBadge: {
-    backgroundColor: colors.background,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  trendText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statTitle: {
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  statValue: {
-    fontSize: 20,
-  },
-  activityCard: {
-    padding: spacing.md,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  activityContent: {
-    flex: 1,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginVertical: spacing.xs,
-  },
+  heroCard: { borderRadius: 24, padding: spacing.xl, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl, elevation: 10 },
+  heroValue: { fontSize: 28, marginVertical: spacing.xs },
+  heroBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 8, alignSelf: 'flex-start' },
+  heroBadgeText: { marginLeft: 4, fontWeight: '600' },
+  heroActions: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: 4 },
+  heroButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 4 },
+  heroButtonInactive: { backgroundColor: 'transparent', marginBottom: 0 },
+  heroButtonText: { fontWeight: '700', fontSize: 12 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg, marginTop: spacing.sm },
+  statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xl },
+  statCard: { width: (width - spacing.lg * 2 - spacing.md) / 2, padding: spacing.md },
+  statHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm },
+  statIconContainer: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  trendBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  trendText: { fontSize: 10, fontWeight: '700' },
+  statTitle: { fontWeight: '600', marginBottom: 2 },
+  statValue: { fontSize: 20 },
+  activityCard: { padding: spacing.md },
+  activityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
+  activityIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
+  activityContent: { flex: 1 },
+  divider: { height: 1, marginVertical: spacing.xs },
 });

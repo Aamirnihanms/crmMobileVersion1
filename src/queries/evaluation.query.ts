@@ -30,6 +30,7 @@ import {
     fetchTemplateWithModules,
     fetchExamTypes,
     createExamSession,
+    updateExamSession,
     fetchBatchStudents,
     CreateExamSessionPayload,
 } from '../api/evaluation.api';
@@ -329,6 +330,16 @@ export const useCreateExamSession = () => {
         mutationFn: (payload: CreateExamSessionPayload) => createExamSession(payload),
         onSuccess: (_, vars) => {
             queryClient.invalidateQueries({ queryKey: ['exam-sessions', vars.batch_uid] });
+        },
+    });
+};
+
+export const useUpdateExamSession = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ uid, payload }: { uid: string; payload: Partial<CreateExamSessionPayload> }) => updateExamSession(uid, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['exam-sessions'] });
         },
     });
 };

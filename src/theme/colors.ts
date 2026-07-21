@@ -1,4 +1,4 @@
-export const colors = {
+export const colorsLight = {
   // Brand
   primary: '#8B5CF6',
   primaryDark: '#7C3AED',
@@ -53,6 +53,7 @@ export const colors = {
   chatGroupBg: '#E2F2FF',
   chatBatchBg: '#FFE8D8',
   chatDirectBg: '#D7F5E2',
+  chatMyBubble: '#8B5CF6',
 
   // Alpha overlays
   overlayStrong: '#000000D0',
@@ -63,3 +64,73 @@ export const colors = {
   surfaceAlpha91: '#FFFFFFE8',
   surfaceAlpha93: '#FFFFFFEE',
 };
+
+export const colorsDark = {
+  // Brand
+  primary: '#A78BFA', // Brighter purple for dark mode backgrounds
+  primaryDark: '#8B5CF6',
+  primaryLight: '#C4B5FD',
+  secondary: '#C084FC',
+  gradientStart: '#7C3AED',
+  gradientEnd: '#4F46E5',
+
+  // Core status
+  danger: '#EF4444',
+  dangerStrong: '#F87171',
+  warning: '#FBBF24',
+  success: '#34D399',
+  successStrong: '#4ADE80',
+
+  // Surfaces and text
+  background: '#0B0F19', // deep premium dark slate
+  backgroundSoft: '#111827', // dark gray-blue
+  surface: '#1E293B', // dark slate card background
+  surfaceAlt: '#152033',
+  surfaceSubtle: '#334155',
+  neutralSoft: '#334155',
+  textPrimary: '#F8FAFC', // slate-50
+  textSecondary: '#CBD5E1', // slate-300
+  textMuted: '#64748B', // slate-500
+  border: '#334155', // slate-700
+  divider: '#1E293B',
+
+  // Neutrals
+  black: '#000000',
+
+  // Support colors used across screens (adapted for dark mode)
+  dangerSoft: '#451A1A',
+  dangerBg: '#2A1212',
+  dangerBgSoft: '#3B1818',
+  successBg: '#062C18',
+  successBgSoft: '#0C3C24',
+  indigoSoft: '#1E1B4B',
+  emeraldSoft: '#062C18',
+  warningSoft: '#3F2204',
+  accentPink: '#F472B6',
+  slate: '#94A3B8',
+  info: '#60A5FA',
+  whatsapp: '#4ADE80',
+  blueDeep: '#1E3A8A',
+  tealStrong: '#2DD4BF',
+  blueStrong: '#3B82F6',
+  successDeep: '#4ADE80',
+  successBright: '#4ADE80',
+
+  // Chat semantic backgrounds (adapted for dark mode)
+  chatGroupBg: '#1E3A8A',
+  chatBatchBg: '#7C2D12',
+  chatDirectBg: '#064E3B',
+  chatMyBubble: '#8B5CF6',
+
+  // Alpha overlays (adapted for dark mode)
+  overlayStrong: '#000000E0',
+  surfaceAlpha14: '#FFFFFF11',
+  surfaceAlpha53: '#FFFFFF33',
+  surfaceAlpha25: '#FFFFFF22',
+  surfaceAlpha80: '#1E293BCC',
+  surfaceAlpha91: '#1E293BE8',
+  surfaceAlpha93: '#1E293BEE',
+};
+
+// Default export/alias for backward compatibility
+export const colors = colorsLight;

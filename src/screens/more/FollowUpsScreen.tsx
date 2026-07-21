@@ -17,7 +17,7 @@ import { MoreStackParamList } from '@/src/navigation/MoreStack';
 import { useInfiniteMyFollowUps } from '@/src/queries/followups.query';
 import { useInfiniteMyReminders } from '@/src/queries/leads.query';
 import { useAuthStore } from '@/src/store/auth.store';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -36,6 +36,8 @@ type TabType = 'followups' | 'reminders';
 type SubTabType = 'today' | 'overdue' | 'upcoming';
 
 export default function FollowUpsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const isFocused = useIsFocused();
     const user = useAuthStore((state) => state.user);
@@ -282,7 +284,7 @@ export default function FollowUpsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -18,7 +19,7 @@ import AppInput from '@/src/components/common/AppInput';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 import { useCreateCompanyJob } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type TemplateOption = {
     uid: string;
@@ -47,6 +48,8 @@ export default function AddCompanyJobModal({
     onClose,
     onSuccess,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const createMutation = useCreateCompanyJob(companyUid);
 
     const [title, setTitle] = useState('');
@@ -125,7 +128,7 @@ export default function AddCompanyJobModal({
     ];
 
     return (
-        <Modal
+        <AppModal statusBarTranslucent navigationBarTranslucent
             visible={visible}
             transparent
             animationType="slide"
@@ -237,11 +240,11 @@ export default function AddCompanyJobModal({
                     </ScrollView>
                 </View>
             </KeyboardAvoidingView>
-        </Modal>
+        </AppModal>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     backdrop: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.45)',

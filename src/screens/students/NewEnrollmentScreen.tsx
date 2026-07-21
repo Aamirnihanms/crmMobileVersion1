@@ -26,7 +26,7 @@ import {
 } from '@/src/api/masters/paginatedMasters.api';
 import { useAddNewEnrollment } from '@/src/queries/students.query';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { Course } from '@/src/types/course';
 import type { Counselor } from '@/src/api/masters/counselors.api';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
@@ -131,6 +131,8 @@ function checkSeatAvailability(batch: Batch | null, modeId: string): SeatCheck |
 type Step = 'form' | 'options' | 'payment_link' | 'manual';
 
 export default function NewEnrollmentScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation();
   const route = useRoute<RouteProp<StudentsStackParamList, 'NewEnrollment'>>();
   const { studentId, studentName } = route.params;
@@ -466,17 +468,17 @@ export default function NewEnrollmentScreen() {
                   <View
                     style={[
                       styles.seatBanner,
-                      { backgroundColor: seatBannerBg[seatCheck.severity] },
+                      { backgroundColor: getSeatBannerBg(colors)[seatCheck.severity] },
                     ]}
                   >
                     <Ionicons
                       name={seatBannerIcon[seatCheck.severity]}
                       size={16}
-                      color={seatBannerColor[seatCheck.severity]}
+                      color={getSeatBannerColor(colors)[seatCheck.severity]}
                     />
                     <AppText
                       variant="caption"
-                      style={[styles.seatBannerText, { color: seatBannerColor[seatCheck.severity] }]}
+                      style={[styles.seatBannerText, { color: getSeatBannerColor(colors)[seatCheck.severity] }]}
                     >
                       {seatCheck.message}
                     </AppText>
@@ -693,6 +695,8 @@ function StepIndicator({
   active: boolean;
   done: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const bg = done
     ? colors.success
     : active
@@ -727,6 +731,8 @@ function StepIndicator({
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SeatChip({ label, count, canEnroll }: { label: string; count: number; canEnroll?: boolean }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const hasSeats = count > 0 && canEnroll !== false;
   const chipColor = hasSeats ? colors.success : colors.danger;
   return (
@@ -743,17 +749,17 @@ function SeatChip({ label, count, canEnroll }: { label: string; count: number; c
   );
 }
 
-const seatBannerColor: Record<string, string> = {
+const getSeatBannerColor = (colors: any): Record<string, string> => ({
   ok: colors.success,
   warn: '#f59e0b',
   error: colors.danger,
-};
+});
 
-const seatBannerBg: Record<string, string> = {
+const getSeatBannerBg = (colors: any): Record<string, string> => ({
   ok: colors.success + '12',
   warn: '#f59e0b12',
   error: colors.danger + '12',
-};
+});
 
 const seatBannerIcon: Record<string, any> = {
   ok: 'checkmark-circle-outline',
@@ -763,7 +769,7 @@ const seatBannerIcon: Record<string, any> = {
 
 /* ─── Styles ─── */
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,4 +1,4 @@
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { StyleSheet, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import AppText from './AppText';
 
@@ -19,6 +19,8 @@ export default function AppInput({
   leftElement,
   ...props
 }: AppInputProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? (
@@ -46,7 +48,7 @@ export default function AppInput({
           style={[
             styles.input,
             props.multiline && { textAlignVertical: 'top' },
-            leftElement && { paddingLeft: 0 },
+            leftElement ? { paddingLeft: 0 } : null,
             style,
           ]}
           placeholderTextColor={colors.textMuted}
@@ -71,7 +73,7 @@ export default function AppInput({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.lg,
   },

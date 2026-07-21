@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { API_CONFIG } from '@/src/config/api.config';
 import AppCard from '../../components/common/AppCard';
 import AppText from '../../components/common/AppText';
@@ -28,6 +28,8 @@ import { JobStage } from '../../api/jobs.api';
 type JobDetailRouteProp = RouteProp<MoreStackParamList, 'JobDetail'>;
 
 export default function JobDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<JobDetailRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const { uid } = route.params;
@@ -449,7 +451,7 @@ export default function JobDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   center: {
     flex: 1,
     justifyContent: 'center',

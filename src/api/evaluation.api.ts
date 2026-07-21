@@ -118,6 +118,8 @@ export const deleteEvaluationCriteria = async (uid: string): Promise<any> => {
 
 export const fetchExamSessions = async (params: { batch_uid: string, page: number, page_size: number }): Promise<any> => {
     const res = await http.get('/evaluation/exam-sessions/', { params });
+    console.log("=== EXAM SESSIONS API RESPONSE ===");
+    console.log(JSON.stringify(res.data, null, 2));
     return res.data;
 };
 
@@ -172,11 +174,17 @@ export type CreateExamSessionPayload = {
     scheduled_date: string;
     template_uid: string;
     exam_notes?: string;
+    exam_link?: string;
     student_uids?: string[];
 };
 
 export const createExamSession = async (payload: CreateExamSessionPayload): Promise<any> => {
     const res = await http.post('/evaluation/exam-sessions/create/', payload);
+    return res.data;
+};
+
+export const updateExamSession = async (uid: string, payload: Partial<CreateExamSessionPayload>): Promise<any> => {
+    const res = await http.patch(`/evaluation/exam-sessions/${uid}/`, payload);
     return res.data;
 };
 

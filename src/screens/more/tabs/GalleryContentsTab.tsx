@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,10 +22,12 @@ import AppText from '../../../components/common/AppText';
 import EmptyState from '../../../components/common/EmptyState';
 import { MoreStackParamList } from '../../../navigation/MoreStack';
 import { useDeleteFolder, useDeleteVideo, useGalleryFolders, useGalleryVideos, useUpdateVideo } from '../../../queries/gallery.query';
-import { colors, spacing } from '../../../theme';
+import { useAppTheme, spacing } from '../../../theme';
 import { getYouTubeID } from '../../../utils/youtube';
 
 export default function GalleryContentsTab({ uid }: { uid: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
 
     const {
@@ -268,7 +271,7 @@ export default function GalleryContentsTab({ uid }: { uid: string }) {
                 }
             />
 
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isMoveModalVisible}
                 transparent
                 animationType="slide"
@@ -300,7 +303,7 @@ export default function GalleryContentsTab({ uid }: { uid: string }) {
                         />
                     </View>
                 </View>
-            </Modal>
+            </AppModal>
 
             <VideoPlayerModal
                 isVisible={isVideoPlayerVisible}
@@ -315,7 +318,7 @@ export default function GalleryContentsTab({ uid }: { uid: string }) {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

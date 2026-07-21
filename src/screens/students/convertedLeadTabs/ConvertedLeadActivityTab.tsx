@@ -10,9 +10,11 @@ import ActivityCard from '@/src/components/activities/ActivityCard';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useInfiniteLeadActivities } from '@/src/queries/activities.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function ConvertedLeadActivityTab({ id }: { id: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const {
     data,
     isLoading,
@@ -73,7 +75,7 @@ export default function ConvertedLeadActivityTab({ id }: { id: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

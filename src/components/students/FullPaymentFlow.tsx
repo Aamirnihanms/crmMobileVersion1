@@ -7,7 +7,7 @@ import AppInput from '@/src/components/common/AppInput';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 import { useEnrollmentDetails } from '@/src/queries/enrollment.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type PaymentEntry = {
   id: string;
@@ -29,6 +29,8 @@ const createEntry = (): PaymentEntry => {
 };
 
 export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirmLoading }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const [subStep, setSubStep] = useState<'selection' | 'link' | 'manual'>('selection');
 
     const { data: enrollment } = useEnrollmentDetails(enrollmentId);
@@ -358,7 +360,7 @@ export default function FullPaymentFlow({ enrollmentId, onConfirmManual, confirm
     return null;
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
     },

@@ -25,7 +25,7 @@ import {
 import { useCreateBatchChangeRequest } from '@/src/queries/batch-change.query';
 import { useEnrollmentDetails } from '@/src/queries/enrollment.query';
 import { useStudentProfile } from '@/src/queries/students.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { Course } from '@/src/types/course';
 import type { Counselor } from '@/src/api/masters/counselors.api';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
@@ -122,6 +122,8 @@ function checkSeatAvailability(batch: Batch | null, mode: string): SeatCheck | n
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function BatchChangeScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<RouteProp<RouteParams, 'BatchChange'>>();
   const navigation = useNavigation();
   const { enrollmentId, studentId } = route.params;
@@ -597,6 +599,8 @@ export default function BatchChangeScreen() {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.infoRow}>
       <View style={styles.infoIconBox}>
@@ -619,6 +623,8 @@ function InfoRow({ icon, label, value }: { icon: any; label: string; value: stri
 }
 
 function SeatChip({ label, count, canEnroll }: { label: string; count: number; canEnroll?: boolean }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const hasSeats = count > 0 && canEnroll !== false;
   const chipColor = hasSeats ? colors.success : colors.danger;
   return (
@@ -637,7 +643,7 @@ function SeatChip({ label, count, canEnroll }: { label: string; count: number; c
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,

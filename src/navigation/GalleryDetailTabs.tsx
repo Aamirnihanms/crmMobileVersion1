@@ -4,7 +4,7 @@ import React from 'react';
 
 import GalleryOverviewTab from '../screens/more/tabs/GalleryOverviewTab';
 import GalleryContentsTab from '../screens/more/tabs/GalleryContentsTab';
-import { colors } from '../theme';
+import { useAppTheme } from '../theme';
 import { MoreStackParamList } from './MoreStack';
 
 const Tab = createMaterialTopTabNavigator();
@@ -15,6 +15,7 @@ type GalleryDetailTabsProps = {
 
 export default function GalleryDetailTabs({ route }: GalleryDetailTabsProps) {
     const { uid } = route.params;
+    const { colors } = useAppTheme();
 
     return (
         <Tab.Navigator
@@ -30,7 +31,7 @@ export default function GalleryDetailTabs({ route }: GalleryDetailTabsProps) {
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.textMuted,
                 tabBarStyle: {
-                    backgroundColor: colors.background,
+                    backgroundColor: colors.surface,
                     elevation: 0,
                     shadowOpacity: 0,
                     borderBottomWidth: 1,

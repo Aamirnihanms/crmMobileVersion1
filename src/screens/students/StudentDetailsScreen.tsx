@@ -11,12 +11,14 @@ import StudentDetailsTabs from '@/src/navigation/StudentDetailsTabs';
 import { StudentsStackParamList } from '@/src/navigation/StudentsStack';
 import { useStudentProfile } from '@/src/queries/students.query';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 type Nav = NativeStackNavigationProp<StudentsStackParamList, 'StudentDetails'>;
 
 export default function StudentDetailsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<Nav>();
   const route: any = useRoute();
   const { id } = route.params;
@@ -125,7 +127,7 @@ export default function StudentDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,

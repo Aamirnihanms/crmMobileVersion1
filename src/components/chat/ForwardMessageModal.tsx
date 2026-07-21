@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -24,7 +25,7 @@ import {
     useInfiniteChatStudents,
     useInfiniteChatUsers,
 } from '@/src/queries/chat.query';
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 
 export type ForwardMessageData = {
     content: string | null;
@@ -49,6 +50,8 @@ export default function ForwardMessageModal({
     onClose,
     onForwardSuccess,
 }: ForwardMessageModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const insets = useSafeAreaInsets();
     const [tab, setTab] = useState<RecipientTab>('users');
     const [search, setSearch] = useState('');
@@ -241,7 +244,7 @@ export default function ForwardMessageModal({
         : 'Forward Message';
 
     return (
-        <Modal
+        <AppModal statusBarTranslucent navigationBarTranslucent
             visible={visible}
             animationType="slide"
             transparent
@@ -396,11 +399,11 @@ export default function ForwardMessageModal({
                     </View>
                 </View>
             </View>
-        </Modal>
+        </AppModal>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',

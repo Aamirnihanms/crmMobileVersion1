@@ -20,7 +20,7 @@ import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type Props = {
   visible: boolean;
@@ -48,6 +48,8 @@ export default function PaymentsFilterModal({
   filters,
   setAllFilters,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [localFilters, setLocalFilters] = React.useState<PaymentFilters>(filters || {});
 
   React.useEffect(() => {
@@ -101,7 +103,7 @@ export default function PaymentsFilterModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <Pressable style={styles.dismissArea} onPress={onClose} />
         <View style={styles.card}>
@@ -236,7 +238,7 @@ export default function PaymentsFilterModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

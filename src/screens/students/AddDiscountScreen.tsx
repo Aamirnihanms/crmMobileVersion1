@@ -11,10 +11,12 @@ import AppLoader from '@/src/components/common/AppLoader';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 import { useAddDiscount, useDeleteDiscount, useDiscountPolicies, useEnrollmentDiscounts } from '@/src/queries/discount.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 
 export default function AddDiscountScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<RouteProp<StudentsStackParamList, 'AddDiscount'>>();
   const { enrollmentId, studentId } = route.params;
   const navigation = useNavigation();
@@ -187,7 +189,7 @@ export default function AddDiscountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,

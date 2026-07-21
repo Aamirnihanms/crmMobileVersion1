@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import AttachmentPopup, { type AttachmentActionType } from '@/src/components/chat/AttachmentPopup';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -61,7 +62,7 @@ import {
   useInfiniteChatUsers,
 } from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { getToken } from '@/src/utils/token';
 import {
   useQueryClient,
@@ -147,7 +148,7 @@ const formatChatTime = (rawValue?: string | null) => {
   return date.toLocaleDateString();
 };
 
-const getAvatarColor = (chatType: 'individual' | 'group' | 'batch') => {
+const getAvatarColor = (chatType: 'individual' | 'group' | 'batch', colors: any) => {
   if (chatType === 'group') return colors.chatGroupBg;
   if (chatType === 'batch') return colors.chatBatchBg;
   return colors.chatDirectBg;
@@ -155,7 +156,8 @@ const getAvatarColor = (chatType: 'individual' | 'group' | 'batch') => {
 
 const mapApiChatToPreview = (
   chat: ApiChat,
-  currentUserId?: number | string | null
+  currentUserId?: number | string | null,
+  colors?: any
 ): ChatPreview => {
   const anyChat = chat as any;
 
@@ -168,7 +170,7 @@ const mapApiChatToPreview = (
         chat.last_message_preview?.created_at || anyChat.last_message?.created_at || chat.last_message_at || anyChat.created_at
       ),
       unread: chat.unread_count || 0,
-      avatarColor: getAvatarColor('group'),
+      avatarColor: getAvatarColor('group', colors),
       chatType: 'group',
       profilePic: chat.group_icon || null,
       isArchived: Boolean(chat.is_archived || anyChat.archived),
@@ -185,7 +187,7 @@ const mapApiChatToPreview = (
         chat.last_message_preview?.created_at || anyChat.last_message?.created_at || chat.last_message_at || anyChat.created_at
       ),
       unread: chat.unread_count || 0,
-      avatarColor: getAvatarColor('batch'),
+      avatarColor: getAvatarColor('batch', colors),
       chatType: 'batch',
       profilePic: null, // Batches don't usually have icons in this API
       isArchived: Boolean(chat.is_archived || anyChat.archived),
@@ -220,7 +222,7 @@ const mapApiChatToPreview = (
       chat.last_message_preview?.created_at || anyChat.last_message?.created_at || chat.last_message_at || anyChat.created_at
     ),
     unread: chat.unread_count || 0,
-    avatarColor: getAvatarColor('individual'),
+    avatarColor: getAvatarColor('individual', colors),
     participantId: participant.id,
     chatType: 'individual',
     online: Boolean(participant.is_active),
@@ -278,6 +280,8 @@ function Avatar({
   uri?: string | null;
   onPress?: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const initial = label?.trim()?.charAt(0)?.toUpperCase() || 'U';
 
   const content = (
@@ -320,10 +324,12 @@ const ProfilePreviewModal = memo(function ProfilePreviewModal({
   onClose,
   onOpenChat,
 }: ProfilePreviewModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   if (!chat) return null;
 
   return (
-    <Modal
+    <AppModal statusBarTranslucent navigationBarTranslucent
       visible={visible}
       transparent
       animationType="fade"
@@ -375,7 +381,7 @@ const ProfilePreviewModal = memo(function ProfilePreviewModal({
           </View>
         </Pressable>
       </Pressable>
-    </Modal>
+    </AppModal>
   );
 });
 
@@ -388,6 +394,8 @@ type ChatRowProps = {
 };
 
 const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarPress, isSelected }: ChatRowProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <Pressable
       style={({ pressed }) => [
@@ -476,6 +484,8 @@ const ChatRow = memo(function ChatRow({ chat, onOpenChat, onMenuPress, onAvatarP
 );
 
 export default function MessagesListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<Nav>();
   const isFocused = useIsFocused();
   const queryClient = useQueryClient();
@@ -658,7 +668,7 @@ export default function MessagesListScreen() {
             seen.add(chat.uid);
             return true;
           })
-          .map((chat) => mapApiChatToPreview(chat, currentUserId))
+          .map((chat) => mapApiChatToPreview(chat, currentUserId, colors))
       ) || []
     );
   }, [chatsData, currentUserId]);
@@ -796,7 +806,7 @@ export default function MessagesListScreen() {
 
   const openExistingOrCreatedChat = useCallback(
     (apiChat: ApiChat) => {
-      const preview = mapApiChatToPreview(apiChat, currentUserId);
+      const preview = mapApiChatToPreview(apiChat, currentUserId, colors);
       upsertChatToTop(preview);
       setShowNewChatModal(false);
       navigateToChat(preview);
@@ -1513,7 +1523,7 @@ export default function MessagesListScreen() {
         )}
       </View>
 
-      <Modal
+      <AppModal statusBarTranslucent navigationBarTranslucent
         visible={showChatMenu}
         transparent
         animationType="fade"
@@ -1599,9 +1609,9 @@ export default function MessagesListScreen() {
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
 
-      <Modal
+      <AppModal statusBarTranslucent navigationBarTranslucent
         visible={showFilterMenu}
         transparent
         animationType="fade"
@@ -1655,7 +1665,7 @@ export default function MessagesListScreen() {
             </Pressable>
           </View>
         </Pressable>
-      </Modal>
+      </AppModal>
 
       <ProfilePreviewModal
         visible={showProfilePreview}
@@ -1689,7 +1699,7 @@ export default function MessagesListScreen() {
         ListEmptyComponent={renderChatsEmpty}
       />
 
-      <Modal
+      <AppModal statusBarTranslucent navigationBarTranslucent
         visible={showNewChatModal}
         animationType="slide"
         transparent
@@ -1818,9 +1828,9 @@ export default function MessagesListScreen() {
           </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
-      </Modal>
+      </AppModal>
 
-      <Modal
+      <AppModal statusBarTranslucent navigationBarTranslucent
         visible={showCreateGroupModal}
         animationType="slide"
         transparent
@@ -2025,7 +2035,7 @@ export default function MessagesListScreen() {
           </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
-      </Modal>
+      </AppModal>
 
       <AttachmentPopup
         visible={showIconPicker}
@@ -2037,7 +2047,7 @@ export default function MessagesListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

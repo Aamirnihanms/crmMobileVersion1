@@ -19,7 +19,7 @@ import AppText from '@/src/components/common/AppText';
 import StudentsFilterModal from '@/src/components/students/StudentsFilterModal';
 import { useStudentsFilters } from '@/src/hooks/useStudentsFilters';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 import type { StudentsPageResponse } from '@/src/api/students.api';
 import ShareLinkModal from '@/src/components/students/ShareLinkModal';
@@ -30,6 +30,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 
 export default function StudentsListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [openFilter, setOpenFilter] = useState(false);
@@ -233,7 +235,7 @@ export default function StudentsListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

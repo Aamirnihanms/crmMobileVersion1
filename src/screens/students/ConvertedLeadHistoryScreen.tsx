@@ -10,12 +10,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { StudentsStackParamList } from '@/src/navigation/StudentsStack';
 import ConvertedLeadDetailsTabs from '@/src/navigation/ConvertedLeadDetailsTabs';
 import { useConvertedLeadDetails } from '@/src/queries/leadDetails.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { callNumber, openWhatsApp } from '@/src/utils/contactActions';
 
 type Nav = NativeStackNavigationProp<StudentsStackParamList, 'ConvertedLeadHistory'>;
 
 export default function ConvertedLeadHistoryScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<Nav>();
   const route: any = useRoute();
   const { leadId } = route.params;
@@ -130,7 +132,10 @@ export default function ConvertedLeadHistoryScreen() {
   );
 }
 
-function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: any) {
+function ActionCard({ icon, label, onPress, disabled, color }: any) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const resolvedColor = color || colors.primary;
   return (
     <Pressable
       onPress={onPress}
@@ -141,8 +146,8 @@ function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: 
         pressed && styles.pressedCard,
       ]}
     >
-      <View style={[styles.actionIconContainer, { backgroundColor: color + (disabled ? '10' : '15') }]}>
-        <Ionicons name={icon} size={20} color={disabled ? colors.textMuted : color} />
+      <View style={[styles.actionIconContainer, { backgroundColor: resolvedColor + (disabled ? '10' : '15') }]}>
+        <Ionicons name={icon} size={20} color={disabled ? colors.textMuted : resolvedColor} />
       </View>
       <AppText variant="caption" style={[styles.actionLabel, disabled && { color: colors.textMuted }]}>
         {label}
@@ -151,7 +156,7 @@ function ActionCard({ icon, label, onPress, disabled, color = colors.primary }: 
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   flex: {
     flex: 1,
   },

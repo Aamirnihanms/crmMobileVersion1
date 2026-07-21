@@ -1,4 +1,4 @@
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import AppCard from './../common/AppCard';
@@ -24,6 +24,8 @@ export default function LeadBasicInfoSection({
   originalPhone,
   originalEmail,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
 
@@ -202,7 +204,7 @@ export default function LeadBasicInfoSection({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
   },

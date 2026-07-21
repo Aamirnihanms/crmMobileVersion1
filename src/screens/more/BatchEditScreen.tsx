@@ -30,9 +30,11 @@ import AppText from '@/src/components/common/AppText';
 import AppLoader from '@/src/components/common/AppLoader';
 import { MoreStackParamList } from '@/src/navigation/MoreStack';
 import { useBatchDetail, useUpdateBatch } from '@/src/queries/batches.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function BatchEditScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const route = useRoute<RouteProp<MoreStackParamList, 'BatchEdit'>>();
     const { uid } = route.params;
@@ -479,7 +481,7 @@ export default function BatchEditScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

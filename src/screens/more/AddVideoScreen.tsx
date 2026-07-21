@@ -17,9 +17,11 @@ import AppInput from '../../components/common/AppInput';
 import AppText from '../../components/common/AppText';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 import { useAddVideo, useUpdateVideo } from '../../queries/gallery.query';
-import { colors, spacing } from '../../theme';
+import { useAppTheme, spacing } from '../../theme';
 
 export default function AddVideoScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const route = useRoute<RouteProp<MoreStackParamList, 'AddVideo'>>();
     const insets = useSafeAreaInsets();
@@ -134,7 +136,7 @@ export default function AddVideoScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

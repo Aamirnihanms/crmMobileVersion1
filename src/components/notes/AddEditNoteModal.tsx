@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { NoteImportance } from '../../api/notes.api';
 import AppText from '../common/AppText';
 import AppButton from '../common/AppButton';
@@ -42,6 +42,8 @@ export default function AddEditNoteModal({
   }) => void;
   loading?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [content, setContent] = React.useState(initialContent);
   const [importance, setImportance] = React.useState<NoteImportance>(initialImportance);
 
@@ -59,7 +61,7 @@ export default function AddEditNoteModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
         behavior="padding"
         style={styles.overlay}
@@ -131,7 +133,7 @@ export default function AddEditNoteModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

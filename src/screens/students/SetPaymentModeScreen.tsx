@@ -8,7 +8,7 @@ import AppText from '@/src/components/common/AppText';
 import EmiPaymentFlow from '@/src/components/students/EmiPaymentFlow';
 import FullPaymentFlow from '@/src/components/students/FullPaymentFlow';
 import { useCompleteFullPayment, useConfirmEmi } from '@/src/queries/enrollment.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 
 type RootParamList = {
@@ -16,6 +16,8 @@ type RootParamList = {
 };
 
 export default function SetPaymentModeScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const { params } = useRoute<RouteProp<RootParamList, 'SetPaymentMode'>>();
     const navigation = useNavigation<NativeStackNavigationProp<StudentsStackParamList>>();
 
@@ -124,7 +126,7 @@ export default function SetPaymentModeScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     root: {
         flex: 1,
         backgroundColor: colors.background,

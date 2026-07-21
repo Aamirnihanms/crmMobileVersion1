@@ -5,7 +5,7 @@ import {
 import { Course } from '@/src/types/course';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from './../common/AppCard';
 import AppSelect from './../common/AppSelect';
 import AppText from './../common/AppText';
@@ -26,6 +26,8 @@ export default function LeadCourseSection({
   initialCourseDetails,
   initialEducationOption,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [courseMap, setCourseMap] = React.useState<Record<number, Course>>({});
 
   React.useEffect(() => {
@@ -177,7 +179,7 @@ export default function LeadCourseSection({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
   },

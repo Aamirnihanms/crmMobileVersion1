@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -15,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from './AppText';
 
 const { height } = Dimensions.get('window');
@@ -61,6 +62,8 @@ export default function AppMultiSelect({
     pageSize = 30,
     error: externalError,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const insets = useSafeAreaInsets();
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
@@ -200,7 +203,7 @@ export default function AppMultiSelect({
                 <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
             </Pressable>
 
-            <Modal visible={open} transparent animationType="fade">
+            <AppModal statusBarTranslucent navigationBarTranslucent visible={open} transparent animationType="fade">
                 <TouchableWithoutFeedback onPress={closeSheet}>
                     <View style={styles.overlay} />
                 </TouchableWithoutFeedback>
@@ -312,12 +315,12 @@ export default function AppMultiSelect({
                         </Pressable>
                     </View>
                 </Animated.View>
-            </Modal>
+            </AppModal>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         marginBottom: spacing.md,
     },

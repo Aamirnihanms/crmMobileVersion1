@@ -9,12 +9,14 @@ import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
 import BatchChangeRequestCard from '../../components/cards/BatchChangeRequestCard';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useBatchChangeRequests } from '../../queries/batch-change.query';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 import type { BatchChangeRequest } from '../../api/batch-change.api';
 
 export default function BatchChangeRequestListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -184,7 +186,7 @@ export default function BatchChangeRequestListScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

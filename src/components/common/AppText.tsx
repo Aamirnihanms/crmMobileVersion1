@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TextProps } from 'react-native';
-import { colors, typography } from '@/src/theme';
+import { useAppTheme, typography } from '@/src/theme';
 
 type AppTextProps = TextProps & {
   variant?: keyof typeof typography;
@@ -9,17 +9,20 @@ type AppTextProps = TextProps & {
 export default function AppText({
   children,
   variant = 'body',
-  color = colors.textPrimary,
+  color,
   style,
   ...props
 }: AppTextProps) {
+  const { colors } = useAppTheme();
+  const resolvedColor = color || colors.textPrimary;
+
   return (
     <Text
       {...props}
       style={[
         styles.text,
         typography[variant],
-        { color },
+        { color: resolvedColor },
         style,
       ]}
     >

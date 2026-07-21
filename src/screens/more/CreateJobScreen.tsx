@@ -30,7 +30,7 @@ import {
     useCreateCompanyJob,
     useInfiniteCompanies,
 } from '../../queries/jobs.query';
-import { colors, spacing } from '../../theme';
+import { useAppTheme, spacing } from '../../theme';
 
 type Step = 'pick-company' | 'form';
 
@@ -47,6 +47,8 @@ const toIsoFromYmd = (ymd: string): string => {
 };
 
 export default function CreateJobScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const isFocused = useIsFocused();
 
@@ -290,6 +292,8 @@ function PickerView({
     onAddCompany,
     hasActiveSearch,
 }: PickerViewProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -440,6 +444,8 @@ function FormView({
     onSubmit,
     onChangeCompany,
 }: FormViewProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     return (
         <ScrollView
             style={styles.container}
@@ -558,7 +564,7 @@ function FormView({
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -1,22 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
-  View,
-  ActivityIndicator,
-  Alert
+  View
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
-import { colors, spacing } from '@/src/theme';
-import AppText from '../common/AppText';
+import { spacing, useAppTheme } from '@/src/theme';
 import AppButton from '../common/AppButton';
+import AppText from '../common/AppText';
 
 type Importance = 'NORMAL' | 'IMPORTANT' | 'URGENT';
 
@@ -35,6 +33,8 @@ export default function AddFollowUpModal({
   }) => void;
   loading?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [notes, setNotes] = React.useState('');
   const [importance, setImportance] = React.useState<Importance>('NORMAL');
   const [date, setDate] = React.useState(new Date());
@@ -57,7 +57,7 @@ export default function AddFollowUpModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal navigationBarTranslucent visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
         behavior="padding"
         style={styles.overlay}
@@ -188,7 +188,7 @@ export default function AddFollowUpModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

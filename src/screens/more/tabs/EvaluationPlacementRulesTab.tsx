@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import React, { useState } from 'react';
@@ -24,7 +25,7 @@ import {
     useUpdatePlacementRule,
     useDeletePlacementRule
 } from '@/src/queries/evaluation.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function EvaluationPlacementRulesTab({ 
     templateUid, 
@@ -33,6 +34,8 @@ export default function EvaluationPlacementRulesTab({
     templateUid: string;
     criteriaCodes?: string[];
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const { data: rules, isLoading, refetch } = usePlacementRules(templateUid);
     const createMutation = useCreatePlacementRule(templateUid);
     const updateMutation = useUpdatePlacementRule(templateUid);
@@ -272,7 +275,7 @@ export default function EvaluationPlacementRulesTab({
                 <Ionicons name="add" size={24} color="white" />
             </Pressable>
 
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isModalVisible}
                 animationType="slide"
                 transparent={true}
@@ -351,12 +354,12 @@ export default function EvaluationPlacementRulesTab({
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
-            </Modal>
+            </AppModal>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
@@ -23,7 +24,7 @@ import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useMyDashboard, useSuperadminDashboard } from '@/src/queries/dashboard.query';
 import { useAuthStore } from '@/src/store/auth.store';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type DashboardMode = 'superadmin' | 'my';
 type PrimitiveMetricValue = string | number | boolean;
@@ -368,7 +369,7 @@ const toLineChartPayload = (chart: ExtractedChart): LineChartPayload | null => {
   };
 };
 
-const toDonutChartPayload = (chart: ExtractedChart): DonutChartPayload | null => {
+const toDonutChartPayload = (chart: ExtractedChart, colors: any): DonutChartPayload | null => {
   const parsed = chart.data
     .map((item, index) => {
       const value = getPrimaryNumericValue(item);
@@ -451,6 +452,8 @@ const toStackedBarPayload = (chart: ExtractedChart): StackedBarPayload | null =>
 };
 
 function MetricCard({ metric }: { metric: MetricEntry }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const metricColor = isCurrencyKey(metric.key)
     ? colors.success
     : isRateKey(metric.key)
@@ -473,6 +476,8 @@ function MetricCard({ metric }: { metric: MetricEntry }) {
 }
 
 function DashboardLineChart({ payload }: { payload: LineChartPayload }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const chartWidth = screenWidth - spacing.lg * 2 - spacing.xl;
 
   return (
@@ -518,6 +523,8 @@ function DashboardLineChart({ payload }: { payload: LineChartPayload }) {
 }
 
 function DashboardDonutChart({ payload }: { payload: DonutChartPayload }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const chartWidth = screenWidth - spacing.lg * 2 - spacing.xl;
 
   return (
@@ -548,6 +555,8 @@ function DashboardDonutChart({ payload }: { payload: DonutChartPayload }) {
 }
 
 function DashboardStackedBar({ payload }: { payload: StackedBarPayload }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const chartWidth = screenWidth - spacing.lg * 2 - spacing.xl;
 
   return (
@@ -584,6 +593,8 @@ function DashboardStackedBar({ payload }: { payload: StackedBarPayload }) {
 }
 
 function ArrayPreview({ title, items }: { title: string; items: unknown[] }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const meaningfulItems = items.filter((item) => hasMeaningfulValue(item, title));
   if (meaningfulItems.length === 0) {
     return null;
@@ -623,6 +634,8 @@ function NestedObjectBlock({
   data: Record<string, unknown>;
   depth?: number;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const metrics = getMetricEntries(data);
   const nestedObjects = Object.entries(data)
     .filter(([key, value]) => !METRIC_EXCLUDED_KEYS.has(key) && isObject(value) && hasMeaningfulValue(value, key));
@@ -680,6 +693,8 @@ function NestedObjectBlock({
 }
 
 function SectionCard({ title, data }: { title: string; data: Record<string, unknown> }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   if (!hasMeaningfulValue(data, title)) {
     return null;
   }
@@ -704,6 +719,8 @@ function SectionCard({ title, data }: { title: string; data: Record<string, unkn
 }
 
 export default function DashboardScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [mode, setMode] = useState<DashboardMode>('superadmin');
   const [selectedTimeframe, setSelectedTimeframe] = useState<DashboardTimeframeParam>('today');
   const [timeframePickerOpen, setTimeframePickerOpen] = useState(false);
@@ -789,7 +806,7 @@ export default function DashboardScreen() {
     if (!donutSource) {
       return null;
     }
-    return toDonutChartPayload(donutSource);
+    return toDonutChartPayload(donutSource, colors);
   }, [extractedCharts]);
 
   const stackedChart = useMemo(() => {
@@ -958,7 +975,7 @@ export default function DashboardScreen() {
         ) : null}
       </View>
 
-      <Modal
+      <AppModal statusBarTranslucent navigationBarTranslucent
         visible={timeframePickerOpen}
         animationType="fade"
         transparent
@@ -996,12 +1013,12 @@ export default function DashboardScreen() {
             })}
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,

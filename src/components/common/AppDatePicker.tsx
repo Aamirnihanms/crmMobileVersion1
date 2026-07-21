@@ -1,8 +1,9 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import React, { useState, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, View, ViewStyle, Modal } from 'react-native';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from './AppText';
 
 type AppDatePickerProps = {
@@ -28,6 +29,8 @@ export default function AppDatePicker({
   maximumDate,
   mode = 'date',
 }: AppDatePickerProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [show, setShow] = useState(false);
 
   const parseDate = (val: string, m: 'date' | 'time') => {
@@ -123,7 +126,7 @@ export default function AppDatePicker({
       </Pressable>
 
       {Platform.OS === 'ios' ? (
-        <Modal visible={show} transparent animationType="slide">
+        <AppModal statusBarTranslucent navigationBarTranslucent visible={show} transparent animationType="slide">
           <View style={styles.iosModalOverlay}>
             <View style={styles.iosPickerContainer}>
               <View style={styles.iosPickerHeader}>
@@ -146,7 +149,7 @@ export default function AppDatePicker({
               />
             </View>
           </View>
-        </Modal>
+        </AppModal>
       ) : (
         show && (
           <DateTimePicker
@@ -173,7 +176,7 @@ export default function AppDatePicker({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.lg,
   },

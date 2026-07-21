@@ -19,7 +19,7 @@ import {
 import AppMultiSelect from '@/src/components/common/AppMultiSelect';
 import AppText from '@/src/components/common/AppText';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type Props = {
   visible: boolean;
@@ -34,6 +34,8 @@ export default function BatchesFilterModal({
   filters,
   setAllFilters,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [localFilters, setLocalFilters] = React.useState<BatchesFilters>(filters || {});
   const [showStartDatePicker, setShowStartDatePicker] = React.useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = React.useState(false);
@@ -108,7 +110,7 @@ export default function BatchesFilterModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <Pressable style={styles.dismissArea} onPress={onClose} />
         <View style={styles.card}>
@@ -225,7 +227,7 @@ export default function BatchesFilterModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

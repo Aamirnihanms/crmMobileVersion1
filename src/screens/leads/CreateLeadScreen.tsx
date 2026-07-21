@@ -46,7 +46,7 @@ import { useCreateNote } from '@/src/queries/notes.query';
 import AddFollowUpModal from '@/src/components/followups/AddFollowUpModal';
 import AddEditNoteModal from '@/src/components/notes/AddEditNoteModal';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type Nav = NativeStackNavigationProp<
   LeadsStackParamList,
@@ -100,6 +100,8 @@ const initialFormState = {
 };
 
 export default function CreateLeadScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<CreateLeadRoute>();
   const editLeadId = params?.id;
@@ -523,7 +525,7 @@ export default function CreateLeadScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,

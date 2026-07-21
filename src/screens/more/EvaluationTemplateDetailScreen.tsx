@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AppText from '@/src/components/common/AppText';
 import { useEvaluationTemplateDetail } from '@/src/queries/evaluation.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 // Removed circular import to MoreStackParamList
 
 import EvaluationModulesTab from './tabs/EvaluationModulesTab';
@@ -18,6 +18,8 @@ const Tab = createMaterialTopTabNavigator();
 type RouteProps = RouteProp<any, 'EvaluationTemplateDetail'>;
 
 export default function EvaluationTemplateDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const { params } = useRoute<any>();
     const { uid } = params;
     const { data: template, isLoading } = useEvaluationTemplateDetail(uid);
@@ -124,7 +126,7 @@ export default function EvaluationTemplateDetailScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

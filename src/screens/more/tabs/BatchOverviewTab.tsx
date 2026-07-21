@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppText from '@/src/components/common/AppText';
 import AppCard from '@/src/components/common/AppCard';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { BatchDetail } from '@/src/api/batches.api';
 
 interface BatchOverviewTabProps {
@@ -11,6 +11,8 @@ interface BatchOverviewTabProps {
 }
 
 export default function BatchOverviewTab({ batch }: BatchOverviewTabProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             <View style={styles.content}>
@@ -138,14 +140,21 @@ export default function BatchOverviewTab({ batch }: BatchOverviewTabProps) {
     );
 }
 
-const SectionTitle = ({ title, icon }: { title: string; icon: keyof typeof Ionicons.glyphMap }) => (
+const SectionTitle = ({ title, icon }: { title: string; icon: keyof typeof Ionicons.glyphMap }) => {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+    return (
     <View style={styles.sectionTitleRow}>
         <Ionicons name={icon} size={18} color={colors.primary} />
         <AppText variant="subtitle" style={styles.sectionTitle}>{title}</AppText>
     </View>
-);
+    );
+};
 
-const InfoRow = ({ icon, label, value, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; color?: string }) => (
+const InfoRow = ({ icon, label, value, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; color?: string }) => {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+    return (
     <View style={styles.infoRow}>
         <View style={styles.infoLabelGrp}>
             <Ionicons name={(icon + '-outline') as any} size={16} color={colors.textMuted} />
@@ -153,9 +162,12 @@ const InfoRow = ({ icon, label, value, color }: { icon: keyof typeof Ionicons.gl
         </View>
         <AppText style={[styles.infoValue, color ? { color } : {}]}>{value || 'N/A'}</AppText>
     </View>
-);
+    );
+};
 
 const AvailabilityRow = ({ label, stats, color }: { label: string; stats: any; color: string }) => {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
     if (!stats) return null;
     return (
         <View style={styles.availRow}>
@@ -188,7 +200,7 @@ const AvailabilityRow = ({ label, stats, color }: { label: string; stats: any; c
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -6,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Alert,
     Image,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -16,9 +18,12 @@ import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
 import { MoreStackParamList } from '@/src/navigation/MoreStack';
 import { useAuthStore } from '@/src/store/auth.store';
-import { colors, spacing } from '@/src/theme';
+import { useThemeStore } from '@/src/store/theme.store';
+import { useAppTheme, spacing } from '@/src/theme';
 
-function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colors.primary }: any) {
+function MenuItem({ icon, label, sublabel, onPress, isLast = false, color }: any) {
+    const { colors } = useAppTheme();
+    const activeColor = color || colors.primary;
     return (
         <View>
             <Pressable
@@ -28,8 +33,8 @@ function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colo
                 ]}
                 onPress={onPress}
             >
-                <View style={[styles.menuIconContainer, { backgroundColor: color + '15' }]}>
-                    <Ionicons name={icon} size={20} color={color} />
+                <View style={[styles.menuIconContainer, { backgroundColor: activeColor + '15' }]}>
+                    <Ionicons name={icon} size={20} color={activeColor} />
                 </View>
                 <View style={styles.menuTextContainer}>
                     <AppText variant="subtitle" style={{ fontWeight: '700' }}>{label}</AppText>
@@ -37,7 +42,7 @@ function MenuItem({ icon, label, sublabel, onPress, isLast = false, color = colo
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </Pressable>
-            {!isLast && <View style={styles.divider} />}
+            {!isLast && <View style={[styles.divider, { backgroundColor: colors.surfaceSubtle }]} />}
         </View>
     );
 }
@@ -46,6 +51,10 @@ export default function MoreListScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList, 'MoreList'>>();
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
+    const { colors, isDark } = useAppTheme();
+    const { theme, setTheme } = useThemeStore();
+    const [themeModalVisible, setThemeModalVisible] = useState(false);
+
     const avatarUri =
         typeof user?.profile_picture === 'string' && user.profile_picture.trim().length > 0
             ? user.profile_picture.trim()
@@ -74,11 +83,18 @@ export default function MoreListScreen() {
         setAvatarLoadFailed(false);
     }, [avatarUri]);
 
+    const activeStyles = getStyles(colors, isDark);
+
+    const getThemeLabel = () => {
+        if (theme === 'light') return 'Light';
+        if (theme === 'dark') return 'Dark';
+        return 'System default';
+    };
 
     return (
-        <ScrollView style={styles.screen} showsVerticalScrollIndicator={false}>
-            <View style={styles.container}>
-                <AppCard style={styles.profileCard}>
+        <ScrollView style={activeStyles.screen} showsVerticalScrollIndicator={false}>
+            <View style={activeStyles.container}>
+                <AppCard style={activeStyles.profileCard}>
                     <LinearGradient
                         colors={[colors.primary, colors.gradientEnd]}
                         start={{ x: 0, y: 0 }}
@@ -86,7 +102,7 @@ export default function MoreListScreen() {
                         style={styles.profileGradient}
                     />
                     <View style={styles.profileContent}>
-                        <View style={styles.avatar}>
+                        <View style={activeStyles.avatar}>
                             {avatarUri && !avatarLoadFailed ? (
                                 <Image
                                     source={{ uri: avatarUri }}
@@ -116,14 +132,13 @@ export default function MoreListScreen() {
 
                 <AppText variant="h3" style={styles.sectionTitle}>General Settings</AppText>
                 <AppCard style={styles.menuCard}>
-
-                    {/* <MenuItem
-                        icon="notifications-outline"
-                        label="Notifications"
-                        sublabel="Preference & alerts"
-                        onPress={() => { }}
+                    <MenuItem
+                        icon="color-palette-outline"
+                        label="Theme"
+                        sublabel={`Active: ${getThemeLabel()}`}
+                        onPress={() => setThemeModalVisible(true)}
                         color={colors.primary}
-                    /> */}
+                    />
                     <MenuItem
                         icon="shield-checkmark-outline"
                         label="Security"
@@ -172,21 +187,6 @@ export default function MoreListScreen() {
                         color={colors.warning}
                         isLast
                     />
-                    {/* <MenuItem
-                        icon="people-outline"
-                        label="Users"
-                        sublabel="Manage staff access"
-                        onPress={() => { }}
-                        color={colors.info}
-                    />
-                    <MenuItem
-                        icon="key-outline"
-                        label="Role"
-                        sublabel="Permissions & access levels"
-                        onPress={() => { }}
-                        color={colors.danger}
-                        isLast
-                    /> */}
                 </AppCard>
 
                 <AppText variant="h3" style={styles.sectionTitle}>Evaluation</AppText>
@@ -207,25 +207,6 @@ export default function MoreListScreen() {
                         isLast
                     />
                 </AppCard>
-
-                {/* <AppText variant="h3" style={styles.sectionTitle}>Support & About</AppText>
-                <AppCard style={styles.menuCard}>
-                    <MenuItem
-                        icon="help-circle-outline"
-                        label="Help Center"
-                        sublabel="FAQs and support chat"
-                        onPress={() => { }}
-                        color={colors.warning}
-                    />
-                    <MenuItem
-                        icon="information-circle-outline"
-                        label="About App"
-                        sublabel="v3.1.0 - Elite Edition"
-                        onPress={() => { }}
-                        color={colors.slate}
-                        isLast
-                    />
-                </AppCard> */}
 
                 <AppText variant="h3" style={styles.sectionTitle}>Jobs & Companies</AppText>
                 <AppCard style={styles.menuCard}>
@@ -265,11 +246,114 @@ export default function MoreListScreen() {
                 </View>
                 <View style={{ height: 40 }} />
             </View>
+
+            {/* Theme Selection Modal */}
+            <AppModal statusBarTranslucent navigationBarTranslucent
+                visible={themeModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setThemeModalVisible(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setThemeModalVisible(false)}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                        <AppText variant="h2" style={{ marginBottom: spacing.lg, fontWeight: '800' }}>
+                            Select Theme
+                        </AppText>
+
+                        <Pressable
+                            style={[
+                                styles.themeOption,
+                                theme === 'light' && { backgroundColor: colors.primary + '15' }
+                            ]}
+                            onPress={async () => {
+                                await setTheme('light');
+                                setThemeModalVisible(false);
+                            }}
+                        >
+                            <Ionicons
+                                name="sunny-outline"
+                                size={24}
+                                color={theme === 'light' ? colors.primary : colors.textSecondary}
+                            />
+                            <AppText
+                                variant="subtitle"
+                                style={[
+                                    styles.themeText,
+                                    theme === 'light' && { color: colors.primary, fontWeight: '700' }
+                                ]}
+                            >
+                                Light Theme
+                            </AppText>
+                            {theme === 'light' && (
+                                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                            )}
+                        </Pressable>
+
+                        <Pressable
+                            style={[
+                                styles.themeOption,
+                                theme === 'dark' && { backgroundColor: colors.primary + '15' }
+                            ]}
+                            onPress={async () => {
+                                await setTheme('dark');
+                                setThemeModalVisible(false);
+                            }}
+                        >
+                            <Ionicons
+                                name="moon-outline"
+                                size={24}
+                                color={theme === 'dark' ? colors.primary : colors.textSecondary}
+                            />
+                            <AppText
+                                variant="subtitle"
+                                style={[
+                                    styles.themeText,
+                                    theme === 'dark' && { color: colors.primary, fontWeight: '700' }
+                                ]}
+                            >
+                                Dark Theme
+                            </AppText>
+                            {theme === 'dark' && (
+                                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                            )}
+                        </Pressable>
+
+                        <Pressable
+                            style={[
+                                styles.themeOption,
+                                theme === 'system' && { backgroundColor: colors.primary + '15' }
+                            ]}
+                            onPress={async () => {
+                                await setTheme('system');
+                                setThemeModalVisible(false);
+                            }}
+                        >
+                            <Ionicons
+                                name="settings-outline"
+                                size={24}
+                                color={theme === 'system' ? colors.primary : colors.textSecondary}
+                            />
+                            <AppText
+                                variant="subtitle"
+                                style={[
+                                    styles.themeText,
+                                    theme === 'system' && { color: colors.primary, fontWeight: '700' }
+                                ]}
+                            >
+                                System Default
+                            </AppText>
+                            {theme === 'system' && (
+                                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                            )}
+                        </Pressable>
+                    </View>
+                </Pressable>
+            </AppModal>
         </ScrollView>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: colors.background,
@@ -284,10 +368,26 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
+        shadowOpacity: isDark ? 0.4 : 0.2,
         shadowRadius: 15,
         elevation: 8,
     },
+    avatar: {
+        width: 72,
+        height: 72,
+        borderRadius: 24,
+        backgroundColor: isDark ? colors.backgroundSoft : colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+    },
+});
+
+const styles = StyleSheet.create({
     profileGradient: {
         position: 'absolute',
         top: 0,
@@ -299,19 +399,6 @@ const styles = StyleSheet.create({
         padding: spacing.xl,
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    avatar: {
-        width: 72,
-        height: 72,
-        borderRadius: 24,
-        backgroundColor: colors.surface,
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
     },
     avatarImage: {
         width: '100%',
@@ -331,7 +418,6 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontWeight: '800',
-        color: colors.textPrimary,
         marginBottom: spacing.md,
         marginLeft: 4,
     },
@@ -359,11 +445,38 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: colors.surfaceSubtle,
         marginHorizontal: spacing.xl,
     },
     footer: {
         marginTop: spacing.sm,
         paddingBottom: spacing.xl,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.xl,
+    },
+    modalContent: {
+        width: '100%',
+        borderRadius: 28,
+        padding: spacing.xl,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    themeOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.lg,
+        borderRadius: 16,
+        marginBottom: spacing.sm,
+    },
+    themeText: {
+        flex: 1,
+        marginLeft: spacing.md,
     },
 });

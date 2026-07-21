@@ -1,4 +1,4 @@
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo } from 'react';
@@ -7,6 +7,8 @@ import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
 const StudentCard = memo(({ student, onPress }: any) => {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const batch = student.batches?.[0]; // show latest batch
 
   return (
@@ -106,7 +108,7 @@ StudentCard.displayName = 'StudentCard';
 
 export default StudentCard;
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     marginBottom: spacing.md,
     padding: spacing.md,

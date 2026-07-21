@@ -11,6 +11,7 @@ import {
 } from '../utils/token';
 import AuthStack from './AuthStack';
 import AppTabs from './BottomTabs';
+import { useThemeStore } from '../store/theme.store';
 
 /**
  * Wraps a promise with a timeout. Rejects with a timeout error if the promise
@@ -71,6 +72,7 @@ export default function RootNavigator() {
 
     const bootstrapAuth = async () => {
       try {
+        await useThemeStore.getState().loadTheme().catch(() => null);
         // ── Timeout wrapper prevents SecureStore from hanging on iOS ──────────
         // expo-secure-store can stall on a fresh install on a real device.
         let token: string | null = null;

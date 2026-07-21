@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from '@/src/components/common/AppText';
 import AppSelect from '@/src/components/common/AppSelect';
 import AppInput from '@/src/components/common/AppInput';
@@ -31,6 +31,8 @@ export default function AttendanceEditModal({
   currentReason,
   batchId,
 }: AttendanceEditModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [mainStatus, setMainStatus] = useState<'present' | 'absent' | 'recording'>('present');
   const [subStatus, setSubStatus] = useState<'online' | 'offline'>('offline');
   const [reason, setReason] = useState(currentReason || 'No Remark');
@@ -89,7 +91,7 @@ export default function AttendanceEditModal({
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView 
         behavior="padding"
         style={styles.overlay}
@@ -183,7 +185,7 @@ export default function AttendanceEditModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

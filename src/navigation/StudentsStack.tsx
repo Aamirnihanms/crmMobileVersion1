@@ -1,4 +1,4 @@
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AddDiscountScreen from '../screens/students/AddDiscountScreen';
 import BatchChangeScreen from '../screens/students/BatchChangeScreen';
@@ -28,6 +28,7 @@ export type StudentsStackParamList = {
 
 
 export default function StudentsStack() {
+  const { colors } = useAppTheme();
   return (
     <Stack.Navigator
       screenOptions={{
@@ -98,4 +99,3 @@ export default function StudentsStack() {
 
   );
 }
-

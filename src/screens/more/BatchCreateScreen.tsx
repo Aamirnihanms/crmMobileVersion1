@@ -28,9 +28,11 @@ import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 import { MoreStackParamList } from '@/src/navigation/MoreStack';
 import { useCreateBatch } from '@/src/queries/batches.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function BatchCreateScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const insets = useSafeAreaInsets();
     const createBatchMutation = useCreateBatch();
@@ -429,7 +431,7 @@ export default function BatchCreateScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

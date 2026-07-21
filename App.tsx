@@ -33,7 +33,7 @@ import {
 import type { DashboardStackParamList } from './src/navigation/DashboardStack';
 import RootNavigator from './src/navigation/RootNavigator';
 import { useAuthStore } from './src/store/auth.store';
-import { colors } from './src/theme';
+import { colors, useAppTheme } from './src/theme';
 
 const navigationRef = createNavigationContainerRef<any>();
 
@@ -188,20 +188,6 @@ const getChatParamsFromNotification = (
     online,
   };
 };
-
-const appTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: colors.primary,
-    background: colors.background,
-    card: colors.background,
-    text: colors.textPrimary,
-    border: colors.border,
-    notification: colors.danger,
-  },
-};
-
 export default function App() {
   useUpdateCheck();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -209,11 +195,27 @@ export default function App() {
   const pendingChatRef = useRef<ChatThreadParams | null>(null);
   const lastHandledKeyRef = useRef<{ key: string; at: number } | null>(null);
 
+  const { colors: activeColors, isDark } = useAppTheme();
+
+  const navigationTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: activeColors.primary,
+      background: activeColors.background,
+      card: activeColors.background,
+      text: activeColors.textPrimary,
+      border: activeColors.border,
+      notification: activeColors.danger,
+    },
+  };
+
   useEffect(() => {
     if (Platform.OS === 'android') {
-      void NavigationBar.setButtonStyleAsync('dark');
+      void NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+      void NavigationBar.setBackgroundColorAsync(isDark ? '#0B0F19' : '#FFFFFF');
     }
-  }, []);
+  }, [isDark]);
 
   const navigateToChatThread = useCallback((params: ChatThreadParams) => {
     if (!navigationRef.isReady()) {
@@ -385,7 +387,7 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <StatusBar
-            style="dark"
+            style={isDark ? 'light' : 'dark'}
             backgroundColor="transparent"
             translucent
           />
@@ -393,7 +395,7 @@ export default function App() {
             <NavigationContainer
               ref={navigationRef}
               onReady={handleNavigationReady}
-              theme={appTheme}
+              theme={navigationTheme}
             >
               <RootNavigator />
             </NavigationContainer>

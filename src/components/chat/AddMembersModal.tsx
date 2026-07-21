@@ -21,7 +21,7 @@ import {
     useInfiniteChatStudents,
     useInfiniteChatUsers,
 } from '@/src/queries/chat.query';
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 
 export type AddMembersModalProps = {
     visible: boolean;
@@ -41,6 +41,8 @@ export default function AddMembersModal({
     isAdding,
     existingMemberIds = [],
 }: AddMembersModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const insets = useSafeAreaInsets();
     const [tab, setTab] = useState<RecipientTab>('users');
     const [search, setSearch] = useState('');
@@ -128,7 +130,7 @@ export default function AddMembersModal({
     }, [onAdd, selectedItems]);
 
     return (
-        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+        <Modal statusBarTranslucent navigationBarTranslucent visible={visible} animationType="slide" transparent onRequestClose={onClose}>
             <View style={styles.overlay}>
                 <View style={styles.card}>
                     <View style={styles.header}>
@@ -273,7 +275,7 @@ export default function AddMembersModal({
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',

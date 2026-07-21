@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { FlashList } from '@shopify/flash-list';
@@ -18,7 +19,7 @@ import {
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { JobInterview, type UpdateInterviewPayload } from '../../api/jobs.api';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
@@ -30,15 +31,14 @@ type JobInterviewsRouteProp = RouteProp<MoreStackParamList, 'JobInterviews'>;
 
 const ATTENDANCE_OPTIONS = ['scheduled', 'present', 'absent', 'rescheduled'] as const;
 
-const ATTENDANCE_COLORS: Record<string, string> = {
-  scheduled: colors.warning,
-  present: colors.success,
-  absent: colors.danger,
-  rescheduled: colors.info,
-};
-
-function getAttendanceColor(attendance: string): string {
-  return ATTENDANCE_COLORS[attendance.toLowerCase()] || colors.textMuted;
+function getAttendanceColor(attendance: string, colors: any): string {
+  const ATTENDANCE_COLORS: Record<string, string> = {
+    scheduled: colors.warning,
+    present: colors.success,
+    absent: colors.danger,
+    rescheduled: colors.info,
+  };
+  return ATTENDANCE_COLORS[attendance?.toLowerCase()] || colors.textMuted;
 }
 
 function formatDateTime(dateString: string) {
@@ -53,7 +53,9 @@ function formatDateTime(dateString: string) {
 }
 
 function InterviewCard({ interview, onEdit, onViewDetail }: { interview: JobInterview; onEdit: (interview: JobInterview) => void; onViewDetail: (interview: JobInterview) => void }) {
-  const attendanceColor = getAttendanceColor(interview.attendance);
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const attendanceColor = getAttendanceColor(interview.attendance, colors);
   const modeIcon = interview.mode?.toLowerCase() === 'online' ? 'videocam-outline' : 'location-outline';
   const modeLabel = interview.mode?.toLowerCase() === 'online' ? interview.meeting_link || 'Online' : interview.location || 'Offline';
 
@@ -134,6 +136,8 @@ function InterviewCard({ interview, onEdit, onViewDetail }: { interview: JobInte
 }
 
 export default function JobInterviewsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<JobInterviewsRouteProp>();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -333,7 +337,7 @@ export default function JobInterviewsScreen() {
       )}
 
       {/* Edit Interview Modal */}
-      <Modal visible={showEditModal} transparent animationType="fade">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={showEditModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <Pressable
             style={styles.modalDismissArea}
@@ -361,7 +365,7 @@ export default function JobInterviewsScreen() {
               <View style={styles.attendanceRow}>
                 {ATTENDANCE_OPTIONS.map(opt => {
                   const active = editAttendance === opt;
-                  const color = ATTENDANCE_COLORS[opt] || colors.primary;
+                  const color = getAttendanceColor(opt, colors) || colors.primary;
                   return (
                     <Pressable
                       key={opt}
@@ -428,12 +432,12 @@ export default function JobInterviewsScreen() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
+      </AppModal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

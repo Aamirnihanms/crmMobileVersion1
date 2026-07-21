@@ -13,9 +13,11 @@ import {
 import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
 import { useInfiniteExamAttempts } from '@/src/queries/evaluation.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function MarkingScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const { sessionUid } = route.params;
@@ -135,7 +137,7 @@ export default function MarkingScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -3,7 +3,7 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { Batch } from '@/src/api/batches.api';
 
 interface BatchCardProps {
@@ -12,6 +12,8 @@ interface BatchCardProps {
 }
 
 export default function BatchCard({ batch, onPress }: BatchCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const statusColor = batch.is_active ? colors.success : colors.danger;
     const initials = batch.batch_name.slice(0, 2).toUpperCase();
 
@@ -63,7 +65,7 @@ export default function BatchCard({ batch, onPress }: BatchCardProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     card: {
         marginBottom: spacing.md,
         padding: spacing.md,

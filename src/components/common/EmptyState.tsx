@@ -3,7 +3,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import AppText from './AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 interface EmptyStateProps {
     icon: keyof typeof Ionicons.glyphMap;
@@ -12,6 +12,8 @@ interface EmptyStateProps {
 }
 
 export default function EmptyState({ icon, title, description }: EmptyStateProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     return (
         <View style={styles.container}>
             <View style={styles.iconContainer}>
@@ -25,7 +27,7 @@ export default function EmptyState({ icon, title, description }: EmptyStateProps
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',

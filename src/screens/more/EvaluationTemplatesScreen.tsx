@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { FlashList } from '@shopify/flash-list';
@@ -27,7 +28,7 @@ import {
     useUpdateEvaluationTemplate
 } from '@/src/queries/evaluation.query';
 import { useCourses } from '@/src/queries/masters/courses.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 function TemplateCard({ template, onPress, onEdit, onDelete }: {
     template: any,
@@ -35,6 +36,8 @@ function TemplateCard({ template, onPress, onEdit, onDelete }: {
     onEdit: () => void,
     onDelete: () => void
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     return (
         <AppCard style={styles.templateCard} onPress={onPress}>
             <View style={styles.cardHeader}>
@@ -102,6 +105,8 @@ function TemplateCard({ template, onPress, onEdit, onDelete }: {
 }
 
 export default function EvaluationTemplatesScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<any>();
     const { data: templates, isLoading } = useEvaluationTemplates();
     const { data: courses } = useCourses();
@@ -252,7 +257,7 @@ export default function EvaluationTemplatesScreen() {
                 <Ionicons name="add" size={32} color="white" />
             </Pressable>
 
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isModalVisible}
                 animationType="slide"
                 transparent={true}
@@ -329,12 +334,12 @@ export default function EvaluationTemplatesScreen() {
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
-            </Modal>
+            </AppModal>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

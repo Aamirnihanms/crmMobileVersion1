@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import type { StudentActivity } from '../../api/studentActivities.api';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
@@ -19,7 +19,7 @@ const ACTIVITY_ICONS: Record<string, string> = {
 };
 
 // Map activity_type → accent color
-const ACTIVITY_COLORS: Record<string, string> = {
+const getActivityColors = (colors: any): Record<string, string> => ({
   payment_completed: colors.successStrong,
   payment_received: colors.successStrong,
   payment_added: colors.successStrong,
@@ -29,7 +29,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
   enrollment_created: colors.primary,
   batch_changed: '#F59E0B',
   status_changed: '#F59E0B',
-};
+});
 
 function formatDateTime(iso: string) {
   try {
@@ -51,10 +51,12 @@ export default function StudentActivityCard({
 }: {
   activity: StudentActivity;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const icon =
     (ACTIVITY_ICONS[activity.activity_type] as any) || 'ellipse-outline';
   const accent =
-    ACTIVITY_COLORS[activity.activity_type] || colors.primary;
+    getActivityColors(colors)[activity.activity_type] || colors.primary;
 
   const actor = activity.performed_by
     ? activity.performed_by.full_name
@@ -129,7 +131,7 @@ export default function StudentActivityCard({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     padding: spacing.md,
     marginBottom: spacing.md,

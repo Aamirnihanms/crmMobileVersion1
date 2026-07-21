@@ -1,7 +1,8 @@
+import AppModal from '@/src/components/common/AppModal';
 import React, { useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Pressable, RefreshControl, ScrollView, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from '@/src/components/common/AppText';
 import AppInput from '@/src/components/common/AppInput';
 import AppButton from '@/src/components/common/AppButton';
@@ -15,6 +16,8 @@ interface BatchSessionsTabProps {
 }
 
 export default function BatchSessionsTab({ batchUid }: BatchSessionsTabProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const [isAddModalVisible, setIsAddModalVisible] = useState(false);
     const [name, setName] = useState('');
@@ -150,7 +153,7 @@ export default function BatchSessionsTab({ batchUid }: BatchSessionsTabProps) {
                 </Pressable>
             </View>
 
-            <Modal visible={isAddModalVisible} animationType="slide" transparent>
+            <AppModal statusBarTranslucent navigationBarTranslucent visible={isAddModalVisible} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
@@ -197,12 +200,12 @@ export default function BatchSessionsTab({ batchUid }: BatchSessionsTabProps) {
                         </ScrollView>
                     </View>
                 </View>
-            </Modal>
+            </AppModal>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

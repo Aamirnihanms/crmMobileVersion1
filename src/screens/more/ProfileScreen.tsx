@@ -8,7 +8,7 @@ import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useProfile } from '@/src/queries/profile.query';
 import { useAuthStore } from '@/src/store/auth.store';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 function InfoRow({
   icon,
@@ -19,6 +19,8 @@ function InfoRow({
   label: string;
   value: string;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.infoRow}>
       <View style={styles.infoIconWrap}>
@@ -64,6 +66,8 @@ const getBranchLabel = (branch: { name?: string } | string | null) => {
 };
 
 export default function ProfileScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation<any>();
   const { data: user, isLoading, isError, refetch, isRefetching } = useProfile();
   const logout = useAuthStore((state) => state.logout);
@@ -251,7 +255,7 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,

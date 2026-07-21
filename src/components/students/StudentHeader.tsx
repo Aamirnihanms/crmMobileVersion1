@@ -1,5 +1,5 @@
 import AppText from '@/src/components/common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { callNumber, openEmail, openWhatsApp } from '@/src/utils/contactActions';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -15,6 +15,8 @@ import {
 import { useEnableDisableStudent } from '@/src/queries/students.query';
 
 export default function StudentHeader({ student }: any) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const profilePic =
     student.profile_pic ||
     student.dashboard_data?.personal_info?.profile_picture;
@@ -213,7 +215,7 @@ export default function StudentHeader({ student }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: 16,

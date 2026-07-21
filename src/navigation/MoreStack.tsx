@@ -1,5 +1,5 @@
 import type { CompanyResponse } from '@/src/api/jobs.api';
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Pressable } from 'react-native';
@@ -75,6 +75,7 @@ export type MoreStackParamList = {
 const Stack = createNativeStackNavigator<MoreStackParamList>();
 
 export default function MoreStack() {
+  const { colors } = useAppTheme();
   return (
     <Stack.Navigator
       screenOptions={{

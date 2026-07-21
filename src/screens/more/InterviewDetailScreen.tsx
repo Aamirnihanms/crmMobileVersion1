@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
 import ScheduleInterviewModal from '../../components/jobs/ScheduleInterviewModal';
@@ -20,18 +20,19 @@ import { useDeleteInterview, useInterviewDetail } from '../../queries/jobs.query
 
 type InterviewDetailRouteProp = RouteProp<MoreStackParamList, 'InterviewDetail'>;
 
-const ATTENDANCE_COLORS: Record<string, string> = {
-  scheduled: colors.warning,
-  present: colors.success,
-  absent: colors.danger,
-  rescheduled: colors.info,
-};
-
-function getAttendanceColor(attendance: string): string {
+function getAttendanceColor(attendance: string, colors: any): string {
+  const ATTENDANCE_COLORS: Record<string, string> = {
+    scheduled: colors.warning,
+    present: colors.success,
+    absent: colors.danger,
+    rescheduled: colors.info,
+  };
   return ATTENDANCE_COLORS[attendance?.toLowerCase()] || colors.textMuted;
 }
 
 function SectionHeader({ title }: { title: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.sectionHeader}>
       <AppText variant="subtitle" style={{ fontWeight: '700', color: colors.textPrimary }}>
@@ -43,6 +44,8 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 function InfoRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.infoRow}>
       <Ionicons name={icon} size={16} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
@@ -69,6 +72,8 @@ function formatDate(dateStr: string): string {
 }
 
 export default function InterviewDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<InterviewDetailRouteProp>();
   const insets = useSafeAreaInsets();
   const { companyUid, jobUid, applicationUid, interviewUid, applicantName } = route.params;
@@ -109,7 +114,7 @@ export default function InterviewDetailScreen() {
   const interview = data?.interview || data || ({} as any);
   const name = applicantName || interview.applicant_name || 'Unknown';
   const initial = name ? name.charAt(0).toUpperCase() : '?';
-  const attendanceColor = getAttendanceColor(interview.attendance);
+  const attendanceColor = getAttendanceColor(interview.attendance, colors);
   const attendance = interview.attendance || 'scheduled';
   const isOnline = interview.mode === 'online';
 
@@ -300,7 +305,7 @@ export default function InterviewDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -21,7 +21,7 @@ import {
   useFieldTemplateDetail, 
   useUpdateFieldTemplate 
 } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { MoreStackParamList } from '@/src/navigation/MoreStack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { UpdateTemplateItemPayload } from '@/src/api/jobs.api';
@@ -52,6 +52,8 @@ const generateKey = (label: string) => {
 };
 
 export default function CreateEditFieldTemplateScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<RouteType>();
   const navigation = useNavigation<NavProp>();
   const { companyUid, templateUid } = route.params;
@@ -318,7 +320,7 @@ export default function CreateEditFieldTemplateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

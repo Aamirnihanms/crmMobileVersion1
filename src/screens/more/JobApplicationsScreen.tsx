@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,7 +20,7 @@ import {
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { JobApplication, JobStage, type ChangeStagePayload } from '../../api/jobs.api';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
@@ -29,15 +30,14 @@ import { useChangeApplicationStage, useInfiniteJobApplications, useJobStages } f
 
 type JobApplicationsRouteProp = RouteProp<MoreStackParamList, 'JobApplications'>;
 
-const STAGE_COLORS: Record<string, string> = {
-  applied: colors.info,
-  screening: colors.warning,
-  interview: '#7C3AED',
-  offer: colors.success,
-  rejected: colors.danger,
-};
-
-function getStageColor(code: string): string {
+function getStageColor(code: string, colors: any): string {
+  const STAGE_COLORS: Record<string, string> = {
+    applied: colors.info,
+    screening: colors.warning,
+    interview: '#7C3AED',
+    offer: colors.success,
+    rejected: colors.danger,
+  };
   return STAGE_COLORS[code] || colors.primary;
 }
 
@@ -54,8 +54,10 @@ function ApplicationCard({
   companyUid: string;
   jobUid: string;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const nav = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-  const stageColor = getStageColor(application.current_stage.code);
+  const stageColor = getStageColor(application.current_stage.code, colors);
 
   return (
     <View style={styles.card}>
@@ -141,6 +143,8 @@ function ApplicationCard({
 }
 
 export default function JobApplicationsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<JobApplicationsRouteProp>();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -319,7 +323,7 @@ export default function JobApplicationsScreen() {
         >
           {sortedStages.map(stage => {
             const isActive = selectedStageUid === stage.uid;
-            const stageColor = getStageColor(stage.code);
+            const stageColor = getStageColor(stage.code, colors);
             return (
               <Pressable
                 key={stage.uid}
@@ -388,7 +392,7 @@ export default function JobApplicationsScreen() {
       )}
 
       {/* Move Stage Modal */}
-      <Modal visible={showStageModal} transparent animationType="fade">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={showStageModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
           <Pressable
             style={styles.modalDismissArea}
@@ -414,7 +418,7 @@ export default function JobApplicationsScreen() {
             </View>
             {sortedStages.map(stage => {
               const isCurrent = stage.uid === movingApplication?.current_stage.uid;
-              const stageColor = getStageColor(stage.code);
+              const stageColor = getStageColor(stage.code, colors);
               const isLoading = changeStageMutation.isPending;
               return (
                 <Pressable
@@ -458,12 +462,12 @@ export default function JobApplicationsScreen() {
             })}
           </View>
         </KeyboardAvoidingView>
-      </Modal>
+      </AppModal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

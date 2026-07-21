@@ -3,7 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 
-import { colors, spacing } from '../../theme';
+import { useAppTheme, spacing } from '../../theme';
 import AppText from '../common/AppText';
 
 const { width } = Dimensions.get('window');
@@ -17,6 +17,8 @@ interface VideoPlayerModalProps {
 }
 
 export default function VideoPlayerModal({ isVisible, videoId, onClose, title }: VideoPlayerModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const [playing, setPlaying] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -33,7 +35,7 @@ export default function VideoPlayerModal({ isVisible, videoId, onClose, title }:
     if (!videoId && isVisible) return null;
 
     return (
-        <Modal
+        <Modal statusBarTranslucent navigationBarTranslucent
             visible={isVisible}
             transparent
             animationType="slide"
@@ -79,7 +81,7 @@ export default function VideoPlayerModal({ isVisible, videoId, onClose, title }:
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.8)',

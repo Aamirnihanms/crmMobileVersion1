@@ -16,7 +16,7 @@ import AppDatePicker from '@/src/components/common/AppDatePicker';
 import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
 import { useCreateInterview, useJobStages, useUpdateInterview } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { CreateInterviewPayload, UpdateInterviewPayload } from '@/src/api/jobs.api';
 
 type Props = {
@@ -29,15 +29,14 @@ type Props = {
   onClose: () => void;
 };
 
-const STAGE_COLORS: Record<string, string> = {
-  applied: colors.info,
-  screening: colors.warning,
-  interview: '#7C3AED',
-  offer: colors.success,
-  rejected: colors.danger,
-};
-
-function getStageColor(code: string): string {
+function getStageColor(code: string, colors: any): string {
+  const STAGE_COLORS: Record<string, string> = {
+    applied: colors.info,
+    screening: colors.warning,
+    interview: '#7C3AED',
+    offer: colors.success,
+    rejected: colors.danger,
+  };
   return STAGE_COLORS[code] || colors.primary;
 }
 
@@ -76,6 +75,8 @@ export default function ScheduleInterviewModal({
   editingInterview,
   onClose,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const isEdit = !!editingInterview;
   const createMutation = useCreateInterview(companyUid, jobUid);
   const updateMutation = useUpdateInterview(companyUid, jobUid);
@@ -213,7 +214,7 @@ export default function ScheduleInterviewModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <Pressable style={styles.backdrop} onPress={handleClose} />
       <KeyboardAvoidingView behavior="padding" style={styles.sheetWrapper}>
         <View style={styles.sheet}>
@@ -243,7 +244,7 @@ export default function ScheduleInterviewModal({
             <Pressable style={styles.stageSelector} onPress={() => { setStagePickerOpen(!stagePickerOpen); setAttendancePickerOpen(false); }}>
               {selectedStage ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.stageDot, { backgroundColor: getStageColor(selectedStage.code) }]} />
+                  <View style={[styles.stageDot, { backgroundColor: getStageColor(selectedStage.code, colors) }]} />
                   <AppText variant="body" style={{ fontWeight: '600', marginLeft: spacing.sm }}>
                     {selectedStage.name}
                   </AppText>
@@ -257,7 +258,7 @@ export default function ScheduleInterviewModal({
               <View style={styles.dropdownList}>
                 {sortedStages.map((stage) => {
                   const isSel = stage.uid === selectedStageUid;
-                  const sc = getStageColor(stage.code);
+                  const sc = getStageColor(stage.code, colors);
                   return (
                     <Pressable
                       key={stage.uid}
@@ -393,7 +394,7 @@ export default function ScheduleInterviewModal({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',

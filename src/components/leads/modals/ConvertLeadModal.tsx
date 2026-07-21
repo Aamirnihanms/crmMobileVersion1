@@ -13,7 +13,7 @@ import {
 import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 import { Batch } from '@/src/api/batches.api';
 import {
@@ -39,6 +39,8 @@ export default function ConvertLeadModalPro({
   loading = false,
   error,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [form, setForm] = useState<any>({
     course_id: null,
     batch_uid: null,
@@ -216,7 +218,7 @@ export default function ConvertLeadModalPro({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <Pressable style={styles.dismissArea} onPress={onClose} />
         <View style={styles.card}>
@@ -316,7 +318,7 @@ export default function ConvertLeadModalPro({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
@@ -32,6 +32,8 @@ type LeadCardProps = {
 };
 
 const LeadCard = memo(({ lead, onPress }: LeadCardProps) => {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const initials = lead.name
     ? lead.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
@@ -131,7 +133,7 @@ LeadCard.displayName = 'LeadCard';
 
 export default LeadCard;
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     marginBottom: spacing.md,
     padding: spacing.md,

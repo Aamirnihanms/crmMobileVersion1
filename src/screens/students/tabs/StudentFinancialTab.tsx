@@ -3,9 +3,11 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function StudentFinancialTab({ student }: { student: any }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const financial = student.dashboard_data?.financial_summary ?? {};
   const enrollments: any[] = student.enrollments ?? [];
 
@@ -183,7 +185,7 @@ export default function StudentFinancialTab({ student }: { student: any }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: colors.background,

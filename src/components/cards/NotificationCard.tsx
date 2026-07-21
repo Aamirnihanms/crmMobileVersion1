@@ -3,7 +3,7 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { Notification } from '@/src/api/notifications.api';
 
 interface NotificationCardProps {
@@ -11,7 +11,7 @@ interface NotificationCardProps {
     onPress?: () => void;
 }
 
-const getPriorityColor = (priority: string) => {
+const getPriorityColor = (priority: string, colors: any) => {
     switch (priority?.toUpperCase()) {
         case 'HIGH':
             return colors.danger;
@@ -38,7 +38,9 @@ const formatRelativeTime = (dateString: string) => {
 };
 
 export default function NotificationCard({ notification, onPress }: NotificationCardProps) {
-    const priorityColor = getPriorityColor(notification.priority);
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+    const priorityColor = getPriorityColor(notification.priority, colors);
     const relativeTime = formatRelativeTime(notification.created_at);
 
     return (
@@ -84,7 +86,7 @@ export default function NotificationCard({ notification, onPress }: Notification
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     card: {
         marginBottom: spacing.sm,
         padding: spacing.md,

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, spacing, typography } from '@/src/theme';
+import { useAppTheme, spacing, typography } from '@/src/theme';
 
 interface SearchBarProps {
   onSearch: (searchText: string) => void;
@@ -21,6 +21,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
   placeholder = 'Search by name, phone, email...',
   debounceMs = 500,
 }) => {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [searchText, setSearchText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,7 +106,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

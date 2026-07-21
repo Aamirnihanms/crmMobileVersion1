@@ -1,10 +1,14 @@
 import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
-const InfoItem = ({ icon, label, value, color = colors.textPrimary }: any) => {
+const InfoItem = ({ icon, label, value, color }: any) => {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const resolvedColor = color || colors.textPrimary;
+  
   const safeValue =
     typeof value === 'string'
       ? value.trim() || 'N/A'
@@ -25,7 +29,7 @@ const InfoItem = ({ icon, label, value, color = colors.textPrimary }: any) => {
         >
           {label}
         </AppText>
-        <AppText style={[styles.infoValue, { color }]}>
+        <AppText style={[styles.infoValue, { color: resolvedColor }]}>
           {safeValue}
         </AppText>
       </View>
@@ -34,6 +38,8 @@ const InfoItem = ({ icon, label, value, color = colors.textPrimary }: any) => {
 };
 
 export default function StudentOverviewSection({ student }: any) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const personal = student.dashboard_data?.personal_info ?? {};
   const academic = student.dashboard_data?.academic_info ?? {};
   const financial = student.dashboard_data?.financial_summary ?? {};
@@ -247,7 +253,7 @@ export default function StudentOverviewSection({ student }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     gap: spacing.lg,
     marginBottom: spacing.xl,

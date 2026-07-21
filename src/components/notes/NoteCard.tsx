@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { LeadNote } from '../../api/notes.api';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
 export default function NoteCard({ note, onEdit }: { note: LeadNote; onEdit?: () => void }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const initials = note.created_by_details?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
 
   return (
@@ -66,7 +68,7 @@ export default function NoteCard({ note, onEdit }: { note: LeadNote; onEdit?: ()
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     padding: spacing.md,
     marginBottom: spacing.md,

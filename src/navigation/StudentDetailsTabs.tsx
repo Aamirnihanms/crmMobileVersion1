@@ -1,5 +1,5 @@
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 
 import StudentOverviewTab from '../screens/students/tabs/StudentOverviewTab';
 import StudentEnrollmentsTab from '../screens/students/tabs/StudentEnrollmentsTab';
@@ -9,6 +9,7 @@ import StudentActivityTab from '../screens/students/tabs/StudentActivityTab';
 const Tab = createMaterialTopTabNavigator();
 
 export default function StudentDetailsTabs({ student }: { student: any }) {
+  const { colors } = useAppTheme();
   return (
     <Tab.Navigator
       screenOptions={{

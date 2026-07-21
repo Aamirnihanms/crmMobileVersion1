@@ -37,7 +37,7 @@ import {
     useStudentProfile,
     useUpdateStudent,
 } from '@/src/queries/students.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { generatePassOutYears } from '@/src/utils/passOutYears';
 
 /* ------------------------------------------------------------------ */
@@ -88,6 +88,8 @@ const YES_NO_OPTIONS = [
 /* ------------------------------------------------------------------ */
 
 export default function EditStudentScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<Nav>();
     const { params } = useRoute<Route>();
     const studentId = params.id;
@@ -651,7 +653,7 @@ export default function EditStudentScreen() {
 /* Styles                                                              */
 /* ------------------------------------------------------------------ */
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     root: {
         flex: 1,
         backgroundColor: colors.background,

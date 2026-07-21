@@ -1,5 +1,5 @@
 import { DroppedStudent } from '@/src/api/students.api';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo } from 'react';
@@ -14,6 +14,8 @@ type DroppedStudentCardProps = {
 };
 
 const DroppedStudentCard = memo(({ student, onPress }: DroppedStudentCardProps) => {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const latestDrop = student.dropped_enrollments?.[0];
 
   return (
@@ -97,7 +99,7 @@ const DroppedStudentCard = memo(({ student, onPress }: DroppedStudentCardProps) 
   );
 });
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     marginBottom: spacing.md,
     padding: spacing.md,

@@ -9,11 +9,13 @@ import AppInput from '../../components/common/AppInput';
 import AppText from '../../components/common/AppText';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import { useSendForgotPasswordOTP } from '../../queries/auth.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import useSystemBarsStyle from '@/src/hooks/useSystemBarsStyle';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 
 export default function ForgotPasswordRequestScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   useSystemBarsStyle();
@@ -114,7 +116,7 @@ export default function ForgotPasswordRequestScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

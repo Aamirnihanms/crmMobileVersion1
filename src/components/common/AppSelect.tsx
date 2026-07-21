@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -15,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from './AppText';
 
 const { height } = Dimensions.get('window');
@@ -61,6 +62,8 @@ export default function AppSelect({
   pageSize = 30,
   error: externalError,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -191,7 +194,7 @@ export default function AppSelect({
         </AppText>
       ) : null}
 
-      <Modal visible={open} transparent animationType="fade">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={open} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={closeSheet}>
           <View style={styles.overlay} />
         </TouchableWithoutFeedback>
@@ -275,7 +278,7 @@ export default function AppSelect({
                 ) : (remoteMode && isError) || externalError ? (
                   <View style={styles.errorWrap}>
                     <Ionicons name="alert-circle-outline" size={32} color={colors.danger} />
-                    <AppText style={styles.errorText}>
+                    <AppText style={styles.sheetErrorText}>
                       {externalError ||
                         (error as any)?.response?.data?.detail ||
                         (error as any)?.response?.data?.error ||
@@ -299,12 +302,12 @@ export default function AppSelect({
             }
           />
         </Animated.View>
-      </Modal>
+      </AppModal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.md,
   },
@@ -435,7 +438,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
   },
-  errorText: {
+  sheetErrorText: {
     color: colors.danger,
     textAlign: 'center',
     marginTop: spacing.sm,

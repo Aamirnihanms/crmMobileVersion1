@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppText from './AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type ErrorMessageProps = {
   message: string | null;
@@ -10,6 +10,8 @@ type ErrorMessageProps = {
 };
 
 export default function ErrorMessage({ message, onClear }: ErrorMessageProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   if (!message) return null;
 
   return (
@@ -25,7 +27,7 @@ export default function ErrorMessage({ message, onClear }: ErrorMessageProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

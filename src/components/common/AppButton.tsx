@@ -1,4 +1,4 @@
-import { colors, spacing, typography } from '@/src/theme';
+import { useAppTheme, spacing, typography } from '@/src/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
@@ -30,6 +30,8 @@ export default function AppButton({
   disabled = false,
   textStyle,
 }: AppButtonProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const isDisabled = disabled || loading;
 
   const renderContent = () => (
@@ -87,7 +89,7 @@ export default function AppButton({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     borderRadius: 14,
     overflow: 'hidden',

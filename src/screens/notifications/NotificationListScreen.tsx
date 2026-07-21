@@ -1,13 +1,15 @@
 import NotificationCard from '@/src/components/cards/NotificationCard';
 import AppText from '@/src/components/common/AppText';
 import { useMarkAllNotificationsRead, useNotifications } from '@/src/queries/notifications.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useLayoutEffect } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View, Pressable } from 'react-native';
 
 export default function NotificationListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<any>();
     const {
         data,
@@ -127,7 +129,7 @@ export default function NotificationListScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

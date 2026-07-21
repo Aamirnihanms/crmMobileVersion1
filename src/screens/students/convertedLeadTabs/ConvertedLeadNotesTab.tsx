@@ -10,9 +10,11 @@ import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import NoteCard from '@/src/components/notes/NoteCard';
 import { useInfiniteLeadNotes } from '@/src/queries/notes.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function ConvertedLeadNotesTab({ id }: { id: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const {
     data,
     isLoading,
@@ -78,7 +80,7 @@ export default function ConvertedLeadNotesTab({ id }: { id: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

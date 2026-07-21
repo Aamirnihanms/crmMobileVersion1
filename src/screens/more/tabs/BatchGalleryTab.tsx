@@ -17,13 +17,15 @@ import AppInput from '../../../components/common/AppInput';
 import EmptyState from '../../../components/common/EmptyState';
 import { MoreStackParamList } from '../../../navigation/MoreStack';
 import { useInfiniteGalleries } from '../../../queries/gallery.query';
-import { colors, spacing } from '../../../theme';
+import { useAppTheme, spacing } from '../../../theme';
 
 interface BatchGalleryTabProps {
     batchUid: string;
 }
 
 export default function BatchGalleryTab({ batchUid }: BatchGalleryTabProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -144,7 +146,7 @@ export default function BatchGalleryTab({ batchUid }: BatchGalleryTabProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

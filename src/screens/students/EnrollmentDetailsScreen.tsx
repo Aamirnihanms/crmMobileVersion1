@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,7 +14,7 @@ import AppSelect from '@/src/components/common/AppSelect';
 import AppText from '@/src/components/common/AppText';
 import { useDropEnrollment, useEditEnrollment, useEnrollmentDetails, useMarkInstallmentPaid, useMarkInstallmentUnpaid, useRevertEmi, useUpdateInstallment } from '@/src/queries/enrollment.query';
 import { useCounselors } from '@/src/queries/masters/counselors.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
 
 type RootParamList = {
@@ -21,6 +22,8 @@ type RootParamList = {
 };
 
 export default function EnrollmentDetailsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const { params } =
     useRoute<RouteProp<RootParamList, 'EnrollmentDetails'>>();
 
@@ -525,7 +528,7 @@ export default function EnrollmentDetailsScreen() {
       </ScrollView>
 
       {/* Pay Modal */}
-      <Modal visible={payModalVisible} transparent animationType="slide">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={payModalVisible} transparent animationType="slide">
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <AppCard style={styles.modalContent}>
@@ -548,10 +551,10 @@ export default function EnrollmentDetailsScreen() {
             </AppCard>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* Unpaid Modal */}
-      <Modal visible={unpaidModalVisible} transparent animationType="slide">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={unpaidModalVisible} transparent animationType="slide">
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <AppCard style={styles.modalContent}>
@@ -567,11 +570,11 @@ export default function EnrollmentDetailsScreen() {
             </AppCard>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
 
       {/* Edit Modal */}
-      <Modal visible={editModalVisible} transparent animationType="slide">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={editModalVisible} transparent animationType="slide">
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <AppCard style={styles.modalContent}>
@@ -586,10 +589,10 @@ export default function EnrollmentDetailsScreen() {
             </AppCard>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* Drop Modal */}
-      <Modal visible={dropModalVisible} transparent animationType="fade">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={dropModalVisible} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <AppCard style={styles.modalContent}>
@@ -661,10 +664,10 @@ export default function EnrollmentDetailsScreen() {
             </AppCard>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* Edit Enrollment Modal */}
-      <Modal visible={enrollEditModalVisible} transparent animationType="slide">
+      <AppModal statusBarTranslucent navigationBarTranslucent visible={enrollEditModalVisible} transparent animationType="slide">
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <AppCard style={styles.modalContent}>
@@ -742,12 +745,12 @@ export default function EnrollmentDetailsScreen() {
             </AppCard>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,

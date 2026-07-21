@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
@@ -17,7 +18,7 @@ import AppDatePicker from '@/src/components/common/AppDatePicker';
 import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
 import { useUpdateJob } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { JobResponse } from '@/src/api/jobs.api';
 
 type Props = {
@@ -50,6 +51,8 @@ export default function EditJobModal({
     onClose,
     onSuccess,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const updateMutation = useUpdateJob(companyUid);
 
     const [title, setTitle] = useState(job.title);
@@ -121,7 +124,7 @@ export default function EditJobModal({
     };
 
     return (
-        <Modal
+        <AppModal statusBarTranslucent navigationBarTranslucent
             visible={visible}
             transparent
             animationType="slide"
@@ -234,11 +237,11 @@ export default function EditJobModal({
                     </ScrollView>
                 </View>
             </KeyboardAvoidingView>
-        </Modal>
+        </AppModal>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     backdrop: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.45)',

@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import React, { useState, useMemo } from 'react';
@@ -25,9 +26,11 @@ import {
     useUpdateEvaluationCriteria,
     useDeleteEvaluationCriteria
 } from '@/src/queries/evaluation.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function EvaluationModulesTab({ modules, templateUid }: { modules: any[], templateUid: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const createModuleMutation = useCreateEvaluationModule(templateUid);
     const updateModuleMutation = useUpdateEvaluationModule(templateUid);
     const deleteModuleMutation = useDeleteEvaluationModule(templateUid);
@@ -406,7 +409,7 @@ export default function EvaluationModulesTab({ modules, templateUid }: { modules
             </Pressable>
 
             {/* Module Modal */}
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isModuleModalVisible}
                 animationType="slide"
                 transparent={true}
@@ -487,10 +490,10 @@ export default function EvaluationModulesTab({ modules, templateUid }: { modules
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
-            </Modal>
+            </AppModal>
 
             {/* Criteria Modal */}
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isCriteriaModalVisible}
                 animationType="slide"
                 transparent={true}
@@ -606,12 +609,12 @@ export default function EvaluationModulesTab({ modules, templateUid }: { modules
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
-            </Modal>
+            </AppModal>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

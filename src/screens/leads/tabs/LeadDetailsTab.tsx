@@ -5,9 +5,11 @@ import AppCard from '../../../components/common/AppCard';
 import AppLoader from '../../../components/common/AppLoader';
 import AppText from '../../../components/common/AppText';
 import { useLeadDetails } from '../../../queries/leadDetails.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function LeadDetailsTab({ id }: { id: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const { data, isLoading } = useLeadDetails(id);
 
   if (isLoading || !data) return <AppLoader />;
@@ -119,7 +121,7 @@ export default function LeadDetailsTab({ id }: { id: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: colors.background,

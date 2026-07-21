@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Linking, Platform } from 'react-native';
 import ParsedText from 'react-native-parsed-text';
-import { colors, typography } from '@/src/theme';
+import { useAppTheme, typography } from '@/src/theme';
 
 type ParsedMessageTextProps = {
   children: string;
@@ -16,6 +16,8 @@ export default function ParsedMessageText({
   color,
   variant = 'body',
 }: ParsedMessageTextProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const handleUrlPress = (url: string) => {
     let formattedUrl = url;
     if (!/^(f|ht)tps?:\/\//i.test(url)) {
@@ -54,7 +56,7 @@ export default function ParsedMessageText({
     },
   ];
 
-  const defaultColor = color || (mine ? colors.surface : colors.textPrimary);
+  const defaultColor = color || (mine ? '#FFFFFF' : colors.textPrimary);
 
   return (
     <ParsedText
@@ -71,7 +73,7 @@ export default function ParsedMessageText({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   text: {
     includeFontPadding: false,
     fontSize: 16,
@@ -82,7 +84,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   mineUrl: {
-    color: colors.surface,
+    color: '#FFFFFF',
     textDecorationLine: 'underline',
   },
   bold: {

@@ -3,6 +3,7 @@ import { Platform, ScrollView, StyleSheet } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/src/theme';
 
 type ScreenShellProps = {
   children: ReactNode;
@@ -25,6 +26,10 @@ export default function ScreenShell({
   backgroundColor,
   extraTopPadding = 0,
 }: ScreenShellProps) {
+  const { colors } = useAppTheme();
+  // Use the themed background unless caller passes an explicit override
+  const resolvedBg = backgroundColor ?? colors.background;
+
   const content = scroll ? (
     <ScrollView
       style={styles.flex}
@@ -54,7 +59,7 @@ export default function ScreenShell({
       edges={edges}
       style={[
         styles.safeArea,
-        backgroundColor ? { backgroundColor } : null,
+        { backgroundColor: resolvedBg },
         extraTopPadding ? { paddingTop: extraTopPadding } : null,
         style,
       ]}

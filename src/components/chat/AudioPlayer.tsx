@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 import AppText from '@/src/components/common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 interface AudioPlayerProps {
     uri: string;
@@ -49,6 +49,8 @@ const getExtension = (url: string): string => {
 };
 
 export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const [audioSource, setAudioSource] = useState<AudioSource>(null);
     const player = useAudioPlayer(audioSource, { updateInterval: 50 });
     const status = useAudioPlayerStatus(player);
@@ -57,9 +59,9 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
 
     const isScrubbingRef = useRef(false);
 
-    const mainColor = mine ? colors.surface : colors.primary;
-    const mutedColor = mine ? colors.surfaceAlpha80 : colors.textMuted;
-    const trackBgColor = mine ? colors.surfaceAlpha25 : colors.border;
+    const mainColor = mine ? '#FFFFFF' : colors.primary;
+    const mutedColor = mine ? 'rgba(255, 255, 255, 0.7)' : colors.textMuted;
+    const trackBgColor = mine ? 'rgba(255, 255, 255, 0.25)' : colors.border;
     const trackFillColor = mainColor;
 
     // Status handling is now handled by useAudioPlayerStatus(player)
@@ -218,7 +220,7 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',

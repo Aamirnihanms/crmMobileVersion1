@@ -1,7 +1,7 @@
 import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
 import { useToggleEnrollmentAccess } from '@/src/queries/enrollment.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +12,8 @@ export default function StudentEnrollmentsSection({
   enrollments,
   studentId,
 }: { enrollments: any[], studentId: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation =
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
@@ -158,7 +160,7 @@ export default function StudentEnrollmentsSection({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
   },

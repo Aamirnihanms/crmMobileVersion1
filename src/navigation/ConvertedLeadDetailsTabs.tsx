@@ -1,5 +1,5 @@
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 
 import ConvertedLeadDetailsTab from '../screens/students/convertedLeadTabs/ConvertedLeadDetailsTab';
 import ConvertedLeadFollowUpsTab from '../screens/students/convertedLeadTabs/ConvertedLeadFollowUpsTab';
@@ -9,6 +9,7 @@ import ConvertedLeadActivityTab from '../screens/students/convertedLeadTabs/Conv
 const Tab = createMaterialTopTabNavigator();
 
 export default function ConvertedLeadDetailsTabs({ leadId }: { leadId: string }) {
+  const { colors } = useAppTheme();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -19,6 +20,11 @@ export default function ConvertedLeadDetailsTabs({ leadId }: { leadId: string })
           fontSize: 12,
           fontWeight: '600',
         },
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
       }}
     >
       <Tab.Screen name="Details">

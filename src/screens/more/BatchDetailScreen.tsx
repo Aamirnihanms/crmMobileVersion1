@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import AppText from '../../components/common/AppText';
 import AppLoader from '../../components/common/AppLoader';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useBatchDetail, useDeleteBatch, useMarkBatchCompleted } from '../../queries/batches.query';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 import BatchDetailsTabs from '../../navigation/BatchDetailsTabs';
@@ -21,6 +21,8 @@ import BatchDetailsTabs from '../../navigation/BatchDetailsTabs';
 const { width } = Dimensions.get('window');
 
 export default function BatchDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const route = useRoute<RouteProp<MoreStackParamList, 'BatchDetail'>>();
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const { uid } = route.params;
@@ -201,7 +203,7 @@ export default function BatchDetailScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

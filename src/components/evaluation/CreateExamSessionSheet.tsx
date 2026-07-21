@@ -27,19 +27,25 @@ import {
     fetchTemplateWithModules,
 } from '@/src/api/evaluation.api';
 import { fetchBatchDetail } from '@/src/api/batches.api';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 type Props = {
     visible: boolean;
     onClose: () => void;
     batch: any; // must have: uid, batch_name, course_id (or course_details.id)
+    initialData?: any;
 };
 
 type StudentSelectionMode = 'all' | 'specific';
 
-export default function CreateExamSessionSheet({ visible, onClose, batch }: Props) {
+import { useUpdateExamSession } from '@/src/queries/evaluation.query';
+
+export default function CreateExamSessionSheet({ visible, onClose, batch, initialData }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     /* ── State ── */
     const [examName, setExamName] = useState('');
+    const [examLink, setExamLink] = useState('');
     const [selectedTemplateUid, setSelectedTemplateUid] = useState('');
     const [selectedModuleUid, setSelectedModuleUid] = useState('');
     const [selectedExamTypeId, setSelectedExamTypeId] = useState<number | null>(null);
@@ -84,7 +90,6 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
 
     const modules: any[] = templateDetail?.modules ?? [];
 
-    /* ── Mutation ── */
     const queryClient = useQueryClient();
     const createMutation = useMutation({
         mutationFn: (payload: CreateExamSessionPayload) => createExamSession(payload),
@@ -93,18 +98,32 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
         },
     });
 
+    const updateMutation = useUpdateExamSession();
+
     /* ── Reset on open ── */
     useEffect(() => {
         if (visible) {
-            setExamName('');
-            setSelectedTemplateUid('');
-            setSelectedModuleUid('');
-            setSelectedExamTypeId(null);
-            setScheduledDate(new Date());
-            setStudentMode('all');
-            setSelectedStudentUids([]);
+            if (initialData) {
+                setExamName(initialData.exam_name || '');
+                setExamLink(initialData.exam_link || '');
+                setSelectedTemplateUid(initialData.template_uid || '');
+                setSelectedModuleUid(initialData.module_uid || '');
+                setSelectedExamTypeId(initialData.exam_type_id || null);
+                setScheduledDate(initialData.scheduled_date ? new Date(initialData.scheduled_date) : new Date());
+                setStudentMode('all');
+                setSelectedStudentUids([]);
+            } else {
+                setExamName('');
+                setExamLink('');
+                setSelectedTemplateUid('');
+                setSelectedModuleUid('');
+                setSelectedExamTypeId(null);
+                setScheduledDate(new Date());
+                setStudentMode('all');
+                setSelectedStudentUids([]);
+            }
         }
-    }, [visible]);
+    }, [visible, initialData]);
 
     /* ── Reset module when template changes ── */
     useEffect(() => {
@@ -123,44 +142,69 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
             Alert.alert('Required', 'Please enter an exam name.');
             return;
         }
-        if (!selectedTemplateUid) {
-            Alert.alert('Required', 'Please select an evaluation template.');
-            return;
-        }
-        if (!selectedExamTypeId) {
-            Alert.alert('Required', 'Please select an exam type.');
-            return;
-        }
-        if (studentMode === 'specific' && selectedStudentUids.length === 0) {
-            Alert.alert('Required', 'Please select at least one student or switch to "All Students".');
-            return;
+
+        let payload: any = {};
+
+        if (initialData?.uid) {
+            payload = {
+                exam_name: examName.trim(),
+                scheduled_date: scheduledDate.toISOString(),
+            };
+            if (examLink.trim()) payload.exam_link = examLink.trim();
+        } else {
+            if (!selectedTemplateUid) {
+                Alert.alert('Required', 'Please select an evaluation template.');
+                return;
+            }
+            if (!selectedExamTypeId) {
+                Alert.alert('Required', 'Please select an exam type.');
+                return;
+            }
+            if (studentMode === 'specific' && selectedStudentUids.length === 0) {
+                Alert.alert('Required', 'Please select at least one student or switch to "All Students".');
+                return;
+            }
+
+            payload = {
+                batch_uid: batch.uid,
+                exam_name: examName.trim(),
+                exam_type_id: selectedExamTypeId,
+                generate_attempts: true,
+                template_uid: selectedTemplateUid,
+                scheduled_date: scheduledDate.toISOString(),
+            };
+
+            if (examLink.trim()) payload.exam_link = examLink.trim();
+            if (selectedModuleUid) payload.module_uid = selectedModuleUid;
+            if (studentMode === 'specific') payload.student_uids = selectedStudentUids;
         }
 
-        const payload: any = {
-            batch_uid: batch.uid,
-            exam_name: examName.trim(),
-            exam_type_id: selectedExamTypeId,
-            generate_attempts: true,
-            template_uid: selectedTemplateUid,
-            scheduled_date: scheduledDate.toISOString(),
-        };
-
-        if (selectedModuleUid) payload.module_uid = selectedModuleUid;
-        if (studentMode === 'specific') payload.student_uids = selectedStudentUids;
-
-        createMutation.mutate(payload, {
-            onSuccess: () => {
-                Alert.alert('Success', 'Exam session created successfully!');
-                onClose();
-            },
-            onError: (err: any) => {
-                const msg =
-                    err?.response?.data?.message ||
-                    err?.response?.data?.detail ||
-                    'Failed to create exam session. Please try again.';
-                Alert.alert('Error', msg);
-            },
-        });
+        if (initialData?.uid) {
+            updateMutation.mutate({ uid: initialData.uid, payload }, {
+                onSuccess: () => {
+                    Alert.alert('Success', 'Exam session updated successfully!');
+                    onClose();
+                },
+                onError: (err: any) => {
+                    const msg = err?.response?.data?.message || err?.response?.data?.detail || 'Failed to update exam session.';
+                    Alert.alert('Error', msg);
+                },
+            });
+        } else {
+            createMutation.mutate(payload, {
+                onSuccess: () => {
+                    Alert.alert('Success', 'Exam session created successfully!');
+                    onClose();
+                },
+                onError: (err: any) => {
+                    const msg =
+                        err?.response?.data?.message ||
+                        err?.response?.data?.detail ||
+                        'Failed to create exam session. Please try again.';
+                    Alert.alert('Error', msg);
+                },
+            });
+        }
     };
 
     const formattedDate = scheduledDate.toLocaleDateString('en-IN', {
@@ -175,10 +219,10 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
     });
 
     const isLoading = loadingBatchDetail || loadingTemplates || loadingTypes;
-    const isSaving = createMutation.isPending;
+    const isSaving = createMutation.isPending || updateMutation.isPending;
 
     return (
-        <Modal
+        <Modal navigationBarTranslucent
             visible={visible}
             animationType="slide"
             transparent
@@ -199,7 +243,7 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
                                 <View style={styles.handle} />
                                 <View style={styles.titleRow}>
                                     <AppText variant="h3" style={styles.title}>
-                                        New Exam Session
+                                        {initialData ? 'Edit Exam Session' : 'New Exam Session'}
                                     </AppText>
                                     <Pressable onPress={onClose} style={styles.closeBtn}>
                                         <Ionicons name="close" size={22} color={colors.textMuted} />
@@ -235,8 +279,24 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
                                         />
                                     </View>
 
+                                    {/* Exam Link */}
+                                    <SectionLabel>Exam Link (Optional)</SectionLabel>
+                                    <View style={styles.inputBox}>
+                                        <TextInput
+                                            style={styles.textInput}
+                                            placeholder="e.g. https://forms.gle/..."
+                                            placeholderTextColor={colors.textMuted}
+                                            value={examLink}
+                                            onChangeText={setExamLink}
+                                            keyboardType="url"
+                                            autoCapitalize="none"
+                                        />
+                                    </View>
+
                                     {/* Template Selection */}
-                                    <SectionLabel>Evaluation Template *</SectionLabel>
+                                    {!initialData && (
+                                        <>
+                                            <SectionLabel>Evaluation Template *</SectionLabel>
                                     {templates.length === 0 ? (
                                         <View style={styles.emptyMsg}>
                                             <Ionicons name="alert-circle-outline" size={18} color={colors.warning} />
@@ -316,6 +376,8 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
                                             </Pressable>
                                         ))}
                                     </View>
+                                    </>
+                                    )}
 
                                     {/* Date & Time */}
                                     <SectionLabel>Scheduled Date & Time *</SectionLabel>
@@ -373,7 +435,9 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
                                     )}
 
                                     {/* Student Eligibility */}
-                                    <SectionLabel>Eligible Students</SectionLabel>
+                                    {!initialData && (
+                                        <>
+                                            <SectionLabel>Eligible Students</SectionLabel>
                                     <View style={styles.segmentRow}>
                                         <Pressable
                                             style={[
@@ -498,6 +562,8 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
                                             )}
                                         </>
                                     )}
+                                    </>
+                                    )}
 
                                     {/* Submit */}
                                     <Pressable
@@ -515,7 +581,7 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
                                                     color={colors.surface}
                                                     style={{ marginLeft: 8, fontWeight: '700' }}
                                                 >
-                                                    Create Exam Session
+                                                    {initialData ? 'Save Changes' : 'Create Exam Session'}
                                                 </AppText>
                                             </>
                                         )}
@@ -535,6 +601,8 @@ export default function CreateExamSessionSheet({ visible, onClose, batch }: Prop
 /* ── Small reusable helpers ── */
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     return (
         <AppText variant="caption" style={styles.sectionLabel}>
             {children}
@@ -553,6 +621,8 @@ function ChipButton({
     onPress: () => void;
     variant?: 'primary' | 'neutral';
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const bg = selected
         ? variant === 'neutral'
             ? colors.textSecondary
@@ -570,7 +640,7 @@ function ChipButton({
 
 /* ── Styles ── */
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         justifyContent: 'flex-end',

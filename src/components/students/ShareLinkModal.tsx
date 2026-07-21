@@ -3,7 +3,7 @@ import { Modal, View, StyleSheet, TouchableOpacity, Share, ViewStyle } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import AppText from '../common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { BlurView } from 'expo-blur';
 
 interface ShareLinkModalProps {
@@ -13,6 +13,8 @@ interface ShareLinkModalProps {
 }
 
 export default function ShareLinkModal({ visible, onClose, userId }: ShareLinkModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const link = `https://crm2.luminartechnolab.com/admission-form?simple=true&adc=${userId}`;
 
   const copyToClipboard = async () => {
@@ -32,7 +34,7 @@ export default function ShareLinkModal({ visible, onClose, userId }: ShareLinkMo
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <BlurView intensity={30} style={styles.overlay}>
         <TouchableOpacity style={styles.dismissArea} activeOpacity={1} onPress={onClose} />
         <View style={styles.content}>
@@ -80,7 +82,7 @@ export default function ShareLinkModal({ visible, onClose, userId }: ShareLinkMo
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',

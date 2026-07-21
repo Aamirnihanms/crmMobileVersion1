@@ -21,7 +21,7 @@ import { useCounselors } from '@/src/queries/masters/counselors.query';
 import { useCourses } from '@/src/queries/masters/courses.query';
 import { useRejoinStudent } from '@/src/queries/enrollment.query';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
 import { Batch } from '@/src/api/batches.api';
 
@@ -69,6 +69,8 @@ function checkSeatAvailability(batch: Batch | null, modeId: string): SeatCheck |
 }
 
 export default function RejoinStudentScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const navigation = useNavigation();
   const route = useRoute<RouteProp<MoreStackParamList, 'RejoinStudent'>>();
   const { student } = route.params;
@@ -172,9 +174,9 @@ export default function RejoinStudentScreen() {
               <SeatChip label="Offline" count={selectedBatch.seat_availability?.offline?.available ?? 0} canEnroll={selectedBatch.seat_availability?.can_enroll_offline} />
             </View>
             {seatCheck && (
-              <View style={[styles.seatBanner, { backgroundColor: seatBannerBg[seatCheck.severity] }]}>
-                <Ionicons name={seatBannerIcon[seatCheck.severity]} size={16} color={seatBannerColor[seatCheck.severity]} />
-                <AppText variant="caption" style={[styles.seatBannerText, { color: seatBannerColor[seatCheck.severity] }]}>{seatCheck.message}</AppText>
+              <View style={[styles.seatBanner, { backgroundColor: getSeatBannerBg(colors)[seatCheck.severity] }]}>
+                <Ionicons name={seatBannerIcon[seatCheck.severity]} size={16} color={getSeatBannerColor(colors)[seatCheck.severity]} />
+                <AppText variant="caption" style={[styles.seatBannerText, { color: getSeatBannerColor(colors)[seatCheck.severity] }]}>{seatCheck.message}</AppText>
               </View>
             )}
           </View>
@@ -188,6 +190,8 @@ export default function RejoinStudentScreen() {
 }
 
 function SeatChip({ label, count, canEnroll }: any) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const hasSeats = count > 0 && canEnroll !== false;
   const chipColor = hasSeats ? colors.success : colors.danger;
   return (
@@ -198,11 +202,11 @@ function SeatChip({ label, count, canEnroll }: any) {
   );
 }
 
-const seatBannerColor: any = { ok: colors.success, warn: '#f59e0b', error: colors.danger };
-const seatBannerBg: any = { ok: colors.success + '12', warn: '#f59e0b12', error: colors.danger + '12' };
+const getSeatBannerColor = (colors: any) => ({ ok: colors.success, warn: '#f59e0b', error: colors.danger });
+const getSeatBannerBg = (colors: any) => ({ ok: colors.success + '12', warn: '#f59e0b12', error: colors.danger + '12' });
 const seatBannerIcon: any = { ok: 'checkmark-circle-outline', warn: 'warning-outline', error: 'close-circle-outline' };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   container: { padding: spacing.lg },
   headerCard: { padding: 0, borderRadius: 24, overflow: 'hidden', marginBottom: spacing.xl },

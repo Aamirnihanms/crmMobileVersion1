@@ -4,7 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useAttendanceList } from '@/src/queries/attendance.query';
 import AttendanceStudentCard from '@/src/components/cards/AttendanceStudentCard';
 import AttendanceFilterModal from '@/src/components/attendance/AttendanceFilterModal';
@@ -18,6 +18,8 @@ interface BatchAttendanceTabProps {
 }
 
 export default function BatchAttendanceTab({ batchUid }: BatchAttendanceTabProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
@@ -167,7 +169,7 @@ export default function BatchAttendanceTab({ batchUid }: BatchAttendanceTabProps
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

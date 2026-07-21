@@ -3,7 +3,7 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { BatchChangeRequest } from '@/src/api/batch-change.api';
 
 interface BatchChangeRequestCardProps {
@@ -12,6 +12,8 @@ interface BatchChangeRequestCardProps {
 }
 
 export default function BatchChangeRequestCard({ request, onPress }: BatchChangeRequestCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const getStatusColor = (status: string, isExpired: boolean) => {
         if (isExpired && status === 'pending') return colors.danger;
         switch (status.toLowerCase()) {
@@ -102,7 +104,7 @@ export default function BatchChangeRequestCard({ request, onPress }: BatchChange
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     card: {
         marginBottom: spacing.md,
         padding: spacing.md,

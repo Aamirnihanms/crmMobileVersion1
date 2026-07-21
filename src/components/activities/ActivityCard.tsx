@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import type { LeadActivity } from '../../api/activities.api';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
@@ -10,6 +10,8 @@ export default function ActivityCard({
 }: {
     activity: LeadActivity;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const isSystem = activity.performed_by_system;
     const actor = isSystem
         ? 'System'
@@ -53,7 +55,7 @@ export default function ActivityCard({
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     card: {
         padding: spacing.md,
         marginBottom: spacing.md,

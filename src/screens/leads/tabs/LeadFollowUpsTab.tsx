@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { FollowUp } from '../../../api/followups.api';
 import AppLoader from '../../../components/common/AppLoader';
 import AppText from '../../../components/common/AppText';
@@ -19,6 +19,8 @@ import UpdateFollowUpStatusModal from '../../../components/followups/UpdateFollo
 import { useAddFollowUp, useInfiniteLeadFollowUps, useUpdateFollowUpStatus } from '../../../queries/followups.query';
 
 export default function LeadFollowUpsTab({ id }: { id: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const {
     data,
     isLoading,
@@ -147,7 +149,7 @@ export default function LeadFollowUpsTab({ id }: { id: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

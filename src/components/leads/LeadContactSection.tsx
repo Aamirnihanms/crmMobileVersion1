@@ -1,4 +1,4 @@
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import AppCard from './../common/AppCard';
@@ -15,6 +15,8 @@ export default function LeadContactSection({
   form,
   setForm,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.container}>
       <AppText variant="h3" style={styles.title}>Contact Details</AppText>
@@ -75,7 +77,7 @@ export default function LeadContactSection({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
   },

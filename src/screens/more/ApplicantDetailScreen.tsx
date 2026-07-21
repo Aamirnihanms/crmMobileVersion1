@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
 import ScheduleInterviewModal from '../../components/jobs/ScheduleInterviewModal';
@@ -20,19 +20,20 @@ import { useJobApplicationDetail, useJobStages, useDeleteInterview } from '../..
 
 type ApplicantDetailRouteProp = RouteProp<MoreStackParamList, 'ApplicantDetail'>;
 
-const STAGE_COLORS: Record<string, string> = {
-  applied: colors.info,
-  screening: colors.warning,
-  interview: '#7C3AED',
-  offer: colors.success,
-  rejected: colors.danger,
-};
-
-function getStageColor(code: string): string {
+function getStageColor(code: string, colors: any): string {
+  const STAGE_COLORS: Record<string, string> = {
+    applied: colors.info,
+    screening: colors.warning,
+    interview: '#7C3AED',
+    offer: colors.success,
+    rejected: colors.danger,
+  };
   return STAGE_COLORS[code] || colors.primary;
 }
 
 function SectionHeader({ title }: { title: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.sectionHeader}>
       <AppText variant="subtitle" style={{ fontWeight: '700', color: colors.textPrimary }}>
@@ -44,6 +45,8 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 function InfoRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={styles.infoRow}>
       <Ionicons name={icon} size={16} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
@@ -69,6 +72,8 @@ function formatDate(dateStr: string): string {
 }
 
 export default function ApplicantDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<ApplicantDetailRouteProp>();
   const insets = useSafeAreaInsets();
   const { companyUid, jobUid, applicationUid } = route.params;
@@ -109,7 +114,7 @@ export default function ApplicantDetailScreen() {
   if (!data?.application) return null;
 
   const app = data.application;
-  const stageColor = getStageColor(app.current_stage.code);
+  const stageColor = getStageColor(app.current_stage.code, colors);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top > 0 ? 0 : spacing.sm }]}>
@@ -220,7 +225,7 @@ export default function ApplicantDetailScreen() {
                           {entry.from_stage?.name || '?'}
                         </AppText>
                         <Ionicons name="arrow-forward" size={14} color={colors.textMuted} style={{ marginHorizontal: 4 }} />
-                        <AppText variant="body" style={{ fontWeight: '700', color: getStageColor(entry.to_stage?.code || '') }}>
+                        <AppText variant="body" style={{ fontWeight: '700', color: getStageColor(entry.to_stage?.code || '', colors) }}>
                           {entry.to_stage?.name || '?'}
                         </AppText>
                       </View>
@@ -406,7 +411,7 @@ export default function ApplicantDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { FollowUp } from '../../api/followups.api';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 
@@ -14,6 +14,8 @@ export default function FollowUpCard({
   onUpdateStatus?: () => void;
   isViewOnly?: boolean;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const isPending = followup.status === 'pending';
   const isCompleted = followup.status === 'completed';
   const statusColor = isCompleted ? colors.success : colors.primary;
@@ -78,7 +80,7 @@ export default function FollowUpCard({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     padding: spacing.md,
     marginBottom: spacing.md,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Platform, StyleProp, StyleSheet, View, ViewStyle, Pressable } from 'react-native';
 
 type AppCardProps = {
@@ -9,26 +9,39 @@ type AppCardProps = {
 };
 
 export default function AppCard({ children, style, onPress }: AppCardProps) {
+  const { colors, isDark } = useAppTheme();
+
+  const dynamicCardStyles = {
+    backgroundColor: colors.surface,
+    shadowColor: isDark ? colors.black : colors.textPrimary,
+    shadowOpacity: isDark ? 0.3 : 0.05,
+  };
+
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.card,
+          dynamicCardStyles,
+          style,
+          pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }
+        ]}
+      >
         {children}
       </Pressable>
     );
   }
-  return <View style={[styles.card, style]}>{children}</View>;
+  return <View style={[styles.card, dynamicCardStyles, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: spacing.lg,
     ...Platform.select({
       ios: {
-        shadowColor: colors.textPrimary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
         shadowRadius: 10,
       },
       android: {

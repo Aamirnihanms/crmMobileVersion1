@@ -11,7 +11,7 @@ import {
     View,
 } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from '../common/AppText';
 
 const { height } = Dimensions.get('window');
@@ -35,7 +35,10 @@ const AttachmentAction = ({
     label: string;
     color: string;
     onPress: () => void;
-}) => (
+}) => {
+    const { colors } = useAppTheme();
+    const styles = getStyles(colors);
+    return (
     <Pressable style={styles.actionItem} onPress={onPress}>
         <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
             <LinearGradient
@@ -51,9 +54,12 @@ const AttachmentAction = ({
             {label}
         </AppText>
     </Pressable>
-);
+    );
+};
 
 export default function AttachmentPopup({ visible, onClose, onSelect, options = ['camera', 'video', 'gallery', 'document'] }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const translateY = useRef(new Animated.Value(height)).current;
     const opacity = useRef(new Animated.Value(0)).current;
 
@@ -95,7 +101,7 @@ export default function AttachmentPopup({ visible, onClose, onSelect, options = 
     };
 
     return (
-        <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+        <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="none" onRequestClose={onClose}>
             <TouchableWithoutFeedback onPress={onClose}>
                 <Animated.View style={[styles.overlay, { opacity }]} />
             </TouchableWithoutFeedback>
@@ -171,7 +177,7 @@ export default function AttachmentPopup({ visible, onClose, onSelect, options = 
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',

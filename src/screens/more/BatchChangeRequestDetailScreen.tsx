@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import React, { useState } from 'react';
 import {
     View,
@@ -19,13 +20,15 @@ import AppLoader from '../../components/common/AppLoader';
 import AppCard from '../../components/common/AppCard';
 import AppButton from '../../components/common/AppButton';
 import AppInput from '../../components/common/AppInput';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useBatchChangeRequestDetail, useApproveBatchChangeRequest } from '../../queries/batch-change.query';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 
 const { width } = Dimensions.get('window');
 
 export default function BatchChangeRequestDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const route = useRoute<RouteProp<MoreStackParamList, 'BatchChangeRequestDetail'>>();
     const { uid } = route.params;
 
@@ -319,7 +322,7 @@ export default function BatchChangeRequestDetailScreen() {
         })()}
 
         {/* Action Modal (Approve / Reject) */}
-        <Modal visible={actionModalVisible} transparent animationType="slide">
+        <AppModal statusBarTranslucent navigationBarTranslucent visible={actionModalVisible} transparent animationType="slide">
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <View style={styles.modalOverlay}>
                     <AppCard style={styles.modalContent}>
@@ -369,7 +372,7 @@ export default function BatchChangeRequestDetailScreen() {
                     </AppCard>
                 </View>
             </TouchableWithoutFeedback>
-        </Modal>
+        </AppModal>
     </View>
     );
 }
@@ -377,7 +380,7 @@ export default function BatchChangeRequestDetailScreen() {
 const formatLabel = (key: string) =>
     key.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

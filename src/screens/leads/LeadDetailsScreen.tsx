@@ -22,7 +22,7 @@ import LeadConvertLinkModal from '@/src/components/leads/modals/LeadConvertLinkM
 
 import { useConvertLeadToStudent } from '@/src/queries/students.query';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useEffect } from 'react';
 import { getUserIdFromToken } from '@/src/utils/token';
 
@@ -36,6 +36,7 @@ type Nav = NativeStackNavigationProp<
 
 
 export default function LeadDetailsScreen() {
+  const { colors } = useAppTheme();
   const { params } = useRoute<LeadDetailsRouteProp>();
   const { id } = params;
 

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
 import type { JobResponse } from '../../api/jobs.api';
@@ -13,6 +13,8 @@ type JobCardProps = {
 };
 
 export default function JobCard({ job, onPress }: JobCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const isExpired = job.is_expired;
 
   return (
@@ -63,7 +65,7 @@ export default function JobCard({ job, onPress }: JobCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     marginBottom: spacing.md,
     padding: spacing.lg,

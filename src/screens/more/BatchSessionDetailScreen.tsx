@@ -1,9 +1,10 @@
+import AppModal from '@/src/components/common/AppModal';
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from '@/src/components/common/AppText';
 import AppButton from '@/src/components/common/AppButton';
 import AppInput from '@/src/components/common/AppInput';
@@ -11,6 +12,8 @@ import { MoreStackParamList } from '@/src/navigation/MoreStack';
 import { useBatchSessionDetail, useUpdateBatchSession, useDeleteBatchSession } from '@/src/queries/batches.query';
 
 export default function BatchSessionDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const route = useRoute<any>();
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const { uid, batchUid } = route.params;
@@ -230,7 +233,7 @@ export default function BatchSessionDetailScreen() {
 
 
             {/* Edit Modal */}
-            <Modal visible={isEditModalVisible} animationType="slide" transparent>
+            <AppModal statusBarTranslucent navigationBarTranslucent visible={isEditModalVisible} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
@@ -277,12 +280,12 @@ export default function BatchSessionDetailScreen() {
                         </ScrollView>
                     </View>
                 </View>
-            </Modal>
+            </AppModal>
         </ScrollView>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

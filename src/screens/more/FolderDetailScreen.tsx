@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,10 +22,12 @@ import AppText from '../../components/common/AppText';
 import EmptyState from '../../components/common/EmptyState';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 import { useDeleteFolder, useDeleteVideo, useFolderDetail, useGalleryFolders, useGalleryVideos, useUpdateVideo } from '../../queries/gallery.query';
-import { colors, spacing } from '../../theme';
+import { useAppTheme, spacing } from '../../theme';
 import { getYouTubeID } from '../../utils/youtube';
 
 export default function FolderDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const route = useRoute<RouteProp<MoreStackParamList, 'FolderDetail'>>();
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const { uid, gallery_uid } = route.params;
@@ -278,7 +281,7 @@ export default function FolderDetailScreen() {
                     />
                 }
             />
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isMoveModalVisible}
                 transparent
                 animationType="slide"
@@ -310,7 +313,7 @@ export default function FolderDetailScreen() {
                         />
                     </View>
                 </View>
-            </Modal>
+            </AppModal>
 
             <VideoPlayerModal
                 isVisible={isVideoPlayerVisible}
@@ -325,7 +328,7 @@ export default function FolderDetailScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

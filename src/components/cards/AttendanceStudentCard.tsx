@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, withTiming, useSharedValue, interpolate, Extrapolate } from 'react-native-reanimated';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppText from '@/src/components/common/AppText';
 import { StudentAttendance, AttendanceRecord, AttendanceMode } from '@/src/api/attendance.api';
 import AttendanceEditModal from '../attendance/AttendanceEditModal';
@@ -13,7 +13,7 @@ interface AttendanceStudentCardProps {
   batchId: string;
 }
 
-const getStatusColor = (status: AttendanceMode | 'absent') => {
+const getStatusColor = (status: AttendanceMode | 'absent', colors: any) => {
   switch (status) {
     case 'offline': return colors.success;
     case 'online': return colors.info;
@@ -34,7 +34,9 @@ const getStatusInitial = (status: AttendanceMode | 'absent') => {
 };
 
 const AttendanceBead = ({ record, size = 32, onPress }: { record: AttendanceRecord, size?: number, onPress?: () => void }) => {
-  const color = getStatusColor(record.attendance);
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const color = getStatusColor(record.attendance, colors);
   const dateParts = record.date.split('-');
   const displayDate = `${dateParts[2]}/${dateParts[1]}`;
 
@@ -55,6 +57,8 @@ const AttendanceBead = ({ record, size = 32, onPress }: { record: AttendanceReco
 };
 
 export default function AttendanceStudentCard({ student, batchId }: AttendanceStudentCardProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [isExpanded, setIsExpanded] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
@@ -205,7 +209,7 @@ export default function AttendanceStudentCard({ student, batchId }: AttendanceSt
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: 20,

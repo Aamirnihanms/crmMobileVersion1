@@ -5,7 +5,7 @@ import {
 } from '@/src/api/masters/paginatedMasters.api';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from './../common/AppCard';
 import AppInput from './../common/AppInput';
 import AppDatePicker from './../common/AppDatePicker';
@@ -32,6 +32,8 @@ export default function LeadAdditionalSection({
   initialSourceOption,
   initialStatusOption,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const fetchCounselorOptions = React.useCallback(
     async ({ page, pageSize, search }: { page: number; pageSize: number; search?: string }) => {
       const result = await fetchCounselorsPage({ page, pageSize, search });
@@ -156,7 +158,7 @@ export default function LeadAdditionalSection({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.xl,
   },

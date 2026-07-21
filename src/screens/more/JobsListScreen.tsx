@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import JobCard from '../../components/cards/JobCard';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
@@ -23,6 +23,8 @@ import type { JobsPageResponse } from '../../api/jobs.api';
 import { useInfiniteJobs } from '../../queries/jobs.query';
 
 export default function JobsListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   /* ---------------- SEARCH STATE ---------------- */
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -185,7 +187,7 @@ export default function JobsListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

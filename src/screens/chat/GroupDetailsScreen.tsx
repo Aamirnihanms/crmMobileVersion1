@@ -31,9 +31,10 @@ import {
     type ChatParticipant,
 } from '@/src/api/chat.api';
 import AddMembersModal from '@/src/components/chat/AddMembersModal';
+import AppModal from '@/src/components/common/AppModal';
 import AppText from '@/src/components/common/AppText';
 import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 
 type GroupDetailsRouteProp = RouteProp<DashboardStackParamList, 'GroupDetails'>;
 
@@ -43,6 +44,8 @@ type ParticipantWithRole = ChatParticipant & {
 };
 
 export default function GroupDetailsScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const insets = useSafeAreaInsets();
     const navigation = useNavigation<NativeStackNavigationProp<DashboardStackParamList>>();
     const route = useRoute<GroupDetailsRouteProp>();
@@ -340,7 +343,7 @@ export default function GroupDetailsScreen() {
                 existingMemberIds={participants.map(p => p.id as number)}
             />
 
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isEditModalVisible}
                 transparent
                 animationType="fade"
@@ -389,12 +392,12 @@ export default function GroupDetailsScreen() {
                         </View>
                     </View>
                 </View>
-            </Modal>
+            </AppModal>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

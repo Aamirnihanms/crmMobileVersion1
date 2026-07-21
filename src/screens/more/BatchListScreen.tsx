@@ -10,7 +10,7 @@ import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
 import BatchCard from '../../components/cards/BatchCard';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useInfiniteBatches } from '../../queries/batches.query';
 import type { BatchesPageResponse } from '../../api/batches.api';
 
@@ -20,6 +20,8 @@ import { useBatchesFilters } from '../../hooks/useBatchesFilters';
 import { MoreStackParamList } from '../../navigation/MoreStack';
 
 export default function BatchListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -189,7 +191,7 @@ export default function BatchListScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

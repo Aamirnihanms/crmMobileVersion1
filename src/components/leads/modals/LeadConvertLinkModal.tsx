@@ -1,4 +1,4 @@
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Clipboard from 'expo-clipboard';
@@ -14,6 +14,8 @@ interface LeadConvertLinkModalProps {
 }
 
 export default function LeadConvertLinkModal({ visible, onClose, leadId, userId }: LeadConvertLinkModalProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const [selectedType, setSelectedType] = useState<'withSeats' | 'withoutSeats' | null>(null);
 
   const generateLink = (withSeats: boolean) => {
@@ -47,7 +49,7 @@ export default function LeadConvertLinkModal({ visible, onClose, leadId, userId 
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal statusBarTranslucent navigationBarTranslucent visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <BlurView intensity={30} style={styles.overlay}>
         <TouchableOpacity style={styles.dismissArea} activeOpacity={1} onPress={onClose} />
         <View style={styles.content}>
@@ -144,7 +146,7 @@ export default function LeadConvertLinkModal({ visible, onClose, leadId, userId 
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',

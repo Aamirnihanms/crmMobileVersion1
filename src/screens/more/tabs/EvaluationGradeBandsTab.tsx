@@ -1,3 +1,4 @@
+import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import React, { useState } from 'react';
@@ -24,9 +25,11 @@ import {
     useGradeBands,
     useUpdateGradeBand
 } from '@/src/queries/evaluation.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function EvaluationGradeBandsTab({ templateUid }: { templateUid: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const { data: gradeBands, isLoading, refetch } = useGradeBands(templateUid);
     const createMutation = useCreateGradeBand(templateUid);
     const updateMutation = useUpdateGradeBand(templateUid);
@@ -218,7 +221,7 @@ export default function EvaluationGradeBandsTab({ templateUid }: { templateUid: 
                 <Ionicons name="add" size={24} color="white" />
             </Pressable>
 
-            <Modal
+            <AppModal statusBarTranslucent navigationBarTranslucent
                 visible={isModalVisible}
                 animationType="slide"
                 transparent={true}
@@ -324,12 +327,12 @@ export default function EvaluationGradeBandsTab({ templateUid }: { templateUid: 
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
-            </Modal>
+            </AppModal>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

@@ -5,9 +5,11 @@ import StudentActivityCard from '@/src/components/students/StudentActivityCard';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useInfiniteStudentActivities } from '@/src/queries/studentActivities.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 export default function StudentActivityTab({ studentId }: { studentId: string }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const {
     data,
     isLoading,
@@ -70,7 +72,7 @@ export default function StudentActivityTab({ studentId }: { studentId: string })
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

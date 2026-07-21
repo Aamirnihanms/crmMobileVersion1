@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import type { LeadsPageResponse } from '../../api/leads.api';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import LeadCard from '../../components/cards/LeadCard';
 import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
@@ -28,6 +28,8 @@ import { useLeadsFilters } from '../../hooks/useLeadsFilters';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function LeadsListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   /* ---------------- SEARCH STATE ---------------- */
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -213,7 +215,7 @@ export default function LeadsListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

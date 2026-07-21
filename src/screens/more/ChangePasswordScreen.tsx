@@ -4,13 +4,15 @@ import AppInput from '@/src/components/common/AppInput';
 import AppText from '@/src/components/common/AppText';
 import ScreenShell from '@/src/components/common/ScreenShell';
 import { useChangePassword } from '@/src/queries/auth.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 export default function ChangePasswordScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -195,7 +197,7 @@ export default function ChangePasswordScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     scrollContent: {
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.xl,

@@ -15,7 +15,7 @@ import AppInput from '@/src/components/common/AppInput';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useInfinitePaymentTransactions } from '@/src/queries/payments.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 
 import PaymentsFilterModal from '@/src/components/payments/PaymentsFilterModal';
 import { usePaymentsFilters } from '@/src/hooks/usePaymentsFilters';
@@ -32,6 +32,8 @@ function PaymentItem({
     isLast?: boolean;
     onPress: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const isCompleted = transaction.status === 'completed';
     const isFailed = transaction.status === 'failed';
     const isReversal = transaction.payment_method === 'reversal';
@@ -81,6 +83,8 @@ function PaymentItem({
 }
 
 export default function PaymentsListScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<PaymentsStackParamList>>();
     const isFocused = useIsFocused();
     const [search, setSearch] = useState('');
@@ -262,7 +266,7 @@ export default function PaymentsListScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: colors.background,

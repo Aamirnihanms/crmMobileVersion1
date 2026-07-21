@@ -4,7 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import { useInfiniteStudents } from '@/src/queries/students.query';
 import StudentCard from '@/src/components/cards/StudentCard';
 import AppInput from '@/src/components/common/AppInput';
@@ -16,6 +16,8 @@ interface BatchStudentsTabProps {
 }
 
 export default function BatchStudentsTab({ batchUid }: BatchStudentsTabProps) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const navigation = useNavigation<any>();
@@ -128,7 +130,7 @@ export default function BatchStudentsTab({ batchUid }: BatchStudentsTabProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

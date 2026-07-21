@@ -1,4 +1,4 @@
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import React, { useState } from 'react';
 import {
     FlatList,
@@ -64,6 +64,8 @@ export default function PhoneInputWithCode({
     containerStyle,
     error,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
     const [showPicker, setShowPicker] = useState(false);
 
     return (
@@ -116,7 +118,7 @@ export default function PhoneInputWithCode({
             ) : null}
 
             {/* Country Picker Modal */}
-            <Modal
+            <Modal statusBarTranslucent navigationBarTranslucent
                 visible={showPicker}
                 transparent
                 animationType="slide"
@@ -164,7 +166,7 @@ export default function PhoneInputWithCode({
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     wrapper: {},
     label: {
         marginBottom: spacing.xs,

@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import AppCard from '../../components/common/AppCard';
 import AppText from '../../components/common/AppText';
 import AddCompanyJobModal from '../../components/jobs/AddCompanyJobModal';
@@ -45,6 +45,8 @@ const openLink = (url: string | null) => {
 
 /* ─── Mini inline loader ─── */
 function SectionLoader() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   return (
     <View style={{ paddingVertical: 20, alignItems: 'center' }}>
       <ActivityIndicator size="small" color={colors.primary} />
@@ -62,16 +64,19 @@ function SectionHeader({
   count?: number;
   onAdd?: () => void;
 }) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const secStyles = getSectionStyles(colors);
   return (
-    <View style={sectionStyles.header}>
-      <AppText variant="h3" style={sectionStyles.title}>{title}</AppText>
+    <View style={secStyles.header}>
+      <AppText variant="h3" style={secStyles.title}>{title}</AppText>
       {count !== undefined && (
-        <View style={sectionStyles.countBadge}>
+        <View style={secStyles.countBadge}>
           <AppText variant="caption" color={colors.primary} style={{ fontWeight: '700' }}>{count}</AppText>
         </View>
       )}
       {onAdd && (
-        <Pressable onPress={onAdd} style={sectionStyles.addBtn}>
+        <Pressable onPress={onAdd} style={secStyles.addBtn}>
           <Ionicons name="add-circle" size={26} color={colors.primary} />
         </Pressable>
       )}
@@ -79,7 +84,7 @@ function SectionHeader({
   );
 }
 
-const sectionStyles = StyleSheet.create({
+const getSectionStyles = (colors: any) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -106,6 +111,8 @@ const sectionStyles = StyleSheet.create({
 });
 
 export default function CompanyDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<CompanyDetailRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
   const { uid } = route.params;
@@ -512,7 +519,7 @@ export default function CompanyDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

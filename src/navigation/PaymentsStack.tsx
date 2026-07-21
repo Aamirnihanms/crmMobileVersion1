@@ -1,4 +1,4 @@
-import { colors } from '@/src/theme';
+import { useAppTheme } from '@/src/theme';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import PaymentDetailsScreen from '../screens/payments/PaymentDetailsScreen';
 import PaymentsListScreen from '../screens/payments/PaymentsListScreen';
@@ -11,6 +11,7 @@ export type PaymentsStackParamList = {
 const Stack = createNativeStackNavigator<PaymentsStackParamList>();
 
 export default function PaymentsStack() {
+  const { colors } = useAppTheme();
   return (
     <Stack.Navigator
       screenOptions={{

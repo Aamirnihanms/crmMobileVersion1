@@ -15,7 +15,7 @@ import AppCard from '@/src/components/common/AppCard';
 import AppText from '@/src/components/common/AppText';
 import type { MoreStackParamList } from '@/src/navigation/MoreStack';
 import { useDeleteFieldTemplate, useFieldTemplateDetail } from '@/src/queries/jobs.query';
-import { colors, spacing } from '@/src/theme';
+import { useAppTheme, spacing } from '@/src/theme';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type DetailRouteProp = RouteProp<MoreStackParamList, 'FieldTemplateDetail'>;
@@ -31,6 +31,8 @@ const formatDate = (dateString: string | null) => {
 };
 
 export default function FieldTemplateDetailScreen() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
   const route = useRoute<DetailRouteProp>();
   const navigation = useNavigation<NavProp>();
   const { companyUid, templateUid } = route.params;
@@ -232,7 +234,7 @@ export default function FieldTemplateDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
