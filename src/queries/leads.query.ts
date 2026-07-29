@@ -35,10 +35,12 @@ export const useInfiniteMyReminders = (
     today_reminders?: boolean;
     overdue_reminders?: boolean;
     upcoming_reminders?: boolean;
-  }
+  },
+  enabled = true
 ) => {
   return useInfiniteQuery({
     queryKey: ['my-reminders', userUid, filters],
+    enabled: !!userUid && enabled,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchMyReminders(userUid, pageParam, 10, filters),

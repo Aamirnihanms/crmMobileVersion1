@@ -14,7 +14,7 @@ import {
     View,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 import type { CompanyResponse, CompaniesPageResponse } from '../../api/jobs.api';
 import CompanyCard from '../../components/cards/CompanyCard';
@@ -50,7 +50,6 @@ export default function CreateJobScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-    const isFocused = useIsFocused();
 
     const [step, setStep] = useState<Step>('pick-company');
     const [selectedCompany, setSelectedCompany] = useState<CompanyResponse | null>(null);
@@ -84,12 +83,6 @@ export default function CreateJobScreen() {
         isFetchingNextPage: boolean;
         refetch: () => void;
     };
-
-    useEffect(() => {
-        if (isFocused && step === 'pick-company') {
-            void refetchCompanies();
-        }
-    }, [isFocused, refetchCompanies, step]);
 
     const onRefreshCompanies = useCallback(async () => {
         try {

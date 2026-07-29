@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -39,7 +39,6 @@ export default function FollowUpsScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<MoreStackParamList>>();
-    const isFocused = useIsFocused();
     const user = useAuthStore((state) => state.user);
     const [activeTab, setActiveTab] = useState<TabType>('followups');
     const [activeSubTab, setActiveSubTab] = useState<SubTabType>('today');
@@ -65,7 +64,7 @@ export default function FollowUpsScreen() {
         isFetchingNextPage: isFetchingNextFollowUps,
         refetch: refetchFollowUps,
         isRefetching: isRefetchingFollowUps,
-    } = useInfiniteMyFollowUps(user?.uid || '', followUpFilters);
+    } = useInfiniteMyFollowUps(user?.uid || '', followUpFilters, activeTab === 'followups');
 
     const {
         data: remindersData,
@@ -75,7 +74,7 @@ export default function FollowUpsScreen() {
         isFetchingNextPage: isFetchingNextReminders,
         refetch: refetchReminders,
         isRefetching: isRefetchingReminders,
-    } = useInfiniteMyReminders(user?.uid || '', reminderFilters);
+    } = useInfiniteMyReminders(user?.uid || '', reminderFilters, activeTab === 'reminders');
 
     const currentData = activeTab === 'followups'
         ? followUpsData?.pages.flatMap(page => page.results) ?? []
@@ -87,12 +86,6 @@ export default function FollowUpsScreen() {
     const isFetchingNextPage = activeTab === 'followups' ? isFetchingNextFollowUps : isFetchingNextReminders;
     const fetchNextPage = activeTab === 'followups' ? fetchNextFollowUps : fetchNextReminders;
     const refetch = activeTab === 'followups' ? refetchFollowUps : refetchReminders;
-
-    React.useEffect(() => {
-        if (isFocused) {
-            void refetch();
-        }
-    }, [isFocused, refetch]);
 
     const onRefresh = useCallback(async () => {
         try {

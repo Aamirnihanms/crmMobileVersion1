@@ -3,10 +3,7 @@ import AttachmentPopup, { type AttachmentActionType } from '@/src/components/cha
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import {
-  useIsFocused,
-  useNavigation,
-} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -487,7 +484,6 @@ export default function MessagesListScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const navigation = useNavigation<Nav>();
-  const isFocused = useIsFocused();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const seenIncomingMessageUidsRef = useRef<Set<string>>(new Set());
@@ -672,13 +668,6 @@ export default function MessagesListScreen() {
       ) || []
     );
   }, [chatsData, currentUserId]);
-
-  useEffect(() => {
-    if (isFocused) {
-      void refetchChats();
-      scheduleUnreadCountRefresh(queryClient);
-    }
-  }, [isFocused, queryClient, refetchChats]);
 
   useEffect(() => {
     // Clear local state when mode, search, or category changes to prevent cross-contamination of cached data
@@ -1118,7 +1107,7 @@ export default function MessagesListScreen() {
 
   useChatWebSocket({
     token,
-    enabled: Boolean(token) && isFocused,
+    enabled: Boolean(token),
     onMessage: handleWsMessage,
   });
 

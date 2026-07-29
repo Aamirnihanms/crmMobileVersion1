@@ -57,11 +57,12 @@ export default function ConvertLeadModalPro({
   // Pre-seed course cache from the lead's pre-filled course so the label is visible
   // immediately in the closed dropdown (avoids the "blank label until first open" UX gap)
   useEffect(() => {
+    if (!visible || !lead) return;
     const seed = lead?.course_details;
     if (seed?.id) {
       setCourseMap((prev) => ({ ...prev, [String(seed.id)]: seed as Course }));
     }
-  }, [lead]);
+  }, [lead, visible]);
 
   // ── AppSelect fetchOptions callbacks (backend search + infinite scroll) ──
 

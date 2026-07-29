@@ -12,7 +12,8 @@ import {
 export const useInfiniteLeadFollowUps = (leadId: string) => {
   return useInfiniteQuery({
     queryKey: ['lead', leadId, 'followups'],
-    initialPageParam: 1, // ✅ REQUIRED IN v5
+    enabled: !!leadId,
+    initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchLeadFollowUps(leadId, pageParam),
     getNextPageParam: (lastPage) => {
@@ -30,10 +31,12 @@ export const useInfiniteMyFollowUps = (
     today_followups?: boolean;
     overdue_followups?: boolean;
     upcoming_followups?: boolean;
-  }
+  },
+  enabled = true
 ) => {
   return useInfiniteQuery({
     queryKey: ['my-followups', userUid, filters],
+    enabled: !!userUid && enabled,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchMyFollowUps(userUid, pageParam, 10, filters),

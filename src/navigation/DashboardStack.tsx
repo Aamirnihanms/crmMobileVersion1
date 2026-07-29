@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -16,7 +15,6 @@ import { useChatUnreadCount } from '@/src/queries/chat.query';
 import { useNotificationsUnreadCount } from '@/src/queries/notifications.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useAppTheme, spacing } from '@/src/theme';
-import { scheduleUnreadCountRefresh } from '../lib/unreadCount';
 import ChatThreadScreen from '../screens/chat/ChatThreadScreen';
 import MessagesListScreen from '../screens/chat/MessagesListScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
@@ -118,13 +116,6 @@ export default function DashboardStack() {
   useEffect(() => {
     setAvatarLoadFailed(false);
   }, [avatarUri]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!isLoggedIn) return;
-      scheduleUnreadCountRefresh(queryClient, { minIntervalMs: 3_000, debounceMs: 100 });
-    }, [isLoggedIn, queryClient])
-  );
 
   useNotificationWebSocket({
     token: token || '',

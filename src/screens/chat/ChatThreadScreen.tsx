@@ -2,7 +2,6 @@ import AppModal from '@/src/components/common/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import {
   RouteProp,
-  useIsFocused,
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
@@ -70,6 +69,9 @@ import type { DashboardStackParamList } from '@/src/navigation/DashboardStack';
 import {
   getChatMessagesQueryKey,
   useInfiniteChatMessages,
+  usePinnedMessages,
+  usePinMessage,
+  useUnpinMessage,
 } from '@/src/queries/chat.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useChatStore } from '@/src/store/chat.store';
@@ -1182,7 +1184,6 @@ export default function ChatThreadScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const navigation = useNavigation<NativeStackNavigationProp<DashboardStackParamList>>();
-  const isFocused = useIsFocused();
   const queryClient = useQueryClient();
   const { params } = useRoute<ChatThreadRouteProp>();
   const {
@@ -1274,6 +1275,8 @@ export default function ChatThreadScreen() {
   const [attachmentPopupVisible, setAttachmentPopupVisible] = useState(false);
   const [cameraPopupVisible, setCameraPopupVisible] = useState(false);
   const markedReadRef = useRef<Set<string>>(new Set());
+  const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingReadUidsRef = useRef<Set<string>>(new Set());
   const downloadDirectoryUriRef = useRef<string | null>(null);
   const activeDownloadTasksRef = useRef<Record<string, FileSystem.DownloadResumable | undefined>>({});
   const canceledDownloadIdsRef = useRef<Set<string>>(new Set());
@@ -1395,6 +1398,18 @@ export default function ChatThreadScreen() {
     });
   }, [chatId, queryClient]);
 
+  const [isMessageSearchActive, setIsMessageSearchActive] = useState(false);
+  const [messageSearchQuery, setMessageSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(messageSearchQuery);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [messageSearchQuery]);
+
   const {
     data: messagesQueryData,
     isLoading: messagesLoading,
@@ -1404,7 +1419,12 @@ export default function ChatThreadScreen() {
     fetchNextPage: fetchOlderMessages,
     refetch: refetchMessages,
     error: messagesQueryError,
-  } = useInfiniteChatMessages(chatId, 50, Boolean(chatId));
+  } = useInfiniteChatMessages(chatId, 50, debouncedSearchQuery, Boolean(chatId));
+
+  const [activePinnedIndex, setActivePinnedIndex] = useState(0);
+  const { data: pinnedMessages, refetch: refetchPinnedMessages } = usePinnedMessages(chatId, Boolean(chatId));
+  const pinMutation = usePinMessage(chatId);
+  const unpinMutation = useUnpinMessage(chatId);
 
   const queryMessages = useMemo(() => {
     if (!messagesQueryData?.pages?.length) return [];
@@ -1439,6 +1459,11 @@ export default function ChatThreadScreen() {
   }, [messagesQueryError]);
 
   useEffect(() => {
+    if (markReadTimerRef.current) {
+      clearTimeout(markReadTimerRef.current);
+      markReadTimerRef.current = null;
+    }
+    pendingReadUidsRef.current.clear();
     markedReadRef.current.clear();
     isAtBottomRef.current = true;
     hasInitiallyPositionedRef.current = false;
@@ -1448,12 +1473,6 @@ export default function ChatThreadScreen() {
     setPendingAttachments([]);
     setEditingMessage(null);
   }, [chatId]);
-
-  useEffect(() => {
-    if (isFocused && chatId) {
-      void refetchMessages();
-    }
-  }, [chatId, isFocused, refetchMessages]);
 
   const recordingRef = useRef<AudioRecorder | null>(null);
   useEffect(() => {
@@ -1581,15 +1600,27 @@ export default function ChatThreadScreen() {
 
     if (!unreadUids.length) return;
 
-    unreadUids.forEach((uid) => markedReadRef.current.add(uid));
-    void markMessagesRead(chatId, unreadUids)
-      .then(() => {
-        decrementUnreadCountInCache(queryClient, unreadUids.length);
-        scheduleUnreadCountRefresh(queryClient);
-      })
-      .catch(() => {
-        unreadUids.forEach((uid) => markedReadRef.current.delete(uid));
-      });
+    unreadUids.forEach((uid) => {
+      markedReadRef.current.add(uid);
+      pendingReadUidsRef.current.add(uid);
+    });
+
+    if (markReadTimerRef.current) {
+      clearTimeout(markReadTimerRef.current);
+    }
+    markReadTimerRef.current = setTimeout(() => {
+      const uids = [...pendingReadUidsRef.current];
+      pendingReadUidsRef.current.clear();
+      if (!uids.length) return;
+      void markMessagesRead(chatId, uids)
+        .then(() => {
+          decrementUnreadCountInCache(queryClient, uids.length);
+          scheduleUnreadCountRefresh(queryClient);
+        })
+        .catch(() => {
+          uids.forEach((uid) => markedReadRef.current.delete(uid));
+        });
+    }, 2000);
   }, [chatId, isMineMessage, isReadByMe, latestMessagePage, queryClient]);
 
   const upsertServerMessage = useCallback(
@@ -1661,16 +1692,6 @@ export default function ChatThreadScreen() {
         if (!rawMessage.uid) return;
 
         upsertServerMessage(rawMessage);
-
-        if (!isMineMessage(rawMessage)) {
-          try {
-            await markMessagesRead(chatId, [rawMessage.uid]);
-            scheduleUnreadCountRefresh(queryClient);
-          } catch {
-            // ignore
-          }
-        }
-
         return;
       }
 
@@ -2756,7 +2777,6 @@ export default function ChatThreadScreen() {
       );
 
       await deleteChatMessage(chatId, messageUid);
-      void refetchMessages();
     } catch {
       Alert.alert('Error', 'Failed to delete message');
       void refetchMessages();
@@ -2809,6 +2829,55 @@ export default function ChatThreadScreen() {
     if (!hasOlderMessages || fetchingOlderMessages) return;
     void fetchOlderMessages();
   }, [fetchOlderMessages, fetchingOlderMessages, hasOlderMessages]);
+
+  const searchTargetRef = useRef<string | null>(null);
+
+  const handleScrollToMessage = useCallback((messageUid: string, searchText?: string) => {
+    const index = chatListItems.findIndex(
+      (item) => !('isDateHeader' in item) && item.id === messageUid
+    );
+    if (index !== -1) {
+      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    } else if (searchText) {
+      searchTargetRef.current = messageUid;
+      setIsMessageSearchActive(true);
+      setMessageSearchQuery(searchText);
+    } else {
+      Alert.alert('Info', 'Message could not be found.');
+    }
+  }, [chatListItems]);
+
+  const handlePinnedPress = useCallback(() => {
+    if (!pinnedMessages || pinnedMessages.length === 0) return;
+    const activeIndex = activePinnedIndex >= pinnedMessages.length ? 0 : activePinnedIndex;
+    const currentPinned = pinnedMessages[activeIndex];
+    const summaryText = getMessageSummary(currentPinned);
+    handleScrollToMessage(currentPinned.uid, summaryText);
+    
+    if (pinnedMessages.length > 1) {
+      setActivePinnedIndex((prev) => (prev + 1) % pinnedMessages.length);
+    }
+  }, [pinnedMessages, activePinnedIndex, handleScrollToMessage]);
+
+  useEffect(() => {
+    if (pinnedMessages && activePinnedIndex >= pinnedMessages.length) {
+      setActivePinnedIndex(0);
+    }
+  }, [pinnedMessages, activePinnedIndex]);
+
+  useEffect(() => {
+    const targetUid = searchTargetRef.current;
+    if (!targetUid) return;
+
+    const index = chatListItems.findIndex(
+      (item) => !('isDateHeader' in item) && item.id === targetUid
+    );
+
+    if (index !== -1) {
+      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+      searchTargetRef.current = null;
+    }
+  }, [chatListItems]);
 
   const renderMessagesFooter = useCallback(
     () =>
@@ -2888,13 +2957,51 @@ export default function ChatThreadScreen() {
         </Pressable>
 
         <View style={styles.headerRight}>
-          {selectMode && (
+          {selectMode ? (
             <Pressable style={styles.headerIcon} onPress={handleCancelSelect}>
               <Ionicons name="close" size={22} color="#FFFFFF" />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={styles.headerIcon}
+              onPress={() => {
+                setIsMessageSearchActive((prev) => !prev);
+                if (isMessageSearchActive) {
+                  setMessageSearchQuery('');
+                  setDebouncedSearchQuery('');
+                }
+              }}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={isMessageSearchActive ? 'close' : 'search'}
+                size={22}
+                color="#FFFFFF"
+              />
             </Pressable>
           )}
         </View>
       </LinearGradient>
+
+      {isMessageSearchActive && (
+        <View style={styles.messageSearchBarContainer}>
+          <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchBarIcon} />
+          <TextInput
+            style={styles.messageSearchInput}
+            placeholder="Search messages..."
+            placeholderTextColor={colors.textMuted}
+            value={messageSearchQuery}
+            onChangeText={setMessageSearchQuery}
+            autoFocus
+            clearButtonMode="while-editing"
+          />
+          {messageSearchQuery.length > 0 && (
+            <Pressable onPress={() => setMessageSearchQuery('')} style={styles.searchClearBtn} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+            </Pressable>
+          )}
+        </View>
+      )}
 
       <AppModal statusBarTranslucent navigationBarTranslucent
         transparent
@@ -3159,6 +3266,42 @@ export default function ChatThreadScreen() {
                         />
                       </Pressable>
 
+                      {!isMessageDeleted(selectedMessage.raw) && (
+                        <>
+                          <View style={styles.iosMenuDivider} />
+                          <Pressable
+                            style={styles.iosMenuItem}
+                            onPress={() => {
+                              const isPinned = pinnedMessages?.some(
+                                (m) => m.uid === selectedMessage.id
+                              );
+                              if (isPinned) {
+                                unpinMutation.mutate(selectedMessage.id);
+                              } else {
+                                pinMutation.mutate(selectedMessage.id);
+                              }
+                              setMessageMenuVisible(false);
+                              setSelectedMessage(null);
+                            }}
+                          >
+                            <AppText style={styles.iosMenuItemText}>
+                              {pinnedMessages?.some((m) => m.uid === selectedMessage.id)
+                                ? 'Unpin Message'
+                                : 'Pin Message'}
+                            </AppText>
+                            <Ionicons
+                              name={
+                                pinnedMessages?.some((m) => m.uid === selectedMessage.id)
+                                  ? 'pin'
+                                  : 'pin-outline'
+                              }
+                              size={20}
+                              color={colors.textPrimary}
+                            />
+                          </Pressable>
+                        </>
+                      )}
+
                       {selectedMessage.mine && (
                         <>
                           {canEditSelectedMessage ? (
@@ -3328,6 +3471,61 @@ export default function ChatThreadScreen() {
         style={styles.messagesArea}
         resizeMode="cover"
       >
+        {pinnedMessages && pinnedMessages.length > 0 && (
+          <View style={styles.pinnedMessagesBanner}>
+            <Pressable
+              style={styles.pinnedMessagesContent}
+              onPress={handlePinnedPress}
+            >
+              <Ionicons
+                name="pin"
+                size={16}
+                color={colors.primary}
+                style={styles.pinnedIcon}
+              />
+              <View style={styles.pinnedTextContainer}>
+                <AppText
+                  variant="caption"
+                  color={colors.primary}
+                  style={styles.pinnedTitle}
+                >
+                  Pinned Message{pinnedMessages.length > 1 ? ` (${(activePinnedIndex >= pinnedMessages.length ? 0 : activePinnedIndex) + 1}/${pinnedMessages.length})` : ''}
+                </AppText>
+                <AppText
+                  style={styles.pinnedMessageText}
+                  color={colors.textPrimary}
+                  numberOfLines={1}
+                >
+                  {getMessageSummary(pinnedMessages[activePinnedIndex >= pinnedMessages.length ? 0 : activePinnedIndex])}
+                </AppText>
+              </View>
+            </Pressable>
+            <Pressable
+              style={styles.pinnedCloseBtn}
+              onPress={() => {
+                const currentMsg = pinnedMessages[activePinnedIndex >= pinnedMessages.length ? 0 : activePinnedIndex];
+                Alert.alert(
+                  'Unpin Message',
+                  'Are you sure you want to unpin this message?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Unpin',
+                      style: 'destructive',
+                      onPress: () => {
+                        unpinMutation.mutate(currentMsg.uid);
+                      },
+                    },
+                  ]
+                );
+              }}
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={16} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+        )}
+
         <FlashList
           ref={flatListRef}
           data={chatListItems}
@@ -3353,6 +3551,7 @@ export default function ChatThreadScreen() {
                 } else {
                   void refetchMessages();
                 }
+                void refetchPinnedMessages();
               }}
             />
           }
@@ -3624,6 +3823,74 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
+  },
+  messageSearchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSoft,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    alignSelf: 'stretch',
+  },
+  messageSearchInput: {
+    flex: 1,
+    height: 36,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    paddingHorizontal: spacing.md + 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  searchBarIcon: {
+    marginRight: spacing.sm,
+  },
+  searchClearBtn: {
+    padding: spacing.xs,
+    marginLeft: spacing.xs,
+  },
+  pinnedMessagesBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface + 'D0',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    alignSelf: 'stretch',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
+    zIndex: 10,
+  },
+  pinnedMessagesContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pinnedIcon: {
+    marginRight: spacing.sm,
+  },
+  pinnedTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  pinnedTitle: {
+    fontWeight: '700',
+    fontSize: 11,
+    marginBottom: 1,
+  },
+  pinnedMessageText: {
+    fontSize: 13,
+  },
+  pinnedCloseBtn: {
+    padding: spacing.xs,
+    marginLeft: spacing.sm,
   },
   messagesArea: {
     flex: 1,

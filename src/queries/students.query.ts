@@ -74,6 +74,7 @@ export const useStudentProfile = (id: string) => {
   return useQuery({
     queryKey: ['student', id],
     queryFn: () => fetchStudentProfile(id),
+    enabled: !!id,
   });
 };
 

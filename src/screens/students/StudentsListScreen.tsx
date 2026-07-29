@@ -27,7 +27,7 @@ import { useInfiniteStudents } from '@/src/queries/students.query';
 import { getUserIdFromToken } from '@/src/utils/token';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function StudentsListScreen() {
   const { colors } = useAppTheme();
@@ -62,7 +62,6 @@ export default function StudentsListScreen() {
     useNavigation<
       NativeStackNavigationProp<StudentsStackParamList>
     >();
-  const isFocused = useIsFocused();
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
   useEffect(() => {
@@ -99,12 +98,6 @@ export default function StudentsListScreen() {
     refetch: () => void;
     isRefetching: boolean;
   };
-
-  useEffect(() => {
-    if (isFocused) {
-      void refetch();
-    }
-  }, [isFocused, refetch]);
 
   const onRefresh = useCallback(async () => {
     try {

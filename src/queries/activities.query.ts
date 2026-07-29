@@ -4,6 +4,7 @@ import { fetchLeadActivities } from '../api/activities.api';
 export const useInfiniteLeadActivities = (leadId: string) => {
   return useInfiniteQuery({
     queryKey: ['lead', leadId, 'activities'],
+    enabled: !!leadId,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchLeadActivities(leadId, pageParam),

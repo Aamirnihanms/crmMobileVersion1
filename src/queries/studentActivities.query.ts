@@ -7,6 +7,7 @@ import {
 export const useInfiniteStudentActivities = (studentId: string) => {
   return useInfiniteQuery<StudentActivitiesPageResponse>({
     queryKey: ['student', studentId, 'activities'],
+    enabled: !!studentId,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchStudentActivities(studentId, pageParam as number),

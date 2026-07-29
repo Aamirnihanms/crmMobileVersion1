@@ -13,6 +13,7 @@ export default function LeadDetailsTabs({ leadId }: { leadId: string }) {
   return (
     <Tab.Navigator
       screenOptions={{
+        lazy: true,
         tabBarIndicatorStyle: {
           backgroundColor: colors.primary,
         },

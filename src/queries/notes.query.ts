@@ -11,6 +11,7 @@ import {
 export const useInfiniteLeadNotes = (leadId: string) => {
   return useInfiniteQuery({
     queryKey: ['lead', leadId, 'notes'],
+    enabled: !!leadId,
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchLeadNotes(leadId, pageParam),

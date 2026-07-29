@@ -84,6 +84,7 @@ export type ChatMessagesResponse = {
 export type ChatMessagesParams = {
   page?: number;
   page_size?: number;
+  search?: string;
 };
 
 export type SendMessagePayload = {
@@ -489,3 +490,38 @@ export const bulkSendMessage = async (payload: BulkSendMessagePayload) => {
   const res = await http.post('/chats/messages/bulk/', payload);
   return res.data;
 };
+
+export const pinMessage = async (chatUid: string, messageUid: string) => {
+  const res = await http.post(`/chats/${chatUid}/messages/${messageUid}/pin/`, {});
+  console.log('📌 API Response (pinMessage):', res.data);
+  return res.data;
+};
+
+export const unpinMessage = async (chatUid: string, messageUid: string) => {
+  const res = await http.delete(`/chats/${chatUid}/messages/${messageUid}/pin/`);
+  console.log('📌 API Response (unpinMessage):', res.data);
+  return res.data;
+};
+
+export const getPinnedMessages = async (chatUid: string): Promise<ApiMessage[]> => {
+  const res = await http.get(`/chats/${chatUid}/pinned-messages/`);
+  console.log('📌 API Response (getPinnedMessages):', res.data);
+  
+  if (res.data && Array.isArray(res.data.pinned_messages)) {
+    return res.data.pinned_messages.map((p: any) => p.message).filter(Boolean);
+  }
+  
+  if (Array.isArray(res.data)) {
+    return res.data;
+  }
+  if (res.data && Array.isArray(res.data.data)) {
+    return res.data.data;
+  }
+  if (res.data && typeof res.data === 'object') {
+    if (res.data.uid) {
+      return [res.data];
+    }
+  }
+  return [];
+};
+

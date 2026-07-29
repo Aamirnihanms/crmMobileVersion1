@@ -1,14 +1,22 @@
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, View, TextInput, TouchableOpacity } from 'react-native';
 
 import AppCard from '@/src/components/common/AppCard';
 import AppLoader from '@/src/components/common/AppLoader';
 import AppText from '@/src/components/common/AppText';
 import { useProfile } from '@/src/queries/profile.query';
+import { useLeadStatuses } from '@/src/queries/masters/leadStatuses.query';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useAppTheme, spacing } from '@/src/theme';
+import {
+  getCustomLeadFilters,
+  saveCustomLeadFilter,
+  deleteCustomLeadFilter,
+  type CustomLeadFilter,
+} from '@/src/utils/customFiltersStorage';
 
 function InfoRow({
   icon,
@@ -64,6 +72,116 @@ const getBranchLabel = (branch: { name?: string } | string | null) => {
   if (typeof branch === 'string') return branch;
   return branch.name || 'Not assigned';
 };
+
+function ProfileLeadFiltersConfig() {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  
+  const [filterName, setFilterName] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [savedFilters, setSavedFilters] = useState<CustomLeadFilter[]>([]);
+
+  // Fetch lead statuses list
+  const { data: statuses } = useLeadStatuses();
+
+  useEffect(() => {
+    loadFilters();
+  }, []);
+
+  const loadFilters = async () => {
+    const list = await getCustomLeadFilters();
+    setSavedFilters(list);
+  };
+
+  const handleSave = async () => {
+    if (!filterName.trim()) {
+      Alert.alert('Error', 'Please enter a filter name.');
+      return;
+    }
+    if (!selectedStatus) {
+      Alert.alert('Error', 'Please select a lead status.');
+      return;
+    }
+
+    const updatedList = await saveCustomLeadFilter(filterName.trim(), selectedStatus);
+    setSavedFilters(updatedList);
+    setFilterName('');
+    setSelectedStatus('');
+    Alert.alert('Success', 'Lead filter button saved!');
+  };
+
+  const handleDelete = async (id: string) => {
+    const updatedList = await deleteCustomLeadFilter(id);
+    setSavedFilters(updatedList);
+  };
+
+  return (
+    <AppCard style={styles.sectionCard}>
+      <AppText variant="title" style={styles.sectionTitle}>
+        Create Custom Filter Button
+      </AppText>
+      
+      <TextInput
+        style={styles.configInput}
+        placeholder="Button Name (e.g. Hot Leads)"
+        placeholderTextColor={colors.textMuted}
+        value={filterName}
+        onChangeText={setFilterName}
+      />
+
+      <AppText variant="caption" color={colors.textSecondary} style={{ marginBottom: spacing.xs }}>
+        Select Lead Status:
+      </AppText>
+      <View style={styles.statusRow}>
+        {statuses?.map((st) => {
+          const isActive = selectedStatus === String(st.id);
+          return (
+            <TouchableOpacity 
+              key={st.id} 
+              style={[styles.statusChip, isActive && styles.statusChipActive]}
+              onPress={() => setSelectedStatus(String(st.id))}
+            >
+              <AppText style={[styles.chipText, isActive && styles.chipTextActive]}>
+                {st.name}
+              </AppText>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <Pressable style={styles.saveFilterBtn} onPress={handleSave}>
+        <AppText variant="button" color={colors.surface}>
+          Save Filter Button
+        </AppText>
+      </Pressable>
+
+      <AppText variant="title" style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
+        Saved Buttons
+      </AppText>
+      {savedFilters.length === 0 ? (
+        <AppText color={colors.textMuted} variant="body">
+          No custom filter buttons saved yet.
+        </AppText>
+      ) : (
+        savedFilters.map((item) => (
+          <View key={item.id} style={styles.savedFilterRow}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="subtitle" style={{ fontWeight: '600' }}>
+                {item.name}
+              </AppText>
+              <AppText variant="caption" color={colors.textMuted}>
+                Status: {statuses?.find(st => String(st.id) === item.options.lead_status)?.name || `ID ${item.options.lead_status}`}
+              </AppText>
+            </View>
+            <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: spacing.xs }}>
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </TouchableOpacity>
+          </View>
+        ))
+      )}
+    </AppCard>
+  );
+}
 
 export default function ProfileScreen() {
   const { colors } = useAppTheme();
@@ -231,6 +349,8 @@ export default function ProfileScreen() {
         <InfoRow icon="calendar-outline" label="Created At" value={formatDateTime(user.created_at)} />
         <InfoRow icon="refresh-outline" label="Updated At" value={formatDateTime(user.updated_at)} />
       </AppCard>
+
+      <ProfileLeadFiltersConfig />
 
       <AppCard style={styles.logoutCard}>
         <Pressable
@@ -400,6 +520,60 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
+  },
+  configInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.sm,
+    borderRadius: 8,
+    marginBottom: spacing.md,
+    color: colors.textPrimary,
+    backgroundColor: colors.background,
+    fontSize: 14,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+  statusChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+  },
+  statusChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  chipText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  chipTextActive: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: 'bold',
+  },
+  saveFilterBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  savedFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   logoutCard: {
     padding: 0,

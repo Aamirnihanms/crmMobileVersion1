@@ -6,6 +6,8 @@ import {
   RefreshControl,
   StyleSheet,
   View,
+  ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import type { LeadsPageResponse } from '../../api/leads.api';
 
@@ -17,15 +19,67 @@ import AppText from '../../components/common/AppText';
 
 import { useInfiniteLeads } from '../../queries/leads.query';
 
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { LeadsStackParamList } from '../../navigation/LeadsStack';
 
 /* 🔥 ENTERPRISE FILTERS */
 import LeadsFilterModal from '../../components/leads/LeadsFilterModal';
 import { useLeadsFilters } from '../../hooks/useLeadsFilters';
+import { getCustomLeadFilters, type CustomLeadFilter } from '../../utils/customFiltersStorage';
 
 import { Ionicons } from '@expo/vector-icons';
+
+export function SavedFiltersRow({ 
+  onFilterToggle, 
+  activeFilterId 
+}: { 
+  onFilterToggle: (filter: CustomLeadFilter | null) => void;
+  activeFilterId: string | null;
+}) {
+  const { colors } = useAppTheme();
+  const styles = getStyles(colors);
+  const [customFilters, setCustomFilters] = useState<CustomLeadFilter[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchSaved = async () => {
+        const list = await getCustomLeadFilters();
+        setCustomFilters(list);
+      };
+      fetchSaved();
+    }, [])
+  );
+
+  if (customFilters.length === 0) return null;
+
+  return (
+    <View style={styles.savedFiltersWrapper}>
+      <AppText variant="caption" style={styles.savedFiltersTitle}>Saved Filters:</AppText>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.savedFiltersScroll}>
+        {customFilters.map(filter => {
+          const isActive = activeFilterId === filter.id;
+          return (
+            <TouchableOpacity
+              key={filter.id}
+              style={[styles.savedFilterChip, isActive && styles.savedFilterChipActive]}
+              onPress={() => {
+                onFilterToggle(isActive ? null : filter);
+              }}
+            >
+              <AppText style={[styles.savedFilterChipText, isActive && styles.savedFilterChipTextActive]}>
+                {filter.name}
+              </AppText>
+              {isActive && (
+                <Ionicons name="close-circle" size={14} color="#fff" style={{ marginLeft: 4 }} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
 
 export default function LeadsListScreen() {
   const { colors } = useAppTheme();
@@ -47,12 +101,42 @@ export default function LeadsListScreen() {
   const [openFilter, setOpenFilter] = useState(false);
   const activeCount = Object.values(filters).filter(Boolean).length;
 
+  const [activeCustomFilterId, setActiveCustomFilterId] = useState<string | null>(null);
+
+  const handleCustomFilterToggle = (customFilter: CustomLeadFilter | null) => {
+    if (!customFilter) {
+      setAllFilters({
+        ...filters,
+        lead_status: undefined,
+      });
+      setActiveCustomFilterId(null);
+    } else {
+      setAllFilters({
+        ...filters,
+        lead_status: customFilter.options.lead_status,
+      });
+      setActiveCustomFilterId(customFilter.id);
+    }
+  };
+
+  useEffect(() => {
+    if (activeCustomFilterId) {
+      const checkActive = async () => {
+        const list = await getCustomLeadFilters();
+        const activeFilter = list.find(f => f.id === activeCustomFilterId);
+        if (!activeFilter || activeFilter.options.lead_status !== filters.lead_status) {
+          setActiveCustomFilterId(null);
+        }
+      };
+      checkActive();
+    }
+  }, [filters.lead_status, activeCustomFilterId]);
+
   /* ---------------- NAVIGATION ---------------- */
   const navigation =
     useNavigation<
       NativeStackNavigationProp<LeadsStackParamList>
     >();
-  const isFocused = useIsFocused();
 
   /* ---------------- QUERY ---------------- */
   const {
@@ -82,12 +166,6 @@ export default function LeadsListScreen() {
 
   /* ---------------- STATES ---------------- */
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (isFocused) {
-      void refetch();
-    }
-  }, [isFocused, refetch]);
 
   const onRefresh = useCallback(async () => {
     try {
@@ -147,6 +225,11 @@ export default function LeadsListScreen() {
           </Pressable>
         </View>
       </View>
+
+      <SavedFiltersRow 
+        onFilterToggle={handleCustomFilterToggle} 
+        activeFilterId={activeCustomFilterId} 
+      />
 
       {isLoading ? (
         <View style={styles.center}>
@@ -282,6 +365,42 @@ const getStyles = (colors: any) => StyleSheet.create({
   searchInput: {
     height: 48,
     fontSize: 15,
+  },
+  savedFiltersWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    marginVertical: spacing.xs,
+  },
+  savedFiltersTitle: {
+    marginRight: spacing.sm,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  savedFiltersScroll: {
+    gap: spacing.xs,
+  },
+  savedFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primaryLight + '30',
+    backgroundColor: colors.primaryLight + '10',
+  },
+  savedFilterChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  savedFilterChipText: {
+    fontSize: 13,
+    color: colors.primary,
+  },
+  savedFilterChipTextActive: {
+    color: colors.surface,
+    fontWeight: 'bold',
   },
   list: {
     padding: spacing.lg,

@@ -20,7 +20,7 @@ import { useAppTheme, spacing } from '@/src/theme';
 import PaymentsFilterModal from '@/src/components/payments/PaymentsFilterModal';
 import { usePaymentsFilters } from '@/src/hooks/usePaymentsFilters';
 import { PaymentsStackParamList } from '@/src/navigation/PaymentsStack';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 function PaymentItem({
@@ -86,7 +86,6 @@ export default function PaymentsListScreen() {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
     const navigation = useNavigation<NativeStackNavigationProp<PaymentsStackParamList>>();
-    const isFocused = useIsFocused();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterVisible, setFilterVisible] = useState(false);
@@ -113,12 +112,6 @@ export default function PaymentsListScreen() {
         refetch,
         isRefetching,
     } = useInfinitePaymentTransactions(debouncedSearch, filters);
-
-    useEffect(() => {
-        if (isFocused) {
-            void refetch();
-        }
-    }, [isFocused, refetch]);
 
     const onRefresh = useCallback(async () => {
         try {

@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getAllActiveUsers,
   getChatBatches,
@@ -6,7 +6,11 @@ import {
   getChatStudents,
   getChatUnreadCount,
   getMessage,
+  pinMessage,
+  unpinMessage,
+  getPinnedMessages,
   type ChatListParams,
+  type ChatMessagesParams,
   type ChatType,
 } from '../api/chat.api';
 import { CHAT_UNREAD_COUNT_QUERY_KEY } from '../lib/unreadCount';
@@ -79,8 +83,9 @@ type ChatRecipientsOptions = {
 
 export const getChatMessagesQueryKey = (
   chatUid: string,
-  pageSize = 50
-) => ['chat-messages', chatUid, pageSize] as const;
+  pageSize = 50,
+  search = ''
+) => ['chat-messages', chatUid, pageSize, search] as const;
 
 export const useInfiniteChatUsers = ({
   search,
@@ -174,21 +179,56 @@ export const useInfiniteChatBatches = ({
 export const useInfiniteChatMessages = (
   chatUid: string,
   pageSize = 50,
+  search = '',
   enabled = true
 ) => {
   return useInfiniteQuery({
-    queryKey: getChatMessagesQueryKey(chatUid, pageSize),
+    queryKey: getChatMessagesQueryKey(chatUid, pageSize, search),
     initialPageParam: 1,
     enabled: enabled && Boolean(chatUid),
-    queryFn: ({ pageParam }) =>
-      getMessage(chatUid, {
+    queryFn: ({ pageParam }) => {
+      const params: ChatMessagesParams = {
         page: pageParam,
         page_size: pageSize,
-      }),
+      };
+      if (search?.trim()) {
+        params.search = search.trim();
+      }
+      return getMessage(chatUid, params);
+    },
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage?.has_next) return undefined;
       const currentPage = Number(lastPage.page ?? allPages.length);
       return Number.isFinite(currentPage) ? currentPage + 1 : undefined;
+    },
+  });
+};
+
+export const usePinnedMessages = (chatUid: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['pinned-messages', chatUid],
+    queryFn: () => getPinnedMessages(chatUid),
+    enabled: enabled && Boolean(chatUid),
+    staleTime: 30 * 1000,
+  });
+};
+
+export const usePinMessage = (chatUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (messageUid: string) => pinMessage(chatUid, messageUid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pinned-messages', chatUid] });
+    },
+  });
+};
+
+export const useUnpinMessage = (chatUid: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (messageUid: string) => unpinMessage(chatUid, messageUid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pinned-messages', chatUid] });
     },
   });
 };

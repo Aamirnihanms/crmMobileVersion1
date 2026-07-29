@@ -15,7 +15,7 @@ import AppInput from '../../components/common/AppInput';
 import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
 
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CompaniesPageResponse } from '../../api/jobs.api';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
@@ -33,8 +33,6 @@ export default function CompaniesListScreen() {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(timer);
   }, [search]);
-
-  const isFocused = useIsFocused();
 
   /* ---------------- QUERY ---------------- */
   const {
@@ -58,10 +56,6 @@ export default function CompaniesListScreen() {
   };
 
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (isFocused) void refetch();
-  }, [isFocused, refetch]);
 
   const onRefresh = useCallback(async () => {
     try {

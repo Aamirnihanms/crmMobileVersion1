@@ -15,7 +15,7 @@ import AppLoader from '../../components/common/AppLoader';
 import AppText from '../../components/common/AppText';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
 
@@ -42,7 +42,6 @@ export default function JobsListScreen() {
     useNavigation<
       NativeStackNavigationProp<MoreStackParamList>
     >();
-  const isFocused = useIsFocused();
 
   /* ---------------- QUERY ---------------- */
   const {
@@ -67,12 +66,6 @@ export default function JobsListScreen() {
 
   /* ---------------- STATES ---------------- */
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (isFocused) {
-      void refetch();
-    }
-  }, [isFocused, refetch]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
