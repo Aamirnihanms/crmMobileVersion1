@@ -87,3 +87,8 @@ export const resetForgotPassword = async (payload: ForgotPasswordResetPayload) =
   const res = await http.post('/auth/forgot-password/reset-password/', payload);
   return res.data;
 };
+
+export const logout = async (refreshToken?: string | null): Promise<void> => {
+  await http.post('/auth/logout/', { refresh: refreshToken ?? null }, { silent: true } as any);
+};
+

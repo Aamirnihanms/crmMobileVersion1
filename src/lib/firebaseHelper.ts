@@ -1,4 +1,4 @@
-import { AuthorizationStatus, getMessaging, getToken, requestPermission } from '@react-native-firebase/messaging';
+import { AuthorizationStatus, getMessaging, getToken, requestPermission, deleteToken } from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
 import { PermissionsAndroid, Platform } from 'react-native';
 
@@ -84,3 +84,14 @@ export async function getFCMToken() {
   }
   return null;
 }
+
+export async function deleteFCMToken() {
+  try {
+    const messaging = getMessaging();
+    await deleteToken(messaging);
+    console.log('FCM Token deleted successfully from device.');
+  } catch (error) {
+    console.log('Error deleting FCM Token:', error);
+  }
+}
+

@@ -14,7 +14,7 @@ import { getFCMToken } from '../../lib/firebaseHelper';
 import { useLogin } from '../../queries/auth.query';
 import { useAuthStore } from '../../store/auth.store';
 import { mapLoginUserToStoredUser } from '../../utils/authUser';
-import { saveAuthUser, saveToken } from '../../utils/token';
+import { saveAuthUser, saveToken, saveRefreshToken } from '../../utils/token';
 
 import { AuthStackParamList } from '../../navigation/AuthStack';
 
@@ -58,6 +58,7 @@ export default function LoginScreen() {
         onSuccess: async (data) => {
           const normalizedUser = mapLoginUserToStoredUser(data.user);
           await saveToken(data.access);
+          await saveRefreshToken(data.refresh);
           await saveAuthUser(normalizedUser);
           useAuthStore.getState().setToken(data.access);
           setUser(normalizedUser);

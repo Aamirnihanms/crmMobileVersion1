@@ -58,7 +58,9 @@ http.interceptors.response.use(
     // Handle session expiration
     if (status === 401 || data?.status === 'expired' || data?.error?.includes('expired')) {
       console.warn('⚠️ Session expired. Logging out...');
-      await useAuthStore.getState().logout();
+      if (!error.config?.url?.includes('/auth/logout/')) {
+        await useAuthStore.getState().logout(true);
+      }
       // Only show alert if it's not a background fetch or if you want it everywhere
       // Usually, 401 logout is enough, but an alert can clarify why.
       return Promise.reject(error);

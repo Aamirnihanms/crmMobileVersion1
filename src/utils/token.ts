@@ -3,6 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 
 
 const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 const AUTH_USER_KEY = 'auth_user';
 
 export type StoredAuthUser = {
@@ -30,6 +31,19 @@ export const getToken = async () => {
 export const deleteToken = async () => {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 };
+
+export const saveRefreshToken = async (token: string) => {
+  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+};
+
+export const getRefreshToken = async () => {
+  return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+};
+
+export const deleteRefreshToken = async () => {
+  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+};
+
 
 export const saveAuthUser = async (user: StoredAuthUser | null) => {
   if (!user) {
