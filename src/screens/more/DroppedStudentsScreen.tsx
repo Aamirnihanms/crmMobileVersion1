@@ -96,7 +96,7 @@ export default function DroppedStudentsScreen() {
                     </View>
                     <AppText variant="h3" style={styles.emptyText}>No Students Found</AppText>
                     <AppText color={colors.textMuted} style={styles.emptySubtext}>
-                        We couldn't find any dropped students.
+                        {"We couldn't find any dropped students."}
                     </AppText>
                 </View>
             ) : (

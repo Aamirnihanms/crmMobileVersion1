@@ -194,4 +194,6 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
 });
 
+DroppedStudentCard.displayName = 'DroppedStudentCard';
+
 export default DroppedStudentCard;

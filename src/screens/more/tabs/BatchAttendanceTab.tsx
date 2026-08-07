@@ -152,7 +152,7 @@ export default function BatchAttendanceTab({ batchUid }: BatchAttendanceTabProps
                             </View>
                             <AppText variant="h3" style={styles.emptyText}>No Attendance Found</AppText>
                             <AppText color={colors.textMuted} style={styles.emptySubtext}>
-                                We couldn't find any attendance logs for this batch or search.
+                                {"We couldn't find any attendance logs for this batch or search."}
                             </AppText>
                         </View>
                     ) : null

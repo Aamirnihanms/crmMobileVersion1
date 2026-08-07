@@ -20,4 +20,13 @@ export const queryClient = new QueryClient({
       }
     }
   }),
+  mutationCache: new MutationCache({
+    onError: (error: any, _variables, _context, mutation) => {
+      // If the mutation has a local onError, it's handling the error itself!
+      // This prevents double error alerts.
+      if (mutation.options.onError) return;
+      
+      Alert.alert('Action Failed', getErrorMessage(error));
+    },
+  }),
 });

@@ -199,6 +199,36 @@ export function useChatWebSocket({
     joinedChatsRef.current.delete(chatUid);
   }, []);
 
+  const sendMessage = useCallback(
+    (
+      chatUid: string,
+      payload: {
+        content: string;
+        message_type?: string;
+        reply_to?: string | null;
+        temp_id?: string;
+        [key: string]: unknown;
+      }
+    ): boolean => {
+      if (!chatUid) return false;
+      const socket = wsRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+
+      socket.send(
+        JSON.stringify({
+          action: 'send_message',
+          chat_uid: chatUid,
+          message_type: 'text',
+          reply_to: null,
+          client_id: payload.temp_id,
+          ...payload,
+        })
+      );
+      return true;
+    },
+    []
+  );
+
   useEffect(() => {
     if (!enabled || !token) {
       disconnect();
@@ -215,5 +245,6 @@ export function useChatWebSocket({
     lastError,
     joinChat,
     leaveChat,
+    sendMessage,
   };
 }

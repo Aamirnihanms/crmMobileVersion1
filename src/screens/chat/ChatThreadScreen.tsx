@@ -314,11 +314,9 @@ const shouldShowMessageText = (message: ThreadMessage) => {
   const text = message.text.trim();
   if (!text) return false;
 
-  const isUrl = text.startsWith('http://') || text.startsWith('https://');
-
   if (message.messageType === 'image') {
     const normalized = text.toLowerCase();
-    return !isUrl && normalized !== 'image' && normalized !== 'image attachment';
+    return normalized !== 'image' && normalized !== 'image attachment' && text !== message.fileUrl;
   }
 
   if (message.messageType === 'audio') {
@@ -329,7 +327,7 @@ const shouldShowMessageText = (message: ThreadMessage) => {
     const normalized = text.toLowerCase();
     const fileName = (message.fileName || '').trim().toLowerCase();
     if (normalized === fileName) return false;
-    return !isUrl && normalized !== 'attachment' && normalized !== 'file attachment';
+    return normalized !== 'attachment' && normalized !== 'file attachment' && text !== message.fileUrl;
   }
 
   return true;
@@ -1009,9 +1007,9 @@ const MessageRow = memo(function MessageRow({
                       <Ionicons
                         name="expand-outline"
                         size={13}
-                        color={colors.surface}
+                        color="#FFFFFF"
                       />
-                      <AppText variant="caption" color={colors.surface}>
+                      <AppText variant="caption" color="#FFFFFF">
                         Tap to view
                       </AppText>
                     </View>
@@ -1238,6 +1236,14 @@ export default function ChatThreadScreen() {
   const [readInfoVisible, setReadInfoVisible] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
+  const pendingWsSentRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  useEffect(() => {
+    return () => {
+      pendingWsSentRef.current.forEach((timer) => clearTimeout(timer));
+      pendingWsSentRef.current.clear();
+    };
+  }, []);
 
   const [menuScale] = useState(() => new Animated.Value(0.85));
   const [menuOpacity] = useState(() => new Animated.Value(0));
@@ -1472,6 +1478,12 @@ export default function ChatThreadScreen() {
     setReplyingTo(null);
     setPendingAttachments([]);
     setEditingMessage(null);
+
+    return () => {
+      if (markReadTimerRef.current) {
+        clearTimeout(markReadTimerRef.current);
+      }
+    };
   }, [chatId]);
 
   const recordingRef = useRef<AudioRecorder | null>(null);
@@ -1486,6 +1498,7 @@ export default function ChatThreadScreen() {
       }
       if (recordingRef.current) {
         recordingRef.current.stop().catch(() => { });
+        void setAudioModeAsync({ allowsRecording: false }).catch(() => { });
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1641,6 +1654,11 @@ export default function ChatThreadScreen() {
 
         if (matchedOptimisticIndex !== -1) {
           const optimistic = next[matchedOptimisticIndex];
+          const matchedTempId = options?.tempId || optimistic.clientId || optimistic.id;
+          if (matchedTempId && pendingWsSentRef.current.has(matchedTempId)) {
+            clearTimeout(pendingWsSentRef.current.get(matchedTempId));
+            pendingWsSentRef.current.delete(matchedTempId);
+          }
           next[matchedOptimisticIndex] = {
             ...mapped,
             // Keep key stable to avoid remount flicker after confirmation
@@ -1811,6 +1829,7 @@ export default function ChatThreadScreen() {
     isConnected: wsConnected,
     joinChat,
     leaveChat,
+    sendMessage: sendWsMessage,
   } = useChatWebSocket({
     token,
     enabled: Boolean(token),
@@ -1868,57 +1887,82 @@ export default function ChatThreadScreen() {
     setInput('');
     setReplyingTo(null);
 
-    try {
-      setSending(true);
-      const payload: Record<string, unknown> = {
-        content: text,
-        message_type: 'text',
-      };
-      if (optimistic.replyPreview?.id) {
-        payload.reply_to = optimistic.replyPreview.id;
-      }
+    const payload = {
+      content: text,
+      message_type: 'text',
+      temp_id: tempId,
+      reply_to: optimistic.replyPreview?.id || null,
+    };
 
-      const response = await createMessage(chatId, payload);
+    const executeHttpFallback = async () => {
+      try {
+        setSending(true);
+        const response = await createMessage(chatId, payload, { silent: true } as any);
+        const confirmed = response?.message as ApiMessage | undefined;
 
-      const confirmed = response?.message as ApiMessage | undefined;
+        if (confirmed?.uid) {
+          syncMessageToCache(confirmed);
+          upsertServerMessage(confirmed, { tempId });
+        } else {
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === tempId
+                ? { ...message, status: 'delivered' }
+                : message
+            )
+          );
+        }
+      } catch (err: any) {
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          'Failed to send message';
 
-      if (confirmed?.uid) {
-        syncMessageToCache(confirmed);
-        upsertServerMessage(confirmed, { tempId });
-      } else {
         setMessages((prev) =>
-          prev.map((message) =>
-            message.id === tempId
-              ? { ...message, status: 'delivered' }
-              : message
+          prev.map((item) =>
+            item.id === tempId ? { ...item, status: 'failed' } : item
           )
         );
+        Alert.alert('Send failed', message);
+      } finally {
+        setSending(false);
       }
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ??
-        err?.response?.data?.message ??
-        err?.message ??
-        'Failed to send message';
+    };
 
-      setMessages((prev) =>
-        prev.map((item) =>
-          item.id === tempId ? { ...item, status: 'failed' } : item
-        )
-      );
-      Alert.alert('Send failed', message);
-    } finally {
-      setSending(false);
+    // Attempt WS-First transmission if connected
+    if (wsConnected) {
+      const isSent = sendWsMessage(chatId, payload);
+      if (isSent) {
+        // Start a 4-second fallback timer if server ACK is unreceived
+        const timer = setTimeout(() => {
+          pendingWsSentRef.current.delete(tempId);
+          setMessages((prev) => {
+            const currentMsg = prev.find((m) => m.id === tempId || m.clientId === tempId);
+            if (currentMsg && currentMsg.status === 'sending') {
+              void executeHttpFallback();
+            }
+            return prev;
+          });
+        }, 4000);
+        pendingWsSentRef.current.set(tempId, timer);
+        return;
+      }
     }
+
+    // Fallback to HTTP REST if WS is disconnected or frame emission failed
+    await executeHttpFallback();
   }, [
     chatId,
     input,
     name,
     replyComposerText,
     replyingTo,
+    sendWsMessage,
     sending,
     syncMessageToCache,
     upsertServerMessage,
+    wsConnected,
   ]);
 
   const handlePickDocument = useCallback(async () => {
@@ -2311,7 +2355,7 @@ export default function ChatThreadScreen() {
         payload.reply_to = optimistic.replyPreview.id;
       }
 
-      const response = await createMessage(chatId, payload);
+      const response = await createMessage(chatId, payload, { silent: true } as any);
       const confirmed = response?.message as ApiMessage | undefined;
 
       if (confirmed?.uid) {
@@ -4000,7 +4044,8 @@ const getStyles = (colors: any) => StyleSheet.create({
   imageBubbleWrap: {
     borderRadius: 14,
     overflow: 'hidden',
-    width: 240,
+    width: '100%',
+    minWidth: 240,
     backgroundColor: colors.border,
     marginBottom: 4,
   },
@@ -4032,7 +4077,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   imageBubble: {
     width: '100%',
-    height: 240,
+    aspectRatio: 1,
     backgroundColor: colors.border,
   },
   imagePreviewHint: {

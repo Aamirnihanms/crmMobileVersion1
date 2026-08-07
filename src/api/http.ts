@@ -7,7 +7,7 @@ import { getErrorMessage } from '../utils/error';
 
 export const http = axios.create({
   baseURL: API_CONFIG.BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -66,14 +66,11 @@ http.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Global Error Alert
-    // We skip alerts for certain conditions if needed
+    // Global Error Alert (Handled by React Query's MutationCache now)
+    // We skip alerts here to prevent duplicate error popups.
     const isSilent = error.config?.silent; 
     const isGet = error.config?.method?.toLowerCase() === 'get';
     
-    if (!isSilent && !isGet) {
-      Alert.alert('Action Failed', errorMessage);
-    }
 
     console.error(
       `❌ API Error [${error.config?.method?.toUpperCase()} ${error.config?.url}]:`,

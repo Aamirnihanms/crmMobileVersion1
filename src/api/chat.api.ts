@@ -291,17 +291,19 @@ export const getChatBatches = async (
 
 export const createMessage = async (
   chatUid: string,
-  data: SendMessagePayload | Record<string, unknown>
+  data: SendMessagePayload | Record<string, unknown>,
+  config?: any
 ) => {
-  const res = await http.post(`/chats/${chatUid}/messages/send/`, data);
+  const res = await http.post(`/chats/${chatUid}/messages/send/`, data, config);
   return res.data;
 };
 
 export const createMessageMultipart = async (
   chatUid: string,
-  formData: FormData
+  formData: FormData,
+  config?: any
 ) => {
-  const res = await http.post(`/chats/${chatUid}/messages/send/`, formData);
+  const res = await http.post(`/chats/${chatUid}/messages/send/`, formData, config);
   return res.data;
 };
 
@@ -381,9 +383,11 @@ export const markMessagesRead = async (
   chatUid: string,
   messageUids: string[]
 ) => {
-  const res = await http.post(`/chats/${chatUid}/messages/mark-read/`, {
-    message_uids: messageUids || [],
-  });
+  const res = await http.post(
+    `/chats/${chatUid}/messages/mark-read/`,
+    { message_uids: messageUids || [] },
+    { silent: true } as any
+  );
   return res.data;
 };
 

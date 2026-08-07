@@ -1,27 +1,37 @@
 import { useAppTheme, spacing } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import AppCard from '../common/AppCard';
 import AppText from '../common/AppText';
+import ImagePreviewModal from '../common/ImagePreviewModal';
 
 const StudentCard = memo(({ student, onPress }: any) => {
   const { colors } = useAppTheme();
   const styles = getStyles(colors);
   const batch = student.batches?.[0]; // show latest batch
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   return (
     <Pressable onPress={onPress}>
       <AppCard style={styles.card}>
         <View style={styles.header}>
           {student.profile_pic ? (
-            <Image
-              source={{ uri: student.profile_pic }}
-              style={styles.avatar}
-              contentFit="cover"
-              transition={200}
-            />
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation();
+                setPreviewVisible(true);
+              }}
+              style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+            >
+              <Image
+                source={{ uri: student.profile_pic }}
+                style={styles.avatar}
+                contentFit="cover"
+                transition={200}
+              />
+            </Pressable>
           ) : (
             <View style={styles.avatarPlaceholder}>
               <AppText variant="subtitle" color={colors.primary}>
@@ -90,6 +100,12 @@ const StudentCard = memo(({ student, onPress }: any) => {
           )}
         </View>
       </AppCard>
+      <ImagePreviewModal
+        visible={previewVisible}
+        imageUrl={student.profile_pic}
+        onClose={() => setPreviewVisible(false)}
+        title={student.full_name}
+      />
     </Pressable>
   );
 }, (prev, next) => {

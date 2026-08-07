@@ -88,7 +88,7 @@ export default function NotificationListScreen() {
                     No notifications yet
                 </AppText>
                 <AppText variant="caption" color={colors.textMuted} style={{ textAlign: 'center', marginTop: 8 }}>
-                    We'll notify you when something important happens.
+                    {"We'll notify you when something important happens."}
                 </AppText>
             </View>
         );

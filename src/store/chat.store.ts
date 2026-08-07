@@ -105,7 +105,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 payload.reply_to = upload.replyToId;
             }
 
-            const response = await createMessage(upload.chatId, payload);
+            const response = await createMessage(upload.chatId, payload, { silent: true } as any);
             const confirmed = response?.message as ApiMessage | undefined;
 
             if (confirmed?.uid) {

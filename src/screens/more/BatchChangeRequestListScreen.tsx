@@ -156,7 +156,7 @@ export default function BatchChangeRequestListScreen() {
                     </View>
                     <AppText variant="h3" style={styles.emptyText}>No Requests Found</AppText>
                     <AppText color={colors.textMuted} style={styles.emptySubtext}>
-                        We couldn't find any batch change requests.
+                        {"We couldn't find any batch change requests."}
                     </AppText>
                 </View>
             ) : (

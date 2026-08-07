@@ -154,7 +154,7 @@ export default function BatchListScreen() {
                     </View>
                     <AppText variant="h3" style={styles.emptyText}>No Batches Found</AppText>
                     <AppText color={colors.textMuted} style={styles.emptySubtext}>
-                        We couldn't find any batches matching your criteria.
+                        {"We couldn't find any batches matching your criteria."}
                     </AppText>
                 </View>
             ) : (

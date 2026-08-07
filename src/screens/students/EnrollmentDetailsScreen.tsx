@@ -707,7 +707,7 @@ export default function EnrollmentDetailsScreen() {
                   <Ionicons name="ribbon-outline" size={18} color={colors.primary} />
                   <View>
                     <AppText variant="body" style={{ fontWeight: '700' }}>Certificate Data Collected</AppText>
-                    <AppText variant="caption" color={colors.textMuted}>Has student's certificate data been gathered?</AppText>
+                    <AppText variant="caption" color={colors.textMuted}>{"Has student's certificate data been gathered?"}</AppText>
                   </View>
                 </View>
                 <TouchableOpacity

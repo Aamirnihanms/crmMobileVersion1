@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useEnableDisableStudent } from '@/src/queries/students.query';
+import ImagePreviewModal from '../common/ImagePreviewModal';
 
 export default function StudentHeader({ student }: any) {
   const { colors } = useAppTheme();
@@ -31,6 +32,7 @@ export default function StudentHeader({ student }: any) {
     student.user?.is_active ?? true
   );
   const enableDisableMutation = useEnableDisableStudent();
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   const handleToggle = (newValue: boolean) => {
     Alert.alert(
@@ -72,12 +74,17 @@ export default function StudentHeader({ student }: any) {
         {/* Avatar */}
         <View style={styles.avatarWrap}>
           {profilePic ? (
-            <Image
-              source={{ uri: profilePic }}
-              style={styles.avatar}
-              contentFit="cover"
-              transition={200}
-            />
+            <Pressable
+              onPress={() => setPreviewVisible(true)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+            >
+              <Image
+                source={{ uri: profilePic }}
+                style={styles.avatar}
+                contentFit="cover"
+                transition={200}
+              />
+            </Pressable>
           ) : (
             <View style={[styles.avatar, styles.avatarFallback]}>
               <AppText style={styles.initials}>{initials}</AppText>
@@ -211,6 +218,12 @@ export default function StudentHeader({ student }: any) {
           </AppText>
         </Pressable>
       </View>
+      <ImagePreviewModal
+        visible={previewVisible}
+        imageUrl={profilePic}
+        onClose={() => setPreviewVisible(false)}
+        title={student.full_name}
+      />
     </View>
   );
 }

@@ -121,6 +121,18 @@ export default function AudioPlayer({ uri, mine, progress }: AudioPlayerProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uri]);
 
+    useEffect(() => {
+        return () => {
+            if (player) {
+                try {
+                    player.pause();
+                } catch (e) {
+                    console.warn('Failed to pause player on unmount:', e);
+                }
+            }
+        };
+    }, [player]);
+
     const togglePlayPause = async () => {
         if (error) {
             loadAudio();

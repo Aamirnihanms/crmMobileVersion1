@@ -267,7 +267,7 @@ export default function FollowUpsScreen() {
                         <View style={styles.emptyContainer}>
                             <Ionicons name="calendar-outline" size={64} color={colors.surfaceSubtle} />
                             <AppText variant="h3" style={styles.emptyText}>No {activeTab} for {activeSubTab}</AppText>
-                            <AppText variant="body" color={colors.textMuted}>You're all caught up!</AppText>
+                            <AppText variant="body" color={colors.textMuted}>{"You're all caught up!"}</AppText>
                         </View>
                     }
                     ListFooterComponent={isFetchingNextPage ? <AppLoader /> : <View style={{ height: 20 }} />}

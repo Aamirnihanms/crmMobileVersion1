@@ -401,7 +401,7 @@ export default function JobApplicationsScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <AppText variant="h3" style={{ fontWeight: '700', marginBottom: spacing.lg }}>
-              Move "{movingApplication?.applicant_name}"
+              {"Move \"" + movingApplication?.applicant_name + "\""}
             </AppText>
             <AppText variant="caption" color={colors.textMuted} style={{ marginBottom: spacing.md }}>
               Select target stage:
